@@ -3,13 +3,13 @@
  * Composes vendored OSS components with live API data. No stubs.
  */
 import { useState, useEffect } from "react";
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { FiveHitLogo } from "@/components/5h1t-logo";
 import { useApi, toTraderSummaries, type Connectome, type Governance, type FlyaiPoint, type Treasury } from "@/lib/5h1t-api";
 import { ConnectomeViewer3D, type BrainData } from "@/components/connectome-viewer-3d";
 import LeaderboardTable from "@/vendor/nofyai/components/competition/LeaderboardTable";
 
-const API_BASE = import.meta.env.VITE_SHIT_UNITS_API_ENDPOINT ?? "https://api-worker.YOUR-SUBDOMAIN.workers.dev";
+const API_BASE = import.meta.env.VITE_SHIT_UNITS_API_ENDPOINT ?? "https://api-worker.hardwoodstablecoin.workers.dev";
 
 const SPECIES_EMOJI: Record<string, string> = {
   celegans: "🪱", drosophila: "🪰", human: "🧠", macaque: "🐒",
@@ -25,7 +25,19 @@ export function FiveHitOverviewPage() {
   const { data: treasury } = useApi<Treasury>("/api/treasury", 30000);
 
   const traders = connectomes ? toTraderSummaries(connectomes, governance) : [];
-  const flyaiChart = flyai ? flyai.slice().reverse().map(p => ({ time: new Date(p.updated_at * 1000).toLocaleTimeString(), price: p.price_usd })) : [];
+  // Build chart data — use FLYAI balance (treasury value) as the primary series
+  // since price_usd is often 0 (price API hasn't synced). Only include price
+  // line when we actually have non-zero price data.
+  const flyaiChart = flyai
+    ? flyai.slice().reverse()
+        .filter(p => p.balance > 0) // skip any zero-balance outliers
+        .map(p => ({
+          time: new Date(p.updated_at * 1000).toLocaleTimeString(),
+          balance: p.balance,
+          price: p.price_usd > 0 ? p.price_usd : null,
+        }))
+    : [];
+  const hasPriceData = flyaiChart.some(p => p.price !== null);
   const totalNeurons = connectomes?.reduce((s, c) => s + c.n_neurons, 0) ?? 0;
   const totalSynapses = connectomes?.reduce((s, c) => s + c.n_synapses, 0) ?? 0;
 
@@ -93,20 +105,34 @@ export function FiveHitOverviewPage() {
         {/* Treasury + Governance */}
         <div className="grid md:grid-cols-2 gap-6 mb-8">
           <section>
-            <h2 className="font-mono text-sm uppercase tracking-wider text-gray-400 mb-3">FLYAI Reserve Price</h2>
+            <h2 className="font-mono text-sm uppercase tracking-wider text-gray-400 mb-3">FLYAI Treasury</h2>
             <div className="rounded-xl border border-gray-800 bg-[#0a0d12] p-4">
               {flyaiChart.length > 0 ? (
-                <ResponsiveContainer width="100%" height={200}>
-                  <AreaChart data={flyaiChart}>
-                    <defs><linearGradient id="flyaiGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#6cf08a" stopOpacity={0.4} /><stop offset="100%" stopColor="#6cf08a" stopOpacity={0} /></linearGradient></defs>
-                    <XAxis dataKey="time" tick={{ fill: "#8793a0", fontSize: 10 }} fontFamily="monospace" />
-                    <YAxis tick={{ fill: "#8793a0", fontSize: 10 }} fontFamily="monospace" domain={["auto", "auto"]} />
-                    <Tooltip contentStyle={{ background: "#0a0d12", border: "1px solid #333", borderRadius: "8px" }} labelStyle={{ color: "#8793a0" }} />
-                    <Area type="monotone" dataKey="price" stroke="#6cf08a" strokeWidth={2} fill="url(#flyaiGrad)" name="FLYAI USD" />
-                    <ReferenceLine y={flyaiChart[0]?.price ?? 0} stroke="#444" strokeDasharray="3 3" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : <EmptyState text="Loading FLYAI history..." />}
+                <>
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <div className="font-mono text-xs uppercase text-gray-500">FLYAI Balance</div>
+                      <div className="font-mono text-lg text-emerald-400">{treasury?.flyai_balance?.toFixed(6) ?? "—"} FLYAI</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-mono text-xs uppercase text-gray-500">Floor Price</div>
+                      <div className="font-mono text-lg text-gray-300">${treasury?.shit_floor_price?.toFixed(7) ?? "0"}</div>
+                    </div>
+                  </div>
+                  <ResponsiveContainer width="100%" height={180}>
+                    <AreaChart data={flyaiChart}>
+                      <defs><linearGradient id="flyaiGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#6cf08a" stopOpacity={0.4} /><stop offset="100%" stopColor="#6cf08a" stopOpacity={0} /></linearGradient></defs>
+                      <XAxis dataKey="time" tick={{ fill: "#8793a0", fontSize: 10 }} fontFamily="monospace" />
+                      <YAxis tick={{ fill: "#8793a0", fontSize: 10 }} fontFamily="monospace" domain={["auto", "auto"]} />
+                      <Tooltip contentStyle={{ background: "#0a0d12", border: "1px solid #333", borderRadius: "8px" }} labelStyle={{ color: "#8793a0" }} />
+                      <Area type="monotone" dataKey="balance" stroke="#6cf08a" strokeWidth={2} fill="url(#flyaiGrad)" name="FLYAI Balance" />
+                      {hasPriceData && (
+                        <Area type="monotone" dataKey="price" stroke="#3ed8ff" strokeWidth={1} fill="none" name="Price USD" connectNulls />
+                      )}
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </>
+              ) : <EmptyState text="Loading FLYAI treasury data..." />}
             </div>
           </section>
           <section>

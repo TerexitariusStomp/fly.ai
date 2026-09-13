@@ -28,7 +28,8 @@ export default function LeaderboardTable({ traders }: LeaderboardTableProps) {
     return colors[aiModel] || 'bg-gray-500/10 text-gray-400 border-gray-500/30';
   };
 
-  const getSharpeGrade = (sharpe: number, totalTrades: number) => {
+  const getSharpeGrade = (sharpe: number | null, totalTrades: number) => {
+    if (sharpe === null || isNaN(sharpe)) return { label: 'No Data', color: 'text-gray-500' };
     if (totalTrades < 10) return { label: 'Limited', color: 'text-gray-500' };
     if (sharpe > 1.5) return { label: 'Excellent', color: 'text-green-400' };
     if (sharpe > 0.5) return { label: 'Good', color: 'text-green-400' };
@@ -141,7 +142,9 @@ export default function LeaderboardTable({ traders }: LeaderboardTableProps) {
                   </td>
                   <td className="py-4 px-6 text-right">
                     <div className="text-base font-mono text-white">
-                      {trader.sharpe_ratio.toFixed(2)}
+                      {trader.sharpe_ratio === null || trader.sharpe_ratio === undefined || isNaN(trader.sharpe_ratio)
+                        ? '—'
+                        : trader.sharpe_ratio.toFixed(2)}
                     </div>
                     <div className={`text-xs ${sharpeGrade.color}`}>
                       {sharpeGrade.label}
