@@ -6,7 +6,7 @@
 
 interface Env {
   DB: D1Database;
-  BRAIN_BUCKET: R2Bucket;
+  BRAIN_BUCKET?: R2Bucket;
   FLYAI_TOKEN?: string;
   TREASURY_VALUATION?: string;
   ROBINHOOD_RPC_URL?: string;
@@ -248,9 +248,19 @@ async function getPositions(env: Env) {
 }
 
 async function getSignals(env: Env) {
+  // Return latest signal per connectome (so all 16 connectomes are represented
+  // even when one connectome generates many re-entry signals that would
+  // otherwise dominate a simple LIMIT 50 query).
   const result = await env.DB.prepare(
-    "SELECT s.*, t.symbol FROM signals s LEFT JOIN tokens t ON s.token_address = t.address "
-    + "ORDER BY s.created_at DESC LIMIT 50"
+    "SELECT s.*, t.symbol FROM signals s "
+    + "LEFT JOIN tokens t ON s.token_address = t.address "
+    + "INNER JOIN ("
+    + "  SELECT connectome_id, MAX(created_at) as max_created "
+    + "  FROM signals WHERE connectome_id IS NOT NULL "
+    + "  GROUP BY connectome_id"
+    + ") latest ON s.connectome_id = latest.connectome_id "
+    + "AND s.created_at = latest.max_created "
+    + "ORDER BY s.created_at DESC"
   ).all();
   return result.results;
 }
@@ -317,6 +327,15 @@ async function getPerformance(env: Env) {
 
 // === Multi-connectome + betting endpoints (schema_v3) ===
 
+// Compute Sharpe ratio from per-epoch P&L reports: mean(pnl) / std(pnl)
+function computeSharpe(pnlReports: number[]): number {
+  if (pnlReports.length < 2) return 0;
+  const mean = pnlReports.reduce((a, b) => a + b, 0) / pnlReports.length;
+  const variance = pnlReports.reduce((s, x) => s + Math.pow(x - mean, 2), 0) / pnlReports.length;
+  const std = Math.sqrt(variance);
+  return std > 0 ? mean / std : 0;
+}
+
 async function getConnectomes(env: Env) {
   const result = await env.DB.prepare(
     "SELECT c.id, c.species, c.n_neurons, c.n_synapses, c.resolution, c.source, c.status, " +
@@ -347,13 +366,48 @@ async function getConnectomes(env: Env) {
     }
   }
 
-  // Compute win_rate, total_equity (balance + unrealized), and ensure all fields match frontend type
-  return connectomes.map((r: any) => ({
-    ...r,
-    win_rate: r.n_trades > 0 ? r.n_wins / r.n_trades : 0,
-    unrealized_pnl: unrealizedPnl[r.id] || 0,
-    total_equity: r.balance_usd + (unrealizedPnl[r.id] || 0),
-  }));
+  // Fetch per-epoch P&L reports to compute Sharpe ratio per connectome
+  const pnlResult = await env.DB.prepare(
+    "SELECT connectome_id, pnl_percent FROM connectome_pnl_reports ORDER BY reported_at ASC"
+  ).all();
+  const pnlByConnectome: Record<string, number[]> = {};
+  for (const r of (pnlResult.results || [])) {
+    const cid = r.connectome_id as string;
+    if (!pnlByConnectome[cid]) pnlByConnectome[cid] = [];
+    pnlByConnectome[cid].push(r.pnl_percent as number);
+  }
+
+  // Fetch recent signals per connectome for neural activity
+  const recentSignals = await env.DB.prepare(
+    "SELECT connectome_id, decision, neural_activity, created_at FROM signals " +
+    "ORDER BY created_at DESC LIMIT 200"
+  ).all();
+  const lastSignalByConnectome: Record<string, { decision: string; neural_activity: string | null; created_at: number }> = {};
+  for (const s of (recentSignals.results || [])) {
+    const cid = s.connectome_id as string;
+    if (cid && !lastSignalByConnectome[cid]) {
+      lastSignalByConnectome[cid] = {
+        decision: s.decision as string,
+        neural_activity: s.neural_activity as string | null,
+        created_at: s.created_at as number,
+      };
+    }
+  }
+
+  // Compute win_rate, sharpe_ratio, total_equity, and neural activity
+  return connectomes.map((r: any) => {
+    const pnlReports = pnlByConnectome[r.id] || [];
+    return {
+      ...r,
+      win_rate: r.n_trades > 0 ? r.n_wins / r.n_trades : 0,
+      sharpe_ratio: computeSharpe(pnlReports),
+      unrealized_pnl: unrealizedPnl[r.id] || 0,
+      total_equity: r.balance_usd + (unrealizedPnl[r.id] || 0),
+      last_decision: lastSignalByConnectome[r.id]?.decision ?? null,
+      last_neural_activity: lastSignalByConnectome[r.id]?.neural_activity ?? null,
+      last_signal_at: lastSignalByConnectome[r.id]?.created_at ?? null,
+    };
+  });
 }
 
 async function getWallets(env: Env) {
@@ -490,6 +544,9 @@ async function createRound(env: Env, body: Record<string, any>) {
 // === Connectome brain data from R2 ===
 
 async function getConnectomeBrain(env: Env, cid: string, corsHeaders: Record<string, string>) {
+  if (!env.BRAIN_BUCKET) {
+    return json({ error: `brain data not available — R2 not bound` }, corsHeaders);
+  }
   const key = cid === "malecns" ? "brain.json" : `${cid}/brain.json`;
   const obj = await env.BRAIN_BUCKET.get(key);
   if (!obj) {
@@ -504,6 +561,9 @@ async function getConnectomeBrain(env: Env, cid: string, corsHeaders: Record<str
 // === Raw NPZ file serving for the fly brain DO ===
 
 async function getRawR2Object(env: Env, cid: string, filename: string, corsHeaders: Record<string, string>) {
+  if (!env.BRAIN_BUCKET) {
+    return json({ error: `${filename} not available — R2 not bound` }, corsHeaders);
+  }
   const key = cid === "malecns" ? filename : `${cid}/${filename}`;
   const obj = await env.BRAIN_BUCKET.get(key);
   if (!obj) {

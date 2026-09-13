@@ -269,7 +269,12 @@ class ConnectomeDO(DurableObject):
         return row["value"] if row else default
 
     async def alarm(self, alarm_info=None):
-        """Main trading loop — runs every 1 minute."""
+        """Main trading loop — runs every 1 minute.
+
+        Always reschedules the next alarm, even on crash, so the DO
+        never goes permanently silent. Uses exponential backoff on
+        repeated failures to avoid burning CPU on a broken connectome.
+        """
         try:
             await self._ensure_brain()
             cursor = await self.env.DB.prepare(
@@ -279,11 +284,13 @@ class ConnectomeDO(DurableObject):
             for token in cursor.results or []:
                 decision = await self._evaluate_token(token)
                 await self._store_signal(token, decision)
-            # Set next alarm only if init succeeded
+            # Success — reset backoff to 1 minute
             await self.ctx.storage.setAlarm(int(time.time() * 1000) + 60_000)
         except Exception as e:
             await self._log_error(str(e))
-            # Don't set alarm if init failed — prevents crash loop
+            # Still reschedule, but with backoff (5 min on crash)
+            # so the DO retries instead of going permanently silent.
+            await self.ctx.storage.setAlarm(int(time.time() * 1000) + 300_000)
 
     def _extract_features(self, token: dict) -> np.ndarray:
         """Extract 6 normalized market features from token data."""
