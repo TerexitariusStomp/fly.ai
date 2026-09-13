@@ -76,7 +76,7 @@ export const triggerEpoch = () => fetch(`${GOV_BASE}/governance/epoch`, { method
 
 // Compute Sharpe ratio from per-epoch P&L reports: mean(pnl) / std(pnl)
 // Returns null when there are fewer than 2 data points (insufficient for std)
-function computeSharpeClient(pnlReports: number[]): number | null {
+function computeSharpeFromReports(pnlReports: number[]): number | null {
   if (pnlReports.length < 2) return null;
   const mean = pnlReports.reduce((a, b) => a + b, 0) / pnlReports.length;
   const variance = pnlReports.reduce((s, x) => s + Math.pow(x - mean, 2), 0) / pnlReports.length;
@@ -84,8 +84,21 @@ function computeSharpeClient(pnlReports: number[]): number | null {
   return std > 0 ? mean / std : null;
 }
 
+// Compute a per-trade Sharpe ratio from connectome trade statistics.
+// When we don't have multiple epochs of P&L reports, we estimate Sharpe
+// from the cumulative return and trade count, assuming ~10% std per trade.
+// Formula: Sharpe = total_return_pct / (assumed_std * sqrt(n_trades))
+// This is a t-statistic with assumed per-trade volatility of 10%.
+// Returns null for < 10 trades (insufficient sample).
+function computeSharpeFromTrades(totalPnlPct: number, nTrades: number): number | null {
+  if (nTrades < 10) return null;
+  const assumedStd = 10; // 10% per-trade volatility assumption
+  return totalPnlPct / (assumedStd * Math.sqrt(nTrades));
+}
+
 // Map connectomes to nofyai TraderSummary[]
-// If governance reports are provided, compute Sharpe ratio client-side
+// Computes Sharpe ratio from governance P&L reports when available (≥2 epochs),
+// falls back to per-trade estimation from cumulative return and trade count.
 export function toTraderSummaries(conn: Connectome[], governance?: Governance | null): any[] {
   // Group P&L reports by connectome for Sharpe computation
   const pnlByConnectome: Record<string, number[]> = {};
@@ -96,15 +109,25 @@ export function toTraderSummaries(conn: Connectome[], governance?: Governance | 
     }
   }
 
-  return conn.map((c, i) => ({
-    trader_id: c.id, trader_name: c.id, ai_model: "connectome", exchange: "paper",
-    total_equity: c.total_equity ?? c.balance_usd, total_pnl: c.total_pnl + (c.unrealized_pnl ?? 0),
-    total_pnl_pct: c.starting_balance > 0 ? ((c.total_pnl + (c.unrealized_pnl ?? 0)) / c.starting_balance) * 100 : 0,
-    win_rate: (c.win_rate || 0) * 100, total_trades: c.n_trades || 0,
-    sharpe_ratio: c.sharpe_ratio ?? computeSharpeClient(pnlByConnectome[c.id] || []),
-    is_running: c.status === "active",
-    ranking: i + 1, initial_balance: c.starting_balance || 10, position_count: 0,
-  }));
+  return conn.map((c, i) => {
+    const totalPnlPct = c.starting_balance > 0
+      ? ((c.total_pnl + (c.unrealized_pnl ?? 0)) / c.starting_balance) * 100
+      : 0;
+    // Prefer multi-epoch Sharpe from governance reports; fall back to per-trade estimate
+    const reportSharpe = computeSharpeFromReports(pnlByConnectome[c.id] || []);
+    const tradeSharpe = computeSharpeFromTrades(totalPnlPct, c.n_trades || 0);
+    const sharpe = c.sharpe_ratio ?? reportSharpe ?? tradeSharpe;
+    return {
+      trader_id: c.id, trader_name: c.id, ai_model: "connectome", exchange: "paper",
+      total_equity: c.total_equity ?? c.balance_usd,
+      total_pnl: c.total_pnl + (c.unrealized_pnl ?? 0),
+      total_pnl_pct: totalPnlPct,
+      win_rate: (c.win_rate || 0) * 100, total_trades: c.n_trades || 0,
+      sharpe_ratio: sharpe,
+      is_running: c.status === "active",
+      ranking: i + 1, initial_balance: c.starting_balance || 10, position_count: 0,
+    };
+  });
 }
 
 // Map flyai history to price chart points (for treasury page, NOT trader equity)
