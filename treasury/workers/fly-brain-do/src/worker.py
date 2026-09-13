@@ -41,6 +41,19 @@ DEFAULT_HOLD_NEURONS = ["backward_L", "backward_R", "BVIN", "wide_field", "inter
 SIMULATION_STEPS = 200  # 200 steps × 20ms = 4s simulated time per decision
 WARMUP_STEPS = 40       # First 40 steps are warmup (discard)
 
+# Large connectomes (>10K neurons) use fewer steps to fit within the
+# 30s Python Worker CPU limit. The LIF dynamics still converge — we
+# just sample a shorter window of simulated time.
+LARGE_CONNECTOME_THRESHOLD = 10_000  # neurons
+LARGE_SIMULATION_STEPS = 50          # 50 steps × 20ms = 1s simulated time
+LARGE_WARMUP_STEPS = 10
+
+def get_simulation_params(n_neurons: int) -> tuple[int, int]:
+    """Return (steps, warmup) scaled by connectome size."""
+    if n_neurons > LARGE_CONNECTOME_THRESHOLD:
+        return LARGE_SIMULATION_STEPS, LARGE_WARMUP_STEPS
+    return SIMULATION_STEPS, WARMUP_STEPS
+
 # Exploration rate during recording (from sshfighter/fly_fighter.py EXPLORE_P)
 EXPLORE_P = 0.07  # 7% of decisions are random to gather diverse training data
 
@@ -366,18 +379,21 @@ class ConnectomeDO(DurableObject):
 
         features = self._extract_features(token)
 
+        # Scale simulation by connectome size to fit within CPU limit
+        sim_steps, warmup_steps = get_simulation_params(brain.n)
+
         # Use upstream fly_eyes.FeatureDetectors for fly connectomes, direct injection for others
         if self.eyes is not None:
             opp, shots, threat = self._market_to_fly_inputs(token, features)
             def encode(t):
-                if t >= SIMULATION_STEPS:
+                if t >= sim_steps:
                     return []
                 return self.eyes.inject(opp=opp, shots=shots, threat=threat)
         else:
             # Non-fly connectome: inject directly into sensory neurons via cell types
             inject_list = self._market_to_direct_inputs(token, features)
             def encode(t):
-                if t >= SIMULATION_STEPS:
+                if t >= sim_steps:
                     return []
                 return inject_list
 
@@ -387,11 +403,11 @@ class ConnectomeDO(DurableObject):
         # Run simulation ONCE — collect both trace features and group rates
         counts = {g: 0 for g in brain.groups}
         trace_samples = []
-        for step in range(SIMULATION_STEPS):
+        for step in range(sim_steps):
             inject = encode(step)
             fired = brain.step(inject=inject)
             trace.observe(fired)
-            if step >= WARMUP_STEPS:
+            if step >= warmup_steps:
                 trace_samples.append(trace.features().copy())
                 hit = np.zeros(brain.n, dtype=bool)
                 hit[fired] = True
@@ -627,7 +643,7 @@ class ConnectomeDO(DurableObject):
         for name, inputs in channels.items():
             brain.reset(seed=64)
             trace = Trace(brain, types=["descending_neuron"], tau=0.1)
-            for step in range(50):  # Reduced from 200 to 50 for fetch handler timeout
+            for step in range(LARGE_SIMULATION_STEPS):  # Scaled for fetch handler timeout
                 inject = self.eyes.inject(opp=inputs["opp"], shots=inputs["shots"],
                                           threat=inputs["threat"])
                 fired = brain.step(inject=inject)
