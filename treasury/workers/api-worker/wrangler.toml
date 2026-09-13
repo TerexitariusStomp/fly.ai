@@ -6,8 +6,7 @@ compatibility_date = "2026-09-12"
 [[d1_databases]]
 binding = "DB"
 database_name = "shit-token"
-database_id = "YOUR_D1_DATABASE_ID"
-account_id = "YOUR_CLOUDFLARE_ACCOUNT_ID"
+database_id = "7ec0a323-997d-44cc-9a84-ba4092e501c4"
 
 # R2 bucket for connectome brain data
 [[r2_buckets]]

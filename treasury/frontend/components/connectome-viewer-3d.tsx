@@ -24,6 +24,8 @@ export interface BrainData {
   cell_type_colors: Record<string, string>;
 }
 
+const EMPTY_MOTOR_GROUPS = { buy: [] as number[], sell: [] as number[], hold: [] as number[] };
+
 const DECISION_COLORS: Record<string, number> = {
   buy: 0x00ff88,
   sell: 0xff4444,
@@ -332,7 +334,7 @@ export function ConnectomeViewer3D({ data, decision, recentDecisions }: Connecto
     // Fire motor group neurons for the most recent decision
     const latest = recentDecisions[0];
     const action = latest.decision.toLowerCase();
-    const motorIds = data.motor_groups[action as "buy" | "sell" | "hold"];
+    const motorIds = (data.motor_groups ?? EMPTY_MOTOR_GROUPS)[action as "buy" | "sell" | "hold"];
     if (motorIds) {
       for (const idx of motorIds) {
         if (idx < data.n_neurons) {
@@ -364,7 +366,7 @@ export function ConnectomeViewer3D({ data, decision, recentDecisions }: Connecto
         {["buy", "sell", "hold"].map((action) => {
           const color = action === "buy" ? "#00ff88" : action === "sell" ? "#ff4444" : "#ffaa00";
           const isActive = activeDecision === action;
-          const count = (data.motor_groups as any)[action]?.filter((id: number) => id < data.n_neurons).length ?? 0;
+          const count = ((data.motor_groups ?? EMPTY_MOTOR_GROUPS) as Record<string, number[]>)[action]?.filter((id: number) => id < data.n_neurons).length ?? 0;
           return (
             <button
               key={action}
