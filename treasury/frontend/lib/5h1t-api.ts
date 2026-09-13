@@ -19,6 +19,10 @@ export interface Connectome {
   starting_balance: number; total_pnl: number;
   n_trades: number; n_wins: number; win_rate: number;
   unrealized_pnl?: number; total_equity?: number;
+  sharpe_ratio?: number;
+  last_decision?: string | null;
+  last_neural_activity?: string | null;
+  last_signal_at?: number | null;
 }
 export interface Wallet {
   id: number; connectome_id: string | null; wallet_type: string;
@@ -70,14 +74,34 @@ export const triggerEpoch = () => fetch(`${GOV_BASE}/governance/epoch`, { method
 
 // === Mappers to vendored component prop shapes ===
 
+// Compute Sharpe ratio from per-epoch P&L reports: mean(pnl) / std(pnl)
+function computeSharpeClient(pnlReports: number[]): number {
+  if (pnlReports.length < 2) return 0;
+  const mean = pnlReports.reduce((a, b) => a + b, 0) / pnlReports.length;
+  const variance = pnlReports.reduce((s, x) => s + Math.pow(x - mean, 2), 0) / pnlReports.length;
+  const std = Math.sqrt(variance);
+  return std > 0 ? mean / std : 0;
+}
+
 // Map connectomes to nofyai TraderSummary[]
-export function toTraderSummaries(conn: Connectome[]): any[] {
+// If governance reports are provided, compute Sharpe ratio client-side
+export function toTraderSummaries(conn: Connectome[], governance?: Governance | null): any[] {
+  // Group P&L reports by connectome for Sharpe computation
+  const pnlByConnectome: Record<string, number[]> = {};
+  if (governance?.latest_reports) {
+    for (const r of governance.latest_reports) {
+      if (!pnlByConnectome[r.connectome_id]) pnlByConnectome[r.connectome_id] = [];
+      pnlByConnectome[r.connectome_id].push(r.pnl_percent);
+    }
+  }
+
   return conn.map((c, i) => ({
     trader_id: c.id, trader_name: c.id, ai_model: "connectome", exchange: "paper",
     total_equity: c.total_equity ?? c.balance_usd, total_pnl: c.total_pnl + (c.unrealized_pnl ?? 0),
     total_pnl_pct: c.starting_balance > 0 ? ((c.total_pnl + (c.unrealized_pnl ?? 0)) / c.starting_balance) * 100 : 0,
-    win_rate: c.win_rate || 0, total_trades: c.n_trades || 0,
-    sharpe_ratio: 0, is_running: c.status === "active",
+    win_rate: (c.win_rate || 0) * 100, total_trades: c.n_trades || 0,
+    sharpe_ratio: c.sharpe_ratio ?? computeSharpeClient(pnlByConnectome[c.id] || []),
+    is_running: c.status === "active",
     ranking: i + 1, initial_balance: c.starting_balance || 10, position_count: 0,
   }));
 }

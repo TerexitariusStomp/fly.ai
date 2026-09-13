@@ -24,7 +24,7 @@ export function FiveHitOverviewPage() {
   const { data: flyai } = useApi<FlyaiPoint[]>("/api/flyai", 30000);
   const { data: treasury } = useApi<Treasury>("/api/treasury", 30000);
 
-  const traders = connectomes ? toTraderSummaries(connectomes) : [];
+  const traders = connectomes ? toTraderSummaries(connectomes, governance) : [];
   const flyaiChart = flyai ? flyai.slice().reverse().map(p => ({ time: new Date(p.updated_at * 1000).toLocaleTimeString(), price: p.price_usd })) : [];
   const totalNeurons = connectomes?.reduce((s, c) => s + c.n_neurons, 0) ?? 0;
   const totalSynapses = connectomes?.reduce((s, c) => s + c.n_synapses, 0) ?? 0;

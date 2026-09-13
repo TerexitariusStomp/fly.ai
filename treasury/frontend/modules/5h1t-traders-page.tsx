@@ -18,7 +18,7 @@ export function FiveHitTradersPage() {
   const [betAmount, setBetAmount] = useState("10");
   const [status, setStatus] = useState<string | null>(null);
 
-  const traders = connectomes ? toTraderSummaries(connectomes) : [];
+  const traders = connectomes ? toTraderSummaries(connectomes, governance) : [];
   const selected = connectomes?.find(c => c.id === selectedId) ?? connectomes?.[0];
 
   async function postAction(path: string, body: Record<string, any>) {

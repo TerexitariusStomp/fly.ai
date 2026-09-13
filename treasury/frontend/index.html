@@ -168,50 +168,6 @@
       })();
     </script>
     <div id="root"></div>
-    <div id="splash">
-      <img src="/shit-banner.jpg" alt="5H1T" />
-    </div>
-    <style>
-      #splash {
-        position: fixed;
-        inset: 0;
-        z-index: 9999;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #000000;
-        opacity: 1;
-        transition: opacity 0.5s ease-out;
-      }
-      #splash.fade-out {
-        opacity: 0;
-        pointer-events: none;
-      }
-      #splash img {
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain;
-      }
-    </style>
-    <script>
-      window.__dismissSplash = function () {
-        var splash = document.getElementById("splash");
-        if (splash) {
-          splash.classList.add("fade-out");
-          setTimeout(function () { splash.remove(); }, 600);
-        }
-      };
-      // Safety net: dismiss splash after 5 seconds even if JS bundle fails
-      setTimeout(function () { window.__dismissSplash && window.__dismissSplash(); }, 5000);
-      // Allow click/tap to dismiss splash immediately
-      document.addEventListener("DOMContentLoaded", function () {
-        var splash = document.getElementById("splash");
-        if (splash) {
-          splash.addEventListener("click", function () { window.__dismissSplash && window.__dismissSplash(); });
-          splash.style.cursor = "pointer";
-        }
-      });
-    </script>
     <script type="module" src="/main.tsx"></script>
   </body>
 </html>

@@ -15,7 +15,3 @@ createRoot(document.getElementById("root")!).render(
     </ErrorBoundary>
   </StrictMode>,
 );
-
-requestAnimationFrame(() => {
-  window.__dismissSplash?.();
-});
