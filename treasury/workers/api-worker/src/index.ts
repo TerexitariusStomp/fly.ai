@@ -77,8 +77,33 @@ export default {
       return new Response(null, { headers: corsHeaders });
     }
 
-    // GET routes
+    // GET routes — cached at the edge to stay under D1 free-tier read limits.
+    // Each endpoint gets a TTL proportional to how fast the data changes.
     if (request.method === "GET") {
+      const CACHE_TTL: Record<string, number> = {
+        "/api/token-stats": 30,
+        "/api/treasury": 30,
+        "/api/treasury/onchain": 60,
+        "/api/positions": 15,
+        "/api/signals": 15,
+        "/api/trades": 15,
+        "/api/flyai": 30,
+        "/api/tokens": 30,
+        "/api/model-status": 60,
+        "/api/training-data": 60,
+        "/api/performance": 60,
+        "/api/connectomes": 15,
+        "/api/wallets": 30,
+        "/api/governance": 30,
+        "/api/betting/leaderboard": 30,
+        "/api/betting/rounds": 30,
+      };
+      const ttl = CACHE_TTL[url.pathname];
+      if (ttl) {
+        const cached = await caches.default.match(request);
+        if (cached) return cached;
+      }
+      const handle = async () => {
       if (url.pathname === "/api/token-stats") return json(await getTokenStats(env), corsHeaders);
       if (url.pathname === "/api/treasury") return json(await getTreasury(env), corsHeaders);
       if (url.pathname === "/api/treasury/onchain") return json(await getOnchainTreasury(env), corsHeaders);
@@ -113,6 +138,16 @@ export default {
         const cid = url.pathname.split("/")[3];
         return await getRawR2Object(env, cid, "brain.npz", corsHeaders);
       }
+      return null;
+      };
+
+      const resp = await handle();
+      if (resp && ttl) {
+        const toCache = resp.clone();
+        toCache.headers.set("Cache-Control", `public, max-age=${ttl}`);
+        ctx.waitUntil(caches.default.put(request, toCache));
+      }
+      if (resp) return resp;
     }
 
     // POST routes — betting actions
@@ -368,7 +403,7 @@ async function getConnectomes(env: Env) {
 
   // Fetch per-epoch P&L reports to compute Sharpe ratio per connectome
   const pnlResult = await env.DB.prepare(
-    "SELECT connectome_id, pnl_percent FROM connectome_pnl_reports ORDER BY reported_at ASC"
+    "SELECT connectome_id, pnl_percent FROM connectome_pnl_reports ORDER BY reported_at ASC LIMIT 2000"
   ).all();
   const pnlByConnectome: Record<string, number[]> = {};
   for (const r of (pnlResult.results || [])) {
@@ -480,17 +515,18 @@ async function getBettingUser(env: Env, address: string) {
 
 async function placeBet(env: Env, body: Record<string, any>) {
   const { user_address, round_id, connectome_id, amount } = body;
+  const side = body.side === "no" ? "no" : "yes";
   if (!user_address || !round_id || !connectome_id || !amount) {
     return { error: "missing fields: user_address, round_id, connectome_id, amount" };
   }
   const now = Math.floor(Date.now() / 1000);
   await env.DB.prepare(
-    "INSERT INTO user_prediction_bets (user_address, round_id, connectome_id, amount, bet_at) VALUES (?, ?, ?, ?, ?)"
-  ).bind(user_address, round_id, connectome_id, amount, now).run();
+    "INSERT INTO user_prediction_bets (user_address, round_id, connectome_id, amount, side, bet_at) VALUES (?, ?, ?, ?, ?, ?)"
+  ).bind(user_address, round_id, connectome_id, amount, side, now).run();
   await env.DB.prepare(
     "UPDATE prediction_rounds SET total_pool = total_pool + ? WHERE id = ?"
   ).bind(amount, round_id).run();
-  return { status: "placed", round_id, connectome_id, amount };
+  return { status: "placed", round_id, connectome_id, amount, side };
 }
 
 async function placeVaultStake(env: Env, body: Record<string, any>) {

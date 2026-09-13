@@ -14,10 +14,13 @@ export function FiveHitTreasuryPage() {
 
   // Filter out 0-price records (DexScreener rate-limits cause intermittent 0 values)
   const validFlyai = flyai?.filter(p => p.price_usd > 0) ?? [];
-  const priceHistory = validFlyai.slice().reverse().map(p => ({
+  const hasPriceData = validFlyai.length > 0;
+  // Primary series is FLYAI balance (always populated); price overlays where available
+  const priceHistory = (flyai ?? []).filter(p => p.balance > 0).slice().reverse().map(p => ({
     time: new Date(p.updated_at * 1000).toLocaleTimeString(),
-    price: p.price_usd,
-    floor: p.shit_floor_price,
+    balance: p.balance,
+    price: p.price_usd > 0 ? p.price_usd : null,
+    floor: p.shit_floor_price > 0 ? p.shit_floor_price : null,
   })) ?? [];
 
   // Aggregate connectome balances for treasury ops
@@ -72,8 +75,12 @@ export function FiveHitTreasuryPage() {
           </div>
         )}
         {onchain && onchain.error && (
-          <div className="rounded-xl border border-amber-900 bg-amber-950/20 p-4 mb-8">
-            <span className="font-mono text-xs text-amber-400">On-chain treasury: {onchain.error}</span>
+          <div className="rounded-xl border border-gray-800 bg-[#0a0d12] p-4 mb-8">
+            <span className="font-mono text-xs text-gray-400">
+              {onchain.error === "TREASURY_VALUATION not configured"
+                ? "Paper mode — on-chain TreasuryValuation contract not yet deployed. Showing paper-trading treasury."
+                : `On-chain treasury: ${onchain.error}`}
+            </span>
           </div>
         )}
 
@@ -85,9 +92,9 @@ export function FiveHitTreasuryPage() {
           <StatCard label="Active Connectomes" value={`${activeConnectomes}/16`} />
         </div>
 
-        {/* Price chart */}
+        {/* FLYAI treasury chart — balance is primary (price feed is intermittently rate-limited) */}
         <section className="mb-8">
-          <h2 className="font-mono text-sm uppercase tracking-wider text-gray-400 mb-3">FLYAI Price History</h2>
+          <h2 className="font-mono text-sm uppercase tracking-wider text-gray-400 mb-3">FLYAI Treasury History</h2>
           <div className="rounded-xl border border-gray-800 bg-[#0a0d12] p-4">
             {priceHistory.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
@@ -103,11 +110,13 @@ export function FiveHitTreasuryPage() {
                     </linearGradient>
                   </defs>
                   <XAxis dataKey="time" tick={{ fill: "#8793a0", fontSize: 10 }} fontFamily="monospace" />
-                  <YAxis tick={{ fill: "#8793a0", fontSize: 10 }} fontFamily="monospace" domain={["dataMin", "dataMax"]} tickFormatter={(v) => `$${v.toFixed(6)}`} />
-                  <Tooltip contentStyle={{ background: "#0a0d12", border: "1px solid #333", borderRadius: "8px" }} labelStyle={{ color: "#8793a0" }} formatter={(v: any) => `$${Number(v).toFixed(7)}`} />
-                  <Area type="monotone" dataKey="price" stroke="#6cf08a" strokeWidth={2} fill="url(#priceGrad)" name="FLYAI Price" />
-                  <Area type="monotone" dataKey="floor" stroke="#ff5ad2" strokeWidth={1} fill="url(#floorGrad)" name="SHIT Floor" />
-                  <ReferenceLine y={priceHistory[0]?.price ?? 0} stroke="#444" strokeDasharray="3 3" />
+                  <YAxis yAxisId="bal" tick={{ fill: "#8793a0", fontSize: 10 }} fontFamily="monospace" domain={["auto", "auto"]} tickFormatter={(v) => `${v.toFixed(2)}`} />
+                  {hasPriceData && <YAxis yAxisId="price" orientation="right" tick={{ fill: "#8793a0", fontSize: 10 }} fontFamily="monospace" domain={["dataMin", "dataMax"]} tickFormatter={(v) => `$${v.toFixed(6)}`} />}
+                  <Tooltip contentStyle={{ background: "#0a0d12", border: "1px solid #333", borderRadius: "8px" }} labelStyle={{ color: "#8793a0" }} formatter={(v: any, name: any) => name === "FLYAI Balance" ? `${Number(v).toFixed(4)} FLYAI` : `$${Number(v).toFixed(7)}`} />
+                  <Area yAxisId="bal" type="monotone" dataKey="balance" stroke="#6cf08a" strokeWidth={2} fill="url(#priceGrad)" name="FLYAI Balance" />
+                  {hasPriceData && <Area yAxisId="price" type="monotone" dataKey="price" stroke="#3ed8ff" strokeWidth={1} fill="none" name="FLYAI Price" connectNulls />}
+                  {hasPriceData && <Area yAxisId="price" type="monotone" dataKey="floor" stroke="#ff5ad2" strokeWidth={1} fill="url(#floorGrad)" name="SHIT Floor" connectNulls />}
+                  {hasPriceData && <ReferenceLine yAxisId="price" y={priceHistory.find(p => p.price != null)?.price ?? 0} stroke="#444" strokeDasharray="3 3" />}
                 </AreaChart>
               </ResponsiveContainer>
             ) : (

@@ -281,6 +281,29 @@ class ConnectomeDO(DurableObject):
         row = await self.env.DB.prepare("SELECT value FROM settings WHERE key = ?").bind(key).first()
         return row["value"] if row else default
 
+    async def _fetch_candidates(self, limit: int = 3) -> list:
+        """Fetch top-scored token candidates.
+
+        Prefers the edge-cached api-worker endpoint — 16 DOs share one
+        cached response instead of each scanning D1 every minute, which
+        would exhaust the free-tier daily row-read limit. Falls back to
+        a direct D1 query if the API is unreachable.
+        """
+        api_base = getattr(self.env, "API_BASE_URL", None) or "https://api-worker.hardwoodstablecoin.workers.dev"
+        try:
+            resp = await fetch(f"{api_base}/api/tokens?min_score=30&limit={limit}")
+            if resp.status == 200:
+                data = await resp.json()
+                if isinstance(data, list):
+                    return data
+        except Exception as e:
+            await self._log_error(f"candidate fetch via API failed, falling back to D1: {e}")
+        cursor = await self.env.DB.prepare(
+            "SELECT address, symbol, launchpad, score, score_reasons FROM tokens "
+            "WHERE ignored = 0 AND score > 30 ORDER BY score DESC LIMIT ?"
+        ).bind(limit).all()
+        return list(cursor.results or [])
+
     async def alarm(self, alarm_info=None):
         """Main trading loop — runs every 1 minute.
 
@@ -290,11 +313,8 @@ class ConnectomeDO(DurableObject):
         """
         try:
             await self._ensure_brain()
-            cursor = await self.env.DB.prepare(
-                "SELECT address, symbol, launchpad, score, score_reasons FROM tokens "
-                "WHERE ignored = 0 AND score > 30 ORDER BY score DESC LIMIT 3"
-            ).all()
-            for token in cursor.results or []:
+            candidates = await self._fetch_candidates(limit=3)
+            for token in candidates:
                 decision = await self._evaluate_token(token)
                 await self._store_signal(token, decision)
             # Success — reset backoff to 1 minute
@@ -680,12 +700,9 @@ class ConnectomeDO(DurableObject):
             # Initialize and process tokens synchronously
             try:
                 await self._ensure_brain()
-                cursor = await self.env.DB.prepare(
-                    "SELECT address, symbol, launchpad, score, score_reasons FROM tokens "
-                    "WHERE ignored = 0 AND score > 30 ORDER BY score DESC LIMIT 3"
-                ).all()
+                candidates = await self._fetch_candidates(limit=3)
                 signals_made = 0
-                for token in cursor.results or []:
+                for token in candidates:
                     decision = await self._evaluate_token(token)
                     await self._store_signal(token, decision)
                     signals_made += 1

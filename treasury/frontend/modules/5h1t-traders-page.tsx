@@ -37,11 +37,11 @@ export function FiveHitTradersPage() {
     }
   }
 
-  function handleBet(connectomeId: string, action: "bet" | "stake" | "copy") {
+  function handleBet(connectomeId: string, action: "yes" | "no" | "stake" | "copy") {
     if (!userAddress) { setStatus("✗ Enter your wallet address first"); return; }
     const amount = parseFloat(betAmount);
     if (!amount || amount <= 0) { setStatus("✗ Enter a valid amount"); return; }
-    if (action === "bet") postAction("/api/betting/place-bet", { user_address: userAddress, round_id: 1, connectome_id: connectomeId, amount });
+    if (action === "yes" || action === "no") postAction("/api/betting/place-bet", { user_address: userAddress, round_id: 1, connectome_id: connectomeId, amount, side: action });
     else if (action === "stake") postAction("/api/betting/stake", { user_address: userAddress, connectome_id: connectomeId, amount });
     else if (action === "copy") postAction("/api/betting/copy", { user_address: userAddress, connectome_id: connectomeId, amount });
   }
@@ -57,7 +57,7 @@ export function FiveHitTradersPage() {
           </span>
           <span className="font-mono text-xs uppercase tracking-wider text-emerald-400">Live — updating every 5s</span>
         </div>
-        <p className="text-gray-400 mb-6">16 biological connectomes trading in paper mode. Bet on which brain trades best next epoch. No fees. Settled on-chain.</p>
+        <p className="text-gray-400 mb-6">16 biological connectomes trading in paper mode. Predict which brain trades best next epoch. No fees. Settled on-chain.</p>
 
         {/* Leaderboard */}
         <div className="mb-8" onClick={(e) => {
@@ -91,7 +91,7 @@ export function FiveHitTradersPage() {
 
         {/* Betting controls */}
         <section className="mb-8">
-          <h2 className="font-mono text-sm uppercase tracking-wider text-gray-400 mb-3">Bet on Connectomes</h2>
+          <h2 className="font-mono text-sm uppercase tracking-wider text-gray-400 mb-3">Predict on Connectomes</h2>
           <div className="flex flex-wrap gap-3 mb-4">
             <input
               type="text"
@@ -116,7 +116,7 @@ export function FiveHitTradersPage() {
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span className="font-mono text-xs uppercase text-emerald-400">Active Round</span>
             </div>
-            <p className="text-gray-300 text-sm mt-2">Bet on which connectome will have the best P&L next epoch. No fees. Settled on-chain.</p>
+            <p className="text-gray-300 text-sm mt-2">Pick YES or NO on whether each connectome will have the best P&L next epoch. No fees. Settled on-chain.</p>
           </div>
 
           {/* Market cards */}
@@ -186,7 +186,7 @@ function Detail({ label, value, color }: { label: string; value: string; color?:
   );
 }
 
-function MarketCard({ connectome: c, onBet }: { connectome: Connectome; onBet: (id: string, action: "bet" | "stake" | "copy") => void }) {
+function MarketCard({ connectome: c, onBet }: { connectome: Connectome; onBet: (id: string, action: "yes" | "no" | "stake" | "copy") => void }) {
   const totalEquity = c.total_equity ?? c.balance_usd;
   const totalPnl = c.total_pnl + (c.unrealized_pnl ?? 0);
   const pnlPct = c.starting_balance > 0 ? (totalPnl / c.starting_balance) * 100 : 0;
@@ -218,7 +218,8 @@ function MarketCard({ connectome: c, onBet }: { connectome: Connectome; onBet: (
         </div>
       </div>
       <div className="flex gap-2">
-        <button onClick={() => onBet(c.id, "bet")} className="flex-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-2 text-xs font-mono text-white transition-colors">Bet YES</button>
+        <button onClick={() => onBet(c.id, "yes")} className="flex-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-2 text-xs font-mono text-white transition-colors">YES</button>
+        <button onClick={() => onBet(c.id, "no")} className="flex-1 rounded-lg bg-red-600 hover:bg-red-500 px-3 py-2 text-xs font-mono text-white transition-colors">NO</button>
         <button onClick={() => onBet(c.id, "stake")} className="flex-1 rounded-lg bg-purple-600 hover:bg-purple-500 px-3 py-2 text-xs font-mono text-white transition-colors">Stake</button>
         <button onClick={() => onBet(c.id, "copy")} className="rounded-lg bg-blue-600 hover:bg-blue-500 px-3 py-2 text-xs font-mono text-white transition-colors">Copy</button>
       </div>

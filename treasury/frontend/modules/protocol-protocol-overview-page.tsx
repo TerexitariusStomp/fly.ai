@@ -286,7 +286,7 @@ export function ProtocolOverviewPage() {
             </div>
           </div>
           <img
-            src="/pictures/shit/shitnew-removebg-preview.png"
+            src="/pictures/shit/5h1t-poop.png"
             alt="SHIT Protocol"
             className="hidden md:block w-full h-auto max-h-[420px] object-contain"
             loading="eager"
@@ -597,7 +597,7 @@ export function ProtocolOverviewPage() {
         />
         <div className="grid md:grid-cols-2 gap-4">
           <ProductCard
-            icon="/pictures/shit/shitnew-removebg-preview.png"
+            icon="/pictures/shit/5h1t-poop.png"
             symbol="SHIT"
             name="SHIT"
             tagline="Your share of the treasury"
