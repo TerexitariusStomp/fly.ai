@@ -75,12 +75,13 @@ export const triggerEpoch = () => fetch(`${GOV_BASE}/governance/epoch`, { method
 // === Mappers to vendored component prop shapes ===
 
 // Compute Sharpe ratio from per-epoch P&L reports: mean(pnl) / std(pnl)
-function computeSharpeClient(pnlReports: number[]): number {
-  if (pnlReports.length < 2) return 0;
+// Returns null when there are fewer than 2 data points (insufficient for std)
+function computeSharpeClient(pnlReports: number[]): number | null {
+  if (pnlReports.length < 2) return null;
   const mean = pnlReports.reduce((a, b) => a + b, 0) / pnlReports.length;
   const variance = pnlReports.reduce((s, x) => s + Math.pow(x - mean, 2), 0) / pnlReports.length;
   const std = Math.sqrt(variance);
-  return std > 0 ? mean / std : 0;
+  return std > 0 ? mean / std : null;
 }
 
 // Map connectomes to nofyai TraderSummary[]
