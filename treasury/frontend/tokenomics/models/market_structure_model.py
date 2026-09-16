@@ -4,22 +4,22 @@ and active POL management.
 
 Models:
 - LBPLauncher: Dutch auction initial price discovery
-- ShitV1Migrator: V1 to V2 token migration with initial distribution
-- ShitFolioDeployer / ShitIndexVault: SHIT as index component (passive demand)
-- ShitConvertibleDepositFacility: Alternative SHIT minting via deposit auctions
-- ShitPOLManager / LiquidityMigrator / YieldRouter: Active POL management (cooldown + slippage cap)
-- ShitCoolerConfig: Bucky lending via Cooler loans (peg-support interest discount)
+- SymbientV1Migrator: V1 to V2 token migration with initial distribution
+- SymbientFolioDeployer / SymbientIndexVault: SYM as index component (passive demand)
+- SymbientConvertibleDepositFacility: Alternative SYM minting via deposit auctions
+- SymbientPOLManager / LiquidityMigrator / YieldRouter: Active POL management (cooldown + slippage cap)
+- SymbientCoolerConfig: Bucky lending via Cooler loans (peg-support interest discount)
 
 Contract sources:
 - contracts/src/lbp/LBPLauncher.sol
-- contracts/src/token/ShitV1Migrator.sol
-- contracts/src/index/ShitFolioDeployer.sol
-- contracts/src/index/ShitIndexVault.sol
-- contracts/src/deposits/ShitConvertibleDepositFacility.sol
-- contracts/src/pol/ShitPOLManager.sol
+- contracts/src/token/SymbientV1Migrator.sol
+- contracts/src/index/SymbientFolioDeployer.sol
+- contracts/src/index/SymbientIndexVault.sol
+- contracts/src/deposits/SymbientConvertibleDepositFacility.sol
+- contracts/src/pol/SymbientPOLManager.sol
 - contracts/src/pol/LiquidityMigrator.sol
 - contracts/src/pol/YieldRouter.sol
-- contracts/src/lending/ShitCoolerConfig.sol
+- contracts/src/lending/SymbientCoolerConfig.sol
 """
 
 import numpy as np
@@ -47,7 +47,7 @@ class MarketStructureParams:
 
     # Folio Index
     folio_enabled: bool = True
-    folio_shit_weight_pct: float = 0.05  # 5% of index is SHIT
+    folio_shit_weight_pct: float = 0.05  # 5% of index is SYM
     folio_tvl: float = 10_000_000.0
     folio_rebalance_frequency: int = 9  # Every 3 days
     folio_growth_rate: float = 0.001  # Daily TVL growth
@@ -139,7 +139,7 @@ def simulate_market_structure(params: MarketStructureParams) -> pd.DataFrame:
         folio_shit_demand = 0.0
         if params.folio_enabled:
             folio_tvl *= (1 + params.folio_growth_rate / EPOCHS_PER_DAY)
-            # Rebalance: buy/sell SHIT to maintain weight
+            # Rebalance: buy/sell SYM to maintain weight
             if epoch % params.folio_rebalance_frequency == 0 and epoch > 0:
                 current_shit_value = folio_tvl * params.folio_shit_weight_pct
                 folio_shit_demand = current_shit_value / shit_price * 0.1  # 10% adjustment

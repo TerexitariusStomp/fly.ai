@@ -1,6 +1,6 @@
-# SHIT Protocol — Production Deployment Runbook (Base Mainnet)
+# SYM Protocol — Production Deployment Runbook (Base Mainnet)
 
-This runbook covers the full phased deployment of the SHIT Protocol SHIT fork on Base mainnet (chain ID 8453).
+This runbook covers the full phased deployment of the SYM Protocol SYM fork on Base mainnet (chain ID 8453).
 
 ## Prerequisites
 
@@ -33,7 +33,7 @@ The following must exist on Base mainnet before Phase 2:
 | Bond Protocol Aggregator | `0x007A6621A9997A633Cb1B757f2f7ffb51310704A` | Deployed |
 | Aave V3 Pool | `0xA238Dd80C259a72e81d7e4664a9801593F98d1c5` | Deployed |
 | AZUSD Token | *(set in .env)* | Must be deployed first |
-| Uniswap V3 SHIT Pool | *(created between phases)* | Created in Phase 1.5 |
+| Uniswap V3 SYM Pool | *(created between phases)* | Created in Phase 1.5 |
 
 ### 4. Build & Test
 
@@ -46,14 +46,14 @@ forge test -vvv
 
 ## Phase 1: Core Tokens & Registries
 
-**Script:** `DeployShitToken.s.sol`
+**Script:** `DeploySymbientToken.s.sol`
 **External dependencies:** None (no Uniswap pool, no Bond aggregator, no AZUSD)
 **Risk:** Low — only deploys standalone ERC20 tokens and registry contracts
 
 ### Deploy
 
 ```bash
-forge script script/DeployShitToken.s.sol \
+forge script script/DeploySymbientToken.s.sol \
     --rpc-url $BASE_RPC_URL \
     --broadcast \
     --verify \
@@ -65,7 +65,7 @@ forge script script/DeployShitToken.s.sol \
 | Contract | Purpose |
 |---|---|
 | `shitDeployer` | CREATE2 deployment utility |
-| `ShitToken` (SHIT) | Main protocol token, 100M cap, multisig-gated minting |
+| `SymbientToken` (SYM) | Main protocol token, 100M cap, multisig-gated minting |
 | `Bucky` (BUCKY) | DSS-based stablecoin |
 | `FixedRateProvider` | Fixed interest rate provider for PSM |
 | `TokenRegistry` | Impact token whitelist registry |
@@ -81,10 +81,10 @@ forge script script/DeployShitToken.s.sol \
 
 2. **Verify contracts on Basescan** — the `--verify` flag handles this automatically if `BASESCAN_API_KEY` is set.
 
-3. **Mint initial SHIT supply** (via Safe multisig):
+3. **Mint initial SYM supply** (via Safe multisig):
    ```solidity
    // Call via Safe:
-   ShitToken(SHIT_TOKEN_ADDRESS).mint(treasuryAddress, initialMintAmount);
+   SymbientToken(SHIT_TOKEN_ADDRESS).mint(treasuryAddress, initialMintAmount);
    ```
    The initial mint should cover: LP seeding, team allocation, and treasury reserve.
 
@@ -96,7 +96,7 @@ forge script script/DeployShitToken.s.sol \
 
 ### Steps
 
-1. **Create Uniswap V3 pool** (SHIT/WETH or SHIT/USDC):
+1. **Create Uniswap V3 pool** (SYM/WETH or SYM/USDC):
    - Use the Uniswap V3 Factory on Base: `0x33128a8FC3968f0411c4eB65bD3aA7e4F30e5F55`
    - Recommended fee tier: 0.3% (500) or 1% (10000) depending on expected volatility
    - Record the pool address and set `UNISWAP_V3_SHIT_POOL` in `.env`
@@ -121,8 +121,8 @@ forge script script/DeployShitToken.s.sol \
 ## Phase 2: Kernel, Staking, Oracle, DSS & System Safety
 
 **Script:** `DeployshitPhase2.s.sol`
-**External dependencies:** SHIT token, Bucky token, AZUSD token, Uniswap V3 pool, Bond Protocol aggregator
-**Risk:** High — deploys the full SHIT Protocol V3 Kernel system with staking, bonding, and stablecoin infrastructure
+**External dependencies:** SYM token, Bucky token, AZUSD token, Uniswap V3 pool, Bond Protocol aggregator
+**Risk:** High — deploys the full SYM Protocol V3 Kernel system with staking, bonding, and stablecoin infrastructure
 
 ### Pre-Flight Checklist
 
@@ -151,13 +151,13 @@ forge script script/DeployshitPhase2.s.sol \
 
 | Contract | Purpose |
 |---|---|
-| `Kernel` | SHIT Protocol V3 Kernel — module/policy registry |
+| `Kernel` | SYM Protocol V3 Kernel — module/policy registry |
 | `TreasuryValuation` | RFV/NAV oracle, implements `ITreasuryPolicy` |
-| `shitPriceFeed` | Uniswap V3 TWAP price feed for SHIT |
-| `ShitStaking` (stSHIT) | Rebasing staking contract with circuit breaker |
-| `WstSHIT` | Non-rebasing stSHIT wrapper |
-| `StakingAdapter` | Bridges ShitStaking to SHIT Protocol Heart |
-| `shitInverseBond` | NAV-discount buyback that burns SHIT |
+| `shitPriceFeed` | Uniswap V3 TWAP price feed for SYM |
+| `SymbientStaking` (stSYM) | Rebasing staking contract with circuit breaker |
+| `WstSYM` | Non-rebasing stSYM wrapper |
+| `StakingAdapter` | Bridges SymbientStaking to SYM Protocol Heart |
+| `shitInverseBond` | NAV-discount buyback that burns SYM |
 | `shitBondPricer` | Dynamic bond discount based on treasury growth |
 | `Vat` | MakerDAO DSS core ledger |
 | `Spotter` | DSS collateral price oracle |
@@ -168,13 +168,13 @@ forge script script/DeployshitPhase2.s.sol \
 | `shitCollateralManager` | Multi-collateral onboarding for Bucky |
 | `StablecoinPriceFeed` | Fixed $1 price feed for AZUSD |
 | `shitCircuitBreaker` | Global Bucky depeg circuit breaker |
-| `SHIT ProtocolRoles` | Kernel module — role management |
-| `SHIT ProtocolMinter` | Kernel module — SHIT minting |
-| `SHIT ProtocolTreasury` | Kernel module — reserve management |
+| `SYM ProtocolRoles` | Kernel module — role management |
+| `SYM ProtocolMinter` | Kernel module — SYM minting |
+| `SYM ProtocolTreasury` | Kernel module — reserve management |
 | `shitPrice` | Kernel module — TWAP-based price oracle |
-| `SHIT ProtocolRange` | Kernel module — RBS range bounds |
-| `shitDistributor` | Bridges Heart beats to ShitStaking.rebase() |
-| `SHIT ProtocolHeart` | Kernel policy — epoch heartbeat |
+| `SYM ProtocolRange` | Kernel module — RBS range bounds |
+| `shitDistributor` | Bridges Heart beats to SymbientStaking.rebase() |
+| `SYM ProtocolHeart` | Kernel policy — epoch heartbeat |
 | `BondCallback` | Kernel policy — bond settlement |
 | `Operator` | Kernel policy — RBS wall/cushion operator |
 | `shitDefenseBudget` | Per-epoch treasury spending cap |
@@ -196,9 +196,9 @@ On testnets, both fall back to `msg.sender` for local testing.
 
 ### Critical — Must Be Done via Safe Multisig
 
-1. **Set authorized minter on ShitToken** (if not done in script):
+1. **Set authorized minter on SymbientToken** (if not done in script):
    ```solidity
-   ShitToken(SHIT_TOKEN_ADDRESS).setAuthorizedMinter(SHIT ProtocolMinter_address);
+   SymbientToken(SHIT_TOKEN_ADDRESS).setAuthorizedMinter(SYM ProtocolMinter_address);
    ```
 
 2. **Pull RolesAdmin admin** (if not done in script):
@@ -211,10 +211,10 @@ On testnets, both fall back to `msg.sender` for local testing.
    TreasuryValuation(treasuryValuation_address).setValuations(
        rfv,           // Risk-free value in 1e18
        nav,           // Net asset value in 1e18
-       shitSupply    // Current SHIT total supply
+       shitSupply    // Current SYM total supply
    );
    ```
-   This sets the floor price that gates supplemental emissions in ShitStaking.
+   This sets the floor price that gates supplemental emissions in SymbientStaking.
 
 4. **Register treasury assets** in TreasuryValuation:
    ```solidity
@@ -228,7 +228,7 @@ On testnets, both fall back to `msg.sender` for local testing.
 
 5. **Initialize shitPrice** with start observations:
    - The Heart must beat to populate the moving average
-   - First beat: call `SHIT ProtocolHeart(heart_address).beat()`
+   - First beat: call `SYM ProtocolHeart(heart_address).beat()`
    - Or initialize manually via `shitPrice(shitPrice_address).initialize(startObservations, lastObservationTime)`
 
 6. **Add impact token oracles**:
@@ -269,7 +269,7 @@ On testnets, both fall back to `msg.sender` for local testing.
 
     | Task | Function | Interval | Purpose |
     |---|---|---|---|
-    | Heart beat | `SHIT ProtocolHeart.beat()` | Every 4h | Price update, rebase, RBS operate, reward minting |
+    | Heart beat | `SYM ProtocolHeart.beat()` | Every 4h | Price update, rebase, RBS operate, reward minting |
     | Circuit breaker check | `shitCircuitBreaker.check()` | Every 8h | Bucky peg monitoring, auto-trip on depeg |
 
     Both functions are **fully permissionless** — anyone can call them. Gelato is the automated caller.
@@ -297,12 +297,12 @@ On testnets, both fall back to `msg.sender` for local testing.
 
     | Feed | Source | Contract | Switchable? |
     |---|---|---|---|
-    | SHIT/Reserve (RBS) | Uniswap V3 TWAP (30 min) | `shitPriceFeed` → `shitPrice` | Yes — `setPool()` on `shitPriceFeed`, `setTwapPriceFeed()` on `shitPrice` (multisig) |
+    | SYM/Reserve (RBS) | Uniswap V3 TWAP (30 min) | `shitPriceFeed` → `shitPrice` | Yes — `setPool()` on `shitPriceFeed`, `setTwapPriceFeed()` on `shitPrice` (multisig) |
     | Bucky peg | `ImpactOracleAdapter` (per-token TWAP) | `shitCircuitBreaker` reads `ImpactOracleAdapter.getTokenPrice(bucky)` | Yes — `setPriceFeed()` on `shitCircuitBreaker` (multisig) |
     | AZUSD (DSS collateral) | `StablecoinPriceFeed` (fixed $1) | `shitCollateralManager` | N/A — fixed |
     | Impact tokens (DSS) | Per-token Uniswap V3 TWAP | `ImpactOracleAdapter` | Yes — `addToken()` / `removeToken()` (multisig) |
 
-    To switch the SHIT price feed pool (e.g., from SHIT/AZUSD to SHIT/Bucky):
+    To switch the SYM price feed pool (e.g., from SYM/AZUSD to SYM/Bucky):
     ```solidity
     // Via Safe multisig:
     shitPriceFeed(priceFeed_address).setPool(newUniswapPool);
@@ -359,9 +359,9 @@ forge script script/MigrateReserve.s.sol \
 ```
 
 **What the script does:**
-1. Deploys new `shitPriceFeed` pointing to SHIT/Bucky Uniswap V3 pool
+1. Deploys new `shitPriceFeed` pointing to SYM/Bucky Uniswap V3 pool
 2. Deploys new `shitPrice` module with the new price feed
-3. Deploys new `SHIT ProtocolRange` with Bucky as reserve
+3. Deploys new `SYM ProtocolRange` with Bucky as reserve
 4. Deploys new `BondCallback` for the new reserve
 5. Deploys new `Operator` with Bucky as reserve
 6. Deploys new `shitDefenseBudget` wrapping the new Operator
@@ -379,7 +379,7 @@ forge script script/MigrateReserve.s.sol \
 **What doesn't need migration:**
 - `shitInverseBond` — payout token is runtime-switchable via `setPayoutToken()`
 - `shitCircuitBreaker` — already monitors Bucky via `ImpactOracleAdapter`
-- `ShitStaking` — not reserve-specific
+- `SymbientStaking` — not reserve-specific
 - `TreasuryValuation` — not reserve-specific
 
 ---
@@ -387,7 +387,7 @@ forge script script/MigrateReserve.s.sol \
 ## Emergency Procedures
 
 - `Emergency.shutdown()` — stops all Kernel operations
-- `ShitStaking.pause()` — stops staking/unstaking/rebasing
+- `SymbientStaking.pause()` — stops staking/unstaking/rebasing
 - `shitCircuitBreaker.trip()` — manually trip circuit breaker
 - `TreasuryValuation.setRfvBypass(true)` — emergency RFV bypass
 
@@ -400,7 +400,7 @@ forge script script/MigrateReserve.s.sol \
 All scripts support `--verify` with `BASESCAN_API_KEY`:
 
 ```bash
-forge script script/DeployShitToken.s.sol \
+forge script script/DeploySymbientToken.s.sol \
     --rpc-url $BASE_RPC_URL \
     --broadcast \
     --verify \
@@ -469,7 +469,7 @@ KERNEL_ADDRESS=0x...
 TREASURY_VALUATION_ADDRESS=0x...
 SHIT_PRICE_FEED_ADDRESS=0x...
 SHIT_STAKING_ADDRESS=0x...
-WSTSHIT_ADDRESS=0x...
+Wstsym_ADDRESS=0x...
 STAKING_ADAPTER_ADDRESS=0x...
 SHIT_INVERSE_BOND_ADDRESS=0x...
 SHIT_BOND_PRICER_ADDRESS=0x...

@@ -1,29 +1,29 @@
 # Technical explainers
 
-These are for the specific questions the SHIT Protocol audience is actually searching for.
+These are for the specific questions the SYM Protocol audience is actually searching for.
 
 ---
 
-## 1. How an SHIT Protocol V3 fork with real-asset backing differs from a pure treasury-gaming fork
+## 1. How an SYM Protocol V3 fork with real-asset backing differs from a pure treasury-gaming fork
 
-### What an SHIT Protocol V3 fork actually does
+### What an SYM Protocol V3 fork actually does
 
-SHIT Protocol V3 (the SHIT v3 rewrite) turns a treasury into a set of on-chain policies managed by a `Kernel`. The treasury is not a single wallet; it is a set of modules (`SHIT ProtocolTreasury`, `SHIT ProtocolMinter`, `SHIT ProtocolRange`, `SHIT ProtocolHeart`, etc.) that share state through a central `Kernel`. Each module is installed, activated, and can be replaced by governance.
+SYM Protocol V3 (the SYM v3 rewrite) turns a treasury into a set of on-chain policies managed by a `Kernel`. The treasury is not a single wallet; it is a set of modules (`SYM ProtocolTreasury`, `SYM ProtocolMinter`, `SYM ProtocolRange`, `SYM ProtocolHeart`, etc.) that share state through a central `Kernel`. Each module is installed, activated, and can be replaced by governance.
 
 A treasury-gaming fork copies the *shape* (reserve currency, high APY staking, bonds) but treats the treasury as a marketing black box. The protocol says it is backed, but the assets are illiquid, unaudited, or not actually on-chain.
 
 ### What real-asset backing changes
 
-Real-asset backing means the tokens in the `SHIT ProtocolTreasury` balance actually exist, are priced by on-chain oracles, and are subject to a conservative haircut. The SHIT Protocol fork adds four differences:
+Real-asset backing means the tokens in the `SYM ProtocolTreasury` balance actually exist, are priced by on-chain oracles, and are subject to a conservative haircut. The SYM Protocol fork adds four differences:
 
 1. **Asset registry and haircuts.** `TreasuryValuation` registers every accepted token with a `haircutBps`. A 0% haircut applies to stables like USDC. A 50% haircut applies to impact tokens and POL. This means RFV is a worst-case liquidation value, not a nominal mark.
-2. **On-chain price discovery.** `ImpactOracleAdapter` prices impact tokens from Uniswap V3 TWAPs. `StablecoinPriceFeed` fixes stables at $1. `ShitPrice` uses a Uniswap V3 TWAP for the SHIT reserve pair. No spreadsheet prices.
+2. **On-chain price discovery.** `ImpactOracleAdapter` prices impact tokens from Uniswap V3 TWAPs. `StablecoinPriceFeed` fixes stables at $1. `SymbientPrice` uses a Uniswap V3 TWAP for the SYM reserve pair. No spreadsheet prices.
 3. **Permissionless onboarding with timelock.** `TokenOnboardingManager` lets anyone propose an impact token, but it sits for a 2-day timelock and must clear `TokenRegistry` before it can enter the treasury as collateral.
 4. **Revenue from real cash flows.** The treasury is not just a vault. POL positions earn trading fees. PSM minting of Bucky against impact collateral produces seigniorage and AMO yield. Lending AMOs earn from overcollateralized debt.
 
 ### The practical difference
 
-In a gaming fork, the treasury value is whatever the front-end claims. In this design, the RFV and NAV can be recomputed from on-chain balances by anyone calling `TreasuryValuation.refreshValuations()` or `ShitTreasuryPolicy.refreshValuations()`. The floor price is the value the treasury could actually realize if it had to wind down tomorrow.
+In a gaming fork, the treasury value is whatever the front-end claims. In this design, the RFV and NAV can be recomputed from on-chain balances by anyone calling `TreasuryValuation.refreshValuations()` or `SymbientTreasuryPolicy.refreshValuations()`. The floor price is the value the treasury could actually realize if it had to wind down tomorrow.
 
 ---
 
@@ -35,13 +35,13 @@ MakerDAO's DSS (Decentralized Stablecoin System) is a multi-collateral stablecoi
 
 ### Applying DSS to climate RWA
 
-In SHIT Protocol, the stablecoin is **Bucky**. The collateral can be:
+In SYM Protocol, the stablecoin is **Bucky**. The collateral can be:
 
 - USDC/sUSDS (stables, 0% haircut in the treasury)
 - Impact tokens (SLR, TGN, REGEN, DOVU, KVCM, CEN)
-- SHIT and stSHIT protocol-owned positions
+- SYM and stSYM protocol-owned positions
 
-The `ShitCollateralManager` is the DSS `ilk` manager. For each collateral type it stores:
+The `SymbientCollateralManager` is the DSS `ilk` manager. For each collateral type it stores:
 
 - a price feed from `ImpactOracleAdapter`
 - a liquidation ratio
@@ -64,49 +64,49 @@ The protocol is not buying carbon credits and hoping they appreciate. It is allo
 
 ### What an inverse bond is
 
-A normal bond lets a user deposit reserve assets (USDC, impact tokens) and receive discounted, vested SHIT. An **inverse bond** does the opposite: the protocol buys SHIT from the open market and burns it. It is a NAV-discount buyback.
+A normal bond lets a user deposit reserve assets (USDC, impact tokens) and receive discounted, vested SYM. An **inverse bond** does the opposite: the protocol buys SYM from the open market and burns it. It is a NAV-discount buyback.
 
-In the SHIT Protocol implementation:
+In the SYM Protocol implementation:
 
-- `ShitInverseBond` lets users sell SHIT to the treasury.
-- The sale price is `NAV per SHIT minus a 1.5% spread`.
-- The SHIT received by the contract are burned.
+- `SymbientInverseBond` lets users sell SYM to the treasury.
+- The sale price is `NAV per SYM minus a 1.5% spread`.
+- The SYM received by the contract are burned.
 - Capacity is `1% of liquid treasury value` per 8-hour epoch.
 
 ### Why it reduces supply
 
-When a user sells 100 SHIT through the inverse bond, those 100 SHIT leave circulation forever. Total supply drops. If the treasury has more backing per remaining SHIT, the floor price and NAV per SHIT mechanically rise, all else equal.
+When a user sells 100 SYM through the inverse bond, those 100 SYM leave circulation forever. Total supply drops. If the treasury has more backing per remaining SYM, the floor price and NAV per SYM mechanically rise, all else equal.
 
 ### Economic effect
 
-1. **Supply sink.** Inverse bonds convert liquid reserves into fewer SHIT. The treasury gains nothing and loses reserves, but the remaining SHIT become more backed.
-2. **Floor price support.** Because `ShitStaking` uses the floor price to gate rebases and supplemental emissions, a higher floor makes the staking contract more conservative.
-3. **Counter-cyclical use.** Inverse bonds are not meant to run constantly. They are meant for periods when SHIT trades below NAV and the treasury wants to shrink supply.
+1. **Supply sink.** Inverse bonds convert liquid reserves into fewer SYM. The treasury gains nothing and loses reserves, but the remaining SYM become more backed.
+2. **Floor price support.** Because `SymbientStaking` uses the floor price to gate rebases and supplemental emissions, a higher floor makes the staking contract more conservative.
+3. **Counter-cyclical use.** Inverse bonds are not meant to run constantly. They are meant for periods when SYM trades below NAV and the treasury wants to shrink supply.
 
 ### Guardrails
 
-- `updateNav(navPerShit, liquidTreasuryValue)` sets the per-epoch capacity.
+- `updateNav(navPerSymbient, liquidTreasuryValue)` sets the per-epoch capacity.
 - The 1.5% spread prevents instantaneous arbitrage that drains reserves.
 - The 1% cap per epoch prevents a single block from burning a large share of supply.
-- The inverse bond is also wired into the `ShitCircuitBreaker` logic: if Bucky depegs, the circuit breaker trips before heavy inverse bond activity can destabilize reserves.
+- The inverse bond is also wired into the `SymbientCircuitBreaker` logic: if Bucky depegs, the circuit breaker trips before heavy inverse bond activity can destabilize reserves.
 
 ---
 
-## 4. How SHIT Protocol models the economics of a treasury-backed RWA token
+## 4. How SYM Protocol models the economics of a treasury-backed RWA token
 
 ### The core accounting identity
 
-SHIT Protocol is built around the invariant:
+SYM Protocol is built around the invariant:
 
 ```
 RFV <= NAV
-floor price = RFV / SHIT supply
-NAV per SHIT = NAV / SHIT supply
+floor price = RFV / SYM supply
+NAV per SYM = NAV / SYM supply
 ```
 
 - **RFV (Risk-Free Value):** what the treasury could be liquidated for in a worst case.
 - **NAV (Net Asset Value):** the full mark-to-market value of all assets.
-- **Floor price:** the value below which the protocol will not mint new SHIT.
+- **Floor price:** the value below which the protocol will not mint new SYM.
 
 ### Inputs to the model
 
@@ -114,10 +114,10 @@ The model takes the following on-chain inputs:
 
 | Input | Source |
 |---|---|
-| Treasury balances | `SHIT ProtocolTreasury` ERC-20 holdings |
+| Treasury balances | `SYM ProtocolTreasury` ERC-20 holdings |
 | Stablecoin prices | `StablecoinPriceFeed` (fixed $1) |
 | Impact token prices | `ImpactOracleAdapter` V3 TWAPs |
-| SHIT market price | `ShitPrice` Uniswap V3 TWAP |
+| SYM market price | `SymbientPrice` Uniswap V3 TWAP |
 | Haircuts | `TreasuryValuation` per-asset `haircutBps` |
 
 ### Outputs
@@ -127,9 +127,9 @@ The model takes the following on-chain inputs:
 - `rfv` — haircut-adjusted backing
 - `nav` — full market value
 - `floorPrice` — `rfv / totalSupply`
-- `navPerShit` — `nav / totalSupply`
+- `navPerSymbient` — `nav / totalSupply`
 
-`ShitStaking` uses `floorPrice` to decide whether a rebase can distribute new SHIT. If the market price is below floor, the protocol does not inflate supply into a discount.
+`SymbientStaking` uses `floorPrice` to decide whether a rebase can distribute new SYM. If the market price is below floor, the protocol does not inflate supply into a discount.
 
 ### The RWA part
 
@@ -145,8 +145,8 @@ This means the model is not a prediction of the RWA's future value. It is a liqu
 
 1. **The impact token has a liquid Uniswap V3 pool.** Without liquidity, the TWAP is manipulable.
 2. **The 50% haircut is conservative.** For high-beta climate tokens, 50% may not be enough in a crisis. Governance can raise it.
-3. **The stablecoin reserves are stable.** USDC is assumed to hold $1. If it depegs, `ShitCircuitBreaker` must trip.
-4. **The treasury does not mint SHIT below floor.** The `SHIT ProtocolMinter` and `ShitStaking` contracts enforce this.
+3. **The stablecoin reserves are stable.** USDC is assumed to hold $1. If it depegs, `SymbientCircuitBreaker` must trip.
+4. **The treasury does not mint SYM below floor.** The `SYM ProtocolMinter` and `SymbientStaking` contracts enforce this.
 
 ---
 
@@ -154,19 +154,19 @@ This means the model is not a prediction of the RWA's future value. It is a liqu
 
 ### Bond pricer and capacity
 
-`ShitBondPricer` computes a recommended discount for normal bonds. `ShitInverseBond` does not use the pricer directly; it uses a fixed spread. The important mechanics are:
+`SymbientBondPricer` computes a recommended discount for normal bonds. `SymbientInverseBond` does not use the pricer directly; it uses a fixed spread. The important mechanics are:
 
-- **Bond price:** `navPerShit * (1 - 150 bps)`
+- **Bond price:** `navPerSymbient * (1 - 150 bps)`
 - **Capacity:** `liquidTreasuryValue * 1%` per 8-hour epoch
-- **Burn:** every SHIT received is sent to the burn address
+- **Burn:** every SYM received is sent to the burn address
 
 ### Why a 1.5% spread?
 
-The spread protects the treasury from frontrunning the NAV update. `TreasuryValuation` and `ShitPrice` update on the Heart beat. A 1.5% spread means the seller only captures NAV minus a buffer, so the treasury does not lose reserves to arbitrage between the price update and the bond sale.
+The spread protects the treasury from frontrunning the NAV update. `TreasuryValuation` and `SymbientPrice` update on the Heart beat. A 1.5% spread means the seller only captures NAV minus a buffer, so the treasury does not lose reserves to arbitrage between the price update and the bond sale.
 
 ### Epoch capacity and circuit breaker
 
-The `ShitDefenseBudget` (or the inverse bond's own `liquidTreasuryValue`) caps how much can be spent. The `ShitCircuitBreaker` monitors:
+The `SymbientDefenseBudget` (or the inverse bond's own `liquidTreasuryValue`) caps how much can be spent. The `SymbientCircuitBreaker` monitors:
 
 - Bucky peg
 - treasury NAV vs supply
@@ -176,7 +176,7 @@ If any metric is out of bounds, the circuit breaker can pause inverse bond sales
 
 ### What the supply sink does not do
 
-Inverse bonds do **not** increase the backing per SHIT if the treasury pays out more reserves than the market value of the burned SHIT. They only increase backing if the sale happens below NAV and the spread is not larger than the discount. The 1.5% spread is a guardrail that makes this a slow, deliberate mechanism, not a rapid buyback.
+Inverse bonds do **not** increase the backing per SYM if the treasury pays out more reserves than the market value of the burned SYM. They only increase backing if the sale happens below NAV and the spread is not larger than the discount. The 1.5% spread is a guardrail that makes this a slow, deliberate mechanism, not a rapid buyback.
 
 ---
 
@@ -194,9 +194,9 @@ MakerDAO's DSS is one of the most battle-tested multi-collateral stablecoin syst
 
 For a climate RWA stablecoin, the hard part is not the stablecoin engine. It is the collateral policy.
 
-### The collateral policy in SHIT Protocol
+### The collateral policy in SYM Protocol
 
-The `ShitCollateralManager` maps each climate token to a DSS `ilk`:
+The `SymbientCollateralManager` maps each climate token to a DSS `ilk`:
 
 ```
 ilk = {
@@ -215,7 +215,7 @@ Each `ilk` uses `ImpactOracleAdapter.getTokenPrice(token)` as the `Spotter` pric
 1. **No off-chain identity.** The protocol does not KYC the borrower. Anyone with the climate token can open a vault.
 2. **High liquidation ratio.** Climate tokens are volatile, so the minimum collateralization is 150% and the treasury haircut is 50%.
 3. **TWAP oracle.** `ImpactOracleAdapter` uses a Uniswap V3 TWAP, not an instantaneous price. This prevents flash-loan liquidation attacks.
-4. **AMO loops.** The `ShitLendingAMO` and `ShitUniswapV4AMO` put minted Bucky to work. The goal is not to keep Bucky idle; it is to earn yield that flows to stakers and the treasury.
+4. **AMO loops.** The `SymbientLendingAMO` and `SymbientUniswapV4AMO` put minted Bucky to work. The goal is not to keep Bucky idle; it is to earn yield that flows to stakers and the treasury.
 
 ### What is hard about this
 
@@ -233,10 +233,10 @@ The alternative is that climate tokens sit in wallets and produce no yield. By m
 
 The protocol already records the following facts:
 
-- First 100 stakers (testnet `ShitStaking` events)
+- First 100 stakers (testnet `SymbientStaking` events)
 - Top referrers (`ReferralRegistry`)
 - Whitelist signers (`/api/whitelist/join` backed by on-chain signatures)
-- First bond participants (`ShitBonding` deposits)
+- First bond participants (`SymbientBonding` deposits)
 - Top impact-token clarity scores (`impact-leaderboard` data)
 
 These are not marketing claims. They are block-by-block records. When the mainnet migration happens, these testnet records can be used for allocation weighting, status, and airdrop eligibility.

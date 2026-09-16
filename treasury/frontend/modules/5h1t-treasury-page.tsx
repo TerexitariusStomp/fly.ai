@@ -1,11 +1,11 @@
 /**
- * 5H1T Treasury Page — FLYAI reserve dashboard + treasury ops (RBS, POL, analytics).
+ * SYM Treasury Page — FLYAI reserve dashboard + treasury ops (RBS, POL, analytics).
  * Combined treasury + treasury ops into one page.
  */
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, PieChart, Pie, Cell } from "recharts";
-import { useApi, type FlyaiPoint, type Treasury, type OnchainTreasury, type Position, type Connectome } from "@/lib/5h1t-api";
+import { useApi, type FlyaiPoint, type Treasury, type OnchainTreasury, type Position, type Connectome } from "@/lib/sym-api";
 
-export function FiveHitTreasuryPage() {
+export function SymTreasuryPage() {
   const { data: flyai } = useApi<FlyaiPoint[]>("/api/flyai", 15000);
   const { data: treasury } = useApi<Treasury>("/api/treasury", 10000);
   const { data: onchain } = useApi<OnchainTreasury>("/api/treasury/onchain", 15000);
@@ -44,13 +44,13 @@ export function FiveHitTreasuryPage() {
     <div className="min-h-screen bg-[#07090c] text-white">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <h1 className="font-mono text-2xl font-bold mb-2">Treasury</h1>
-        <p className="text-gray-400 mb-6">FLYAI reserve backing the 5H1T token floor price. Treasury ops include range stability, protocol-owned liquidity, and connectome allocations.</p>
+        <p className="text-gray-400 mb-6">FLYAI reserve backing the SYM token floor price. Treasury ops include range stability, protocol-owned liquidity, and connectome allocations.</p>
 
         {/* Stats grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <StatCard label="FLYAI Balance" value={onchain?.flyai_balance?.toFixed(6) ?? treasury?.flyai_balance?.toFixed(6) ?? "—"} />
           <StatCard label="FLYAI Price" value={`$${latestFlyaiPrice.toFixed(7)}`} />
-          <StatCard label="SHIT Floor Price" value={`$${(onchain?.floor_price ?? treasury?.shit_floor_price ?? 0).toFixed(7)}`} />
+          <StatCard label="SYM Floor Price" value={`$${(onchain?.floor_price ?? treasury?.shit_floor_price ?? 0).toFixed(7)}`} />
           <StatCard label="ETH Deployed" value={treasury?.eth_deployed?.toFixed(4) ?? "—"} />
         </div>
 
@@ -115,7 +115,7 @@ export function FiveHitTreasuryPage() {
                   <Tooltip contentStyle={{ background: "#0a0d12", border: "1px solid #333", borderRadius: "8px" }} labelStyle={{ color: "#8793a0" }} formatter={(v: any, name: any) => name === "FLYAI Balance" ? `${Number(v).toFixed(4)} FLYAI` : `$${Number(v).toFixed(7)}`} />
                   <Area yAxisId="bal" type="monotone" dataKey="balance" stroke="#6cf08a" strokeWidth={2} fill="url(#priceGrad)" name="FLYAI Balance" />
                   {hasPriceData && <Area yAxisId="price" type="monotone" dataKey="price" stroke="#3ed8ff" strokeWidth={1} fill="none" name="FLYAI Price" connectNulls />}
-                  {hasPriceData && <Area yAxisId="price" type="monotone" dataKey="floor" stroke="#ff5ad2" strokeWidth={1} fill="url(#floorGrad)" name="SHIT Floor" connectNulls />}
+                  {hasPriceData && <Area yAxisId="price" type="monotone" dataKey="floor" stroke="#ff5ad2" strokeWidth={1} fill="url(#floorGrad)" name="SYM Floor" connectNulls />}
                   {hasPriceData && <ReferenceLine yAxisId="price" y={priceHistory.find(p => p.price != null)?.price ?? 0} stroke="#444" strokeDasharray="3 3" />}
                 </AreaChart>
               </ResponsiveContainer>

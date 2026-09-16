@@ -1,10 +1,10 @@
 import { useChainId, useReadContract } from "wagmi";
 import { ContractName, getContractAddress } from "@/lib/contracts";
-import V1MigratorAbi from "@/abis/ShitV1Migrator";
+import V1MigratorAbi from "@/abis/SymbientV1Migrator";
 
 /**
- * Preview the SHIT v2 amount a user would receive for migrating `amount` SHIT v1.
- * The migrator computes this via wstSHIT (`balanceFrom(balanceTo(amount))`), so it is
+ * Preview the SYM v2 amount a user would receive for migrating `amount` SYM v1.
+ * The migrator computes this via wstSYM (`balanceFrom(balanceTo(amount))`), so it is
  * ~1:1 but may round slightly down — always show the previewed value, not the input.
  */
 export function usePreviewMigrate(amount: bigint) {

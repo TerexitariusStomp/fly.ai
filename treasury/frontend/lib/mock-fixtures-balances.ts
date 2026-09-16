@@ -29,40 +29,40 @@ const EMPTY: MultiChainBalanceResult = {
 
 // Whale: big balances on Base
 export const WHALE_BALANCES: Record<string, MultiChainBalanceResult> = {
-  SHIT: result([bal(base.id, "Base", "14.245", 9)]),
+  SYM: result([bal(base.id, "Base", "14.245", 9)]),
   sSHIT: result([bal(base.id, "Base", "2.125", 9)]),
-  wstSHIT: result([bal(base.id, "Base", "14.245", 18)]),
+  wstSYM: result([bal(base.id, "Base", "14.245", 18)]),
   wsSHIT: EMPTY,
-  "SHIT v1": EMPTY,
+  "SYM v1": EMPTY,
   "sSHIT v1": EMPTY,
 };
 
 // Empty: connected but no balances
 export const EMPTY_BALANCES: Record<string, MultiChainBalanceResult> = {
-  SHIT: EMPTY,
+  SYM: EMPTY,
   sSHIT: EMPTY,
-  wstSHIT: EMPTY,
+  wstSYM: EMPTY,
   wsSHIT: EMPTY,
-  "SHIT v1": EMPTY,
+  "SYM v1": EMPTY,
   "sSHIT v1": EMPTY,
 };
 
 // Legacy: wallet with old v1 tokens needing migration
 export const LEGACY_BALANCES: Record<string, MultiChainBalanceResult> = {
-  SHIT: EMPTY,
+  SYM: EMPTY,
   sSHIT: EMPTY,
-  wstSHIT: EMPTY,
+  wstSYM: EMPTY,
   wsSHIT: result([bal(base.id, "Base", "5.0", 18)]),
-  "SHIT v1": result([bal(base.id, "Base", "125.0", 9)]),
+  "SYM v1": result([bal(base.id, "Base", "125.0", 9)]),
   "sSHIT v1": result([bal(base.id, "Base", "50.0", 9)]),
 };
 
-// Multi-chain: wstSHIT on Base
+// Multi-chain: wstSYM on Base
 export const MULTI_CHAIN_BALANCES: Record<string, MultiChainBalanceResult> = {
-  SHIT: result([bal(base.id, "Base", "5.0", 9)]),
+  SYM: result([bal(base.id, "Base", "5.0", 9)]),
   sSHIT: EMPTY,
-  wstSHIT: result([bal(base.id, "Base", "5.9", 18)]),
+  wstSYM: result([bal(base.id, "Base", "5.9", 18)]),
   wsSHIT: EMPTY,
-  "SHIT v1": EMPTY,
+  "SYM v1": EMPTY,
   "sSHIT v1": EMPTY,
 };

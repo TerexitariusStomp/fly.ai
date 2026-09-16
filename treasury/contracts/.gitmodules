@@ -6,9 +6,9 @@
 	path = lib/openzeppelin
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts.git
 
-[submodule "lib/shit-v3"]
-	path = lib/shit-v3
-	url = https://github.com/SHIT-Protocol/shit-v3.git
+[submodule "lib/sym-v3"]
+	path = lib/sym-v3
+	url = https://github.com/symbient-protocol/sym-v3.git
 
 [submodule "lib/v4-hooks-public"]
 	path = lib/v4-hooks-public

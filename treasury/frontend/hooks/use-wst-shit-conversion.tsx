@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useReadContract, useChainId } from "wagmi";
 import { parseUnits, parseEther, formatUnits, formatEther } from "viem";
 import { getTokenAddress, TokenName } from "@/lib/tokens";
-import wstSHITAbi from "@/abis/wstSHIT";
+import wstSYMAbi from "@/abis/wstSYM";
 
 /** Trim trailing zeros from a decimal string, keeping at least `minDecimals` places. */
 function trimDecimals(value: string, maxDecimals: number, minDecimals = 2): string {
@@ -15,17 +15,17 @@ function trimDecimals(value: string, maxDecimals: number, minDecimals = 2): stri
   return `${int}.${trimmed}`;
 }
 
-/** Read the wstSHIT contract's stShitPerToken (the source of truth for conversions). */
+/** Read the wstSYM contract's stSymbientPerToken (the source of truth for conversions). */
 export function useGshitIndex({ enabled = true }: { enabled?: boolean } = {}) {
   const chainId = useChainId();
-  const gshitAddress = getTokenAddress(TokenName.WSTSHIT, chainId);
+  const gsymAddress = getTokenAddress(TokenName.Wstsym, chainId);
 
   const { data: index, isLoading } = useReadContract({
-    address: gshitAddress,
-    abi: wstSHITAbi,
-    functionName: "stShitPerToken",
+    address: gsymAddress,
+    abi: wstSYMAbi,
+    functionName: "stSymbientPerToken",
     query: {
-      enabled: enabled && !!gshitAddress,
+      enabled: enabled && !!gsymAddress,
     },
   });
 
@@ -33,11 +33,11 @@ export function useGshitIndex({ enabled = true }: { enabled?: boolean } = {}) {
 }
 
 /**
- * Compute the Wrap-page output amount for a given input. "wrap"/"unwrap" use the wstSHIT
- * index with client-side bigint math (matches wstSHIT.balanceTo / wstSHIT.balanceFrom exactly).
- * "identity" is the 1:1 sSHIT → SHIT path: no index read, formatting only.
+ * Compute the Wrap-page output amount for a given input. "wrap"/"unwrap" use the wstSYM
+ * index with client-side bigint math (matches wstSYM.balanceTo / wstSYM.balanceFrom exactly).
+ * "identity" is the 1:1 sSHIT → SYM path: no index read, formatting only.
  */
-export function useWstShitConversion(mode: "wrap" | "unwrap" | "identity", inputAmount: string) {
+export function useWstSymbientConversion(mode: "wrap" | "unwrap" | "identity", inputAmount: string) {
   const { index } = useGshitIndex({ enabled: mode !== "identity" });
 
   const outputAmount = useMemo(() => {
@@ -47,14 +47,14 @@ export function useWstShitConversion(mode: "wrap" | "unwrap" | "identity", input
 
     try {
       if (mode === "wrap") {
-        // wstSHIT.balanceTo: wstSHIT = sSHIT * 1e18 / index
+        // wstSYM.balanceTo: wstSYM = sSHIT * 1e18 / index
         const shitBigInt = parseUnits(inputAmount, 18);
-        const gshitBigInt = (shitBigInt * 10n ** 18n) / index;
-        return trimDecimals(formatEther(gshitBigInt), 6);
+        const gsymBigInt = (shitBigInt * 10n ** 18n) / index;
+        return trimDecimals(formatEther(gsymBigInt), 6);
       }
-      // wstSHIT.balanceFrom: sSHIT = wstSHIT * index / 1e18
-      const gshitBigInt = parseEther(inputAmount);
-      const shitBigInt = (gshitBigInt * index) / 10n ** 18n;
+      // wstSYM.balanceFrom: sSHIT = wstSYM * index / 1e18
+      const gsymBigInt = parseEther(inputAmount);
+      const shitBigInt = (gsymBigInt * index) / 10n ** 18n;
       return trimDecimals(formatUnits(shitBigInt, 18), 4);
     } catch {
       return "";
@@ -65,35 +65,35 @@ export function useWstShitConversion(mode: "wrap" | "unwrap" | "identity", input
 }
 
 /**
- * Conversion rates using the wstSHIT index.
+ * Conversion rates using the wstSYM index.
  */
-export function useWstShitConversionRate() {
+export function useWstSymbientConversionRate() {
   const { index, isLoading } = useGshitIndex();
 
   const rates = useMemo(() => {
-    if (!index || index === 0n) return { shitPerGshit: undefined, gshitPerShit: undefined };
+    if (!index || index === 0n) return { shitPerGshit: undefined, gsymPerSymbient: undefined };
 
-    // wstSHIT index is stSHIT per 1 wstSHIT, scaled to 18 decimals.
+    // wstSYM index is stSYM per 1 wstSYM, scaled to 18 decimals.
     const shitPerGshit = trimDecimals(formatUnits(index, 18), 3);
-    // 1 SHIT (1e18) -> wstSHIT: wstSHIT = 1e18 * 1e18 / index
-    const gshitBigInt = (10n ** 18n * 10n ** 18n) / index;
-    const gshitPerShit = trimDecimals(formatEther(gshitBigInt), 6);
+    // 1 SYM (1e18) -> wstSYM: wstSYM = 1e18 * 1e18 / index
+    const gsymBigInt = (10n ** 18n * 10n ** 18n) / index;
+    const gsymPerSymbient = trimDecimals(formatEther(gsymBigInt), 6);
 
-    return { shitPerGshit, gshitPerShit };
+    return { shitPerGshit, gsymPerSymbient };
   }, [index]);
 
   return { ...rates, isLoading };
 }
 
-/** Read the total supply of wstSHIT from the contract (returns bigint in 18 decimals). */
+/** Read the total supply of wstSYM from the contract (returns bigint in 18 decimals). */
 export function useGshitTotalSupply() {
   const chainId = useChainId();
-  const gshitAddress = getTokenAddress(TokenName.WSTSHIT, chainId);
+  const gsymAddress = getTokenAddress(TokenName.Wstsym, chainId);
   const { data } = useReadContract({
-    address: gshitAddress,
-    abi: wstSHITAbi,
+    address: gsymAddress,
+    abi: wstSYMAbi,
     functionName: "totalSupply",
-    query: { enabled: !!gshitAddress },
+    query: { enabled: !!gsymAddress },
   });
   return { totalSupply: data as bigint | undefined };
 }

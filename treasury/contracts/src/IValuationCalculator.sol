@@ -9,7 +9,7 @@ interface IValuationCalculator {
     /// @notice Compute aggregate NAV and RFV from registered assets
     /// @param assetList List of asset token addresses
     /// @param assetsData Encoded asset metadata (type, priceFeed, haircutBps, manualValue, active)
-    /// @param reserveTreasury Address of SHIT ProtocolTreasury (or zero for balanceOf fallback)
+    /// @param reserveTreasury Address of SYM ProtocolTreasury (or zero for balanceOf fallback)
     /// @return nav Total net asset value
     /// @return rfv Total risk-free value (after haircuts)
     function computeValuations(

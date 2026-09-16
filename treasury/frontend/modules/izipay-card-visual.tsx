@@ -31,7 +31,7 @@ export function CardVisual({ cardType, cardId, status, balance, className }: Car
               <path d="M12 2L2 7v10l10 5 10-5V7L12 2z" />
             </svg>
           </div>
-          <span className="text-sm font-bold text-[hsl(45_25%_93%)]">5H1TPay</span>
+          <span className="text-sm font-bold text-[hsl(45_25%_93%)]">SYMPay</span>
         </div>
         <span
           className={cn(

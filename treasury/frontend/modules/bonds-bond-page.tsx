@@ -9,9 +9,9 @@ import { NumberFlow } from "@/components/ui-number-flow";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui-tabs";
 import { parseUnits, zeroAddress } from "viem";
 import { ContractName, getContractAddress } from "@/lib/contracts";
-import { BOND_AGGREGATOR_ABI, BOND_AUCTIONEER_ABI, BOND_TELLER_ABI } from "@/abis/ShitBonding";
-import { SHIT_PRICE_FEED_ABI } from "@/abis/ShitContracts";
-import SHIT_INVERSE_BOND_ABI from "@/abis/ShitInverseBond";
+import { BOND_AGGREGATOR_ABI, BOND_AUCTIONEER_ABI, BOND_TELLER_ABI } from "@/abis/SymbientBonding";
+import { SHIT_PRICE_FEED_ABI } from "@/abis/SymbientContracts";
+import SHIT_INVERSE_BOND_ABI from "@/abis/SymbientInverseBond";
 import { useTokenAllowance } from "@/hooks/use-token-allowance";
 import { useTokenBalance } from "@/hooks/use-token-balance";
 import { useTokenApproval } from "@/hooks/use-token-approval";
@@ -27,7 +27,7 @@ import { DashboardActions } from "@/components/dashboard-actions";
 // hidden from the list even though they remain live on-chain.
 const DEPRECATED_QUOTE_TOKENS = new Set(["0x9d21820456cf2f8e49292d2181ff7a5e18084124"]);
 
-// Only USDC bonds are shown. SHIT and Bucky should not have bonds.
+// Only USDC bonds are shown. SYM and Bucky should not have bonds.
 const USDC_QUOTE_TOKENS = new Set([
   "0x3595ca37596d5895b70efab592ac315d5b9809b2", // USDC on Base
   "0xb6a1bc3d383f8751ef0cc216943290740e4d1493", // USDC on Base Sepolia
@@ -242,7 +242,7 @@ function BondList({ bonds, isInverseBond }: { bonds: BondMarket[]; isInverseBond
   return (
     <div className="space-y-3">
       <div className="hidden md:grid grid-cols-12 gap-4 px-4 text-sm font-medium text-secondary-t uppercase tracking-wide">
-        <div className="col-span-3">{isInverseBond ? "Sell" : "Buy"} SHIT with</div>
+        <div className="col-span-3">{isInverseBond ? "Sell" : "Buy"} SYM with</div>
         <div className="col-span-2 text-right">Price</div>
         <div className="col-span-2 text-right">Discount</div>
         <div className="col-span-2 text-right">Capacity</div>
@@ -271,7 +271,7 @@ function BondRow({ bond, isInverseBond }: { bond: BondMarket; isInverseBond: boo
           <div className="col-span-12 md:col-span-3">
             <p className="font-semibold text-base">{quoteSymbol}</p>
             <p className="text-sm text-secondary-t">
-              {isInverseBond ? "Sell SHIT → receive " + quoteSymbol : "Pay " + quoteSymbol + " → receive SHIT"}
+              {isInverseBond ? "Sell SYM → receive " + quoteSymbol : "Pay " + quoteSymbol + " → receive SYM"}
             </p>
           </div>
           <div className="col-span-6 md:col-span-2 md:text-right">
@@ -349,7 +349,7 @@ function BondPurchaseModal({
   const [error, setError] = useState<string | null>(null);
 
   const inputTokenAddress = isInverseBond
-    ? (TOKENS[TokenName.SHIT].addresses[chainId ?? 0] ?? bond.payoutTokenAddress)
+    ? (TOKENS[TokenName.SYM].addresses[chainId ?? 0] ?? bond.payoutTokenAddress)
     : bond.quoteTokenAddress;
 
   const { balance } = useTokenBalance(inputTokenAddress, address);
@@ -461,7 +461,7 @@ function BondPurchaseModal({
       const receipt = await publicClient?.waitForTransactionReceipt({ hash });
       if (receipt?.status !== "success") {
         setReverted(true);
-        throw new Error("Transaction reverted on-chain. The market does not have enough SHIT to cover this bond size. The purchase button has been disabled — try a smaller amount or try again later.");
+        throw new Error("Transaction reverted on-chain. The market does not have enough SYM to cover this bond size. The purchase button has been disabled — try a smaller amount or try again later.");
       }
       setSuccess(true);
     } catch (err) {
@@ -480,19 +480,19 @@ function BondPurchaseModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
       <Card className="p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
         <h3 className="text-lg font-semibold mb-1">
-          {isInverseBond ? "Sell SHIT" : `Bond with ${quoteSymbol}`}
+          {isInverseBond ? "Sell SYM" : `Bond with ${quoteSymbol}`}
         </h3>
         <p className="text-xs text-tertiary-t mb-4">
           {isInverseBond
-            ? `Sell SHIT at a ${bond.discount.toFixed(2)}% premium to the treasury`
-            : `Buy SHIT at a ${bond.discount.toFixed(2)}% discount from the treasury`}
+            ? `Sell SYM at a ${bond.discount.toFixed(2)}% premium to the treasury`
+            : `Buy SYM at a ${bond.discount.toFixed(2)}% discount from the treasury`}
         </p>
 
         <label className="block text-xs font-medium mb-1">
-          Amount to bond {isInverseBond ? "(SHIT)" : `(${quoteSymbol})`}
+          Amount to bond {isInverseBond ? "(SYM)" : `(${quoteSymbol})`}
         </label>
         <p className="text-xs text-secondary-t mb-2">
-          Enter how much {isInverseBond ? "SHIT" : quoteSymbol} you want to {isInverseBond ? "sell" : "bond"}.
+          Enter how much {isInverseBond ? "SYM" : quoteSymbol} you want to {isInverseBond ? "sell" : "bond"}.
         </p>
         <input
           type="text"
@@ -528,7 +528,7 @@ function BondPurchaseModal({
         )}
         <p className="text-xs text-yellow mb-3">
           Two steps: first click <strong className="text-yellow">Approve</strong> to allow the contract to use your{" "}
-          {isInverseBond ? "SHIT" : quoteSymbol}, then click <strong className="text-yellow">Purchase Bond</strong>.
+          {isInverseBond ? "SYM" : quoteSymbol}, then click <strong className="text-yellow">Purchase Bond</strong>.
         </p>
         {approveSuccess && (
           <p className="text-xs text-green mb-3 text-center">
@@ -539,7 +539,7 @@ function BondPurchaseModal({
         <div className="flex flex-col sm:flex-row gap-2">
           {needsApproval && (
             <Button variant="secondary" className="flex-1 h-auto py-2 whitespace-normal" onClick={handleApprove} disabled={pending || approvePending || success}>
-              {pending ? "Approving..." : `Step 1: Approve ${isInverseBond ? "SHIT" : quoteSymbol}`}
+              {pending ? "Approving..." : `Step 1: Approve ${isInverseBond ? "SYM" : quoteSymbol}`}
             </Button>
           )}
           <Button
@@ -554,19 +554,19 @@ function BondPurchaseModal({
                 : needsApproval
                   ? `Step 2: Purchase Bond (approve first)`
                   : isInverseBond
-                    ? "Sell SHIT"
+                    ? "Sell SYM"
                     : "Purchase Bond"}
           </Button>
         </div>
         {success && (
           <div className="mt-4 p-3 rounded-lg bg-green/10 border border-green/30 text-center">
             <p className="text-sm font-semibold text-green">
-              {isInverseBond ? "SHIT sold successfully" : "Bond purchased successfully"}
+              {isInverseBond ? "SYM sold successfully" : "Bond purchased successfully"}
             </p>
             <p className="text-xs text-secondary-t mt-1">
               {isInverseBond
-                ? "Your SHIT have been burned and you will receive USDC."
-                : "You bought SHIT at a discount. Your bond will vest over the next few seconds."}
+                ? "Your SYM have been burned and you will receive USDC."
+                : "You bought SYM at a discount. Your bond will vest over the next few seconds."}
             </p>
             <Button variant="secondary" className="w-full mt-2" onClick={onClose}>
               Done
@@ -586,12 +586,12 @@ function BondPurchaseModal({
 function InverseBondList() {
   const { address, chainId } = useConnectedAddress();
   const inverseBondAddress = getContractAddress(ContractName.SHIT_INVERSE_BOND, chainId ?? 0);
-  const shitAddress = TOKENS[TokenName.SHIT].addresses[chainId ?? 0];
+  const shitAddress = TOKENS[TokenName.SYM].addresses[chainId ?? 0];
 
-  const { data: navPerShit } = useReadContract({
+  const { data: navPerSymbient } = useReadContract({
     address: inverseBondAddress,
     abi: SHIT_INVERSE_BOND_ABI,
-    functionName: "navPerShit",
+    functionName: "navPerSymbient",
     query: { enabled: !!inverseBondAddress },
   });
 
@@ -624,9 +624,9 @@ function InverseBondList() {
     );
   }
 
-  const nav = navPerShit ? Number(navPerShit) / 1e6 : 0;
-  const pricePerShit = bondPrice ? Number(bondPrice) / 1e6 : 0;
-  const discount = nav > 0 ? ((nav - pricePerShit) / nav) * 100 : 0;
+  const nav = navPerSymbient ? Number(navPerSymbient) / 1e6 : 0;
+  const pricePerSymbient = bondPrice ? Number(bondPrice) / 1e6 : 0;
+  const discount = nav > 0 ? ((nav - pricePerSymbient) / nav) * 100 : 0;
   const capacityRemaining = epochCapacity && epochUsed ? Number(epochCapacity) - Number(epochUsed) : 0;
   const capacityUSDC = capacityRemaining / 1e6;
 
@@ -635,21 +635,21 @@ function InverseBondList() {
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="font-serif text-lg">SHIT → USDC Inverse Bond</h3>
+            <h3 className="font-serif text-lg">SYM → USDC Inverse Bond</h3>
             <p className="text-sm text-secondary-t mt-1">
-              Sell SHIT and get USDC at a discount to Net Asset Value. The SHIT you sell are burned forever.
+              Sell SYM and get USDC at a discount to Net Asset Value. The SYM you sell are burned forever.
             </p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
           <div>
-            <p className="text-xs text-tertiary-t uppercase tracking-wide">Net Asset Value per SHIT</p>
+            <p className="text-xs text-tertiary-t uppercase tracking-wide">Net Asset Value per SYM</p>
             <p className="text-lg font-semibold">${nav.toFixed(4)}</p>
           </div>
           <div>
             <p className="text-xs text-tertiary-t uppercase tracking-wide">Bond Price</p>
-            <p className="text-lg font-semibold">${pricePerShit.toFixed(4)}</p>
+            <p className="text-lg font-semibold">${pricePerSymbient.toFixed(4)}</p>
           </div>
           <div>
             <p className="text-xs text-tertiary-t uppercase tracking-wide">Discount</p>
@@ -727,7 +727,7 @@ function InverseBondSellForm({
     if (!amount) return;
     try {
       setPending(true);
-      console.log("[InverseBond] Selling SHIT:", { inverseBondAddress, amount: parsedAmount });
+      console.log("[InverseBond] Selling SYM:", { inverseBondAddress, amount: parsedAmount });
       if (!walletClient) throw new Error("Wallet not connected. Please sign in via Privy.");
 
       // Estimate gas with 50% buffer
@@ -763,9 +763,9 @@ function InverseBondSellForm({
 
   return (
     <Card className="p-6">
-      <h4 className="font-semibold mb-3">Sell SHIT</h4>
+      <h4 className="font-semibold mb-3">Sell SYM</h4>
 
-      <label className="text-sm text-secondary-t mb-1 block">Amount (SHIT)</label>
+      <label className="text-sm text-secondary-t mb-1 block">Amount (SYM)</label>
       <input
         type="number"
         value={amount}
@@ -776,7 +776,7 @@ function InverseBondSellForm({
       />
       {balance !== undefined && (
         <p className="text-xs text-tertiary-t mb-4">
-          Balance: {(Number(balance) / 1e18).toFixed(4)} SHIT
+          Balance: {(Number(balance) / 1e18).toFixed(4)} SYM
         </p>
       )}
 
@@ -785,7 +785,7 @@ function InverseBondSellForm({
           <p className="text-sm text-secondary-t">
             You receive: <span className="font-semibold text-primary-t">{expectedPayoutUSDC.toFixed(4)} USDC</span>
           </p>
-          <p className="text-xs text-tertiary-t mt-1">SHIT will be burned after sale</p>
+          <p className="text-xs text-tertiary-t mt-1">SYM will be burned after sale</p>
         </div>
       )}
 
@@ -797,7 +797,7 @@ function InverseBondSellForm({
             onClick={handleApprove}
             disabled={pending || approvePending}
           >
-            {pending || approvePending ? "Approving..." : "Approve SHIT"}
+            {pending || approvePending ? "Approving..." : "Approve SYM"}
           </Button>
         )}
         <Button
@@ -805,7 +805,7 @@ function InverseBondSellForm({
           onClick={handleSell}
           disabled={pending || !amount || parseFloat(amount) <= 0 || needsApproval}
         >
-          {pending ? "Processing..." : "Sell SHIT"}
+          {pending ? "Processing..." : "Sell SYM"}
         </Button>
       </div>
     </Card>
@@ -892,7 +892,7 @@ export function BondPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Bonds</h1>
         <p className="text-sm text-secondary-t mt-1">
-          Buy SHIT below market value by providing USDC to the treasury. Bonds vest over a fixed period — you receive your discounted SHIT gradually as the vesting period passes. The discount reflects the time lock: you get a better price in exchange for waiting.
+          Buy SYM below market value by providing USDC to the treasury. Bonds vest over a fixed period — you receive your discounted SYM gradually as the vesting period passes. The discount reflects the time lock: you get a better price in exchange for waiting.
         </p>
       </div>
 

@@ -14,7 +14,7 @@ import { TokenName } from "@/lib/tokens";
 import { formatTokenDisplay } from "@/lib/math";
 import WsSHITAbi from "@/abis/wsSHIT";
 
-interface UnwrapWstShitModalProps {
+interface UnwrapWstSymbientModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
@@ -22,7 +22,7 @@ interface UnwrapWstShitModalProps {
 const WSSHIT_DECIMALS = 18;
 const SSHIT_DECIMALS = 9;
 
-export function UnwrapWstShitModal({ isOpen, onClose }: UnwrapWstShitModalProps) {
+export function UnwrapWstSymbientModal({ isOpen, onClose }: UnwrapWstSymbientModalProps) {
   const { address } = useConnectedAddress();
   const chainId = useChainId();
   const [amount, setAmount] = useState("");
@@ -30,11 +30,11 @@ export function UnwrapWstShitModal({ isOpen, onClose }: UnwrapWstShitModalProps)
   const wsshitAddress = getContractAddress(ContractName.WSSHIT, chainId);
 
   const wsshitToken = useToken(TokenName.WSSHIT, address);
-  const gshitToken = useToken(TokenName.WSTSHIT);
-  // wsSHIT has no direct price feed; it tracks wstSHIT, so display value using the wstSHIT price.
+  const gsymToken = useToken(TokenName.Wstsym);
+  // wsSHIT has no direct price feed; it tracks wstSYM, so display value using the wstSYM price.
   const inputToken = useMemo(
-    () => ({ ...wsshitToken, price: gshitToken.price }),
-    [wsshitToken, gshitToken.price],
+    () => ({ ...wsshitToken, price: gsymToken.price }),
+    [wsshitToken, gsymToken.price],
   );
 
   const balance = wsshitToken.balance ?? 0n;
@@ -48,7 +48,7 @@ export function UnwrapWstShitModal({ isOpen, onClose }: UnwrapWstShitModalProps)
     }
   }, [amount]);
 
-  // Preview sSHIT v1 received (not 1:1 — scaled by the wstSHIT index).
+  // Preview sSHIT v1 received (not 1:1 — scaled by the wstSYM index).
   const { data: sshitOut } = useReadContract({
     address: wsshitAddress,
     abi: WsSHITAbi,
@@ -93,7 +93,7 @@ export function UnwrapWstShitModal({ isOpen, onClose }: UnwrapWstShitModalProps)
         isOpen={isOpen}
         onClose={handleClose}
         title="Unwrapped to sSHIT v1"
-        description="Next, unstake your sSHIT v1 to SHIT v1, then migrate."
+        description="Next, unstake your sSHIT v1 to SYM v1, then migrate."
         hash={unwrapHash}
       />
     );
@@ -108,7 +108,7 @@ export function UnwrapWstShitModal({ isOpen, onClose }: UnwrapWstShitModalProps)
             Unwrap wsSHIT
           </DialogTitle>
           <p className="text-xs/4 font-normal text-secondary-t">
-            Unwrap wsSHIT to sSHIT v1 — then unstake it to SHIT v1 to migrate.
+            Unwrap wsSHIT to sSHIT v1 — then unstake it to SYM v1 to migrate.
           </p>
         </DialogHeader>
 

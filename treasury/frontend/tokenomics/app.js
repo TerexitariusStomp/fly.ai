@@ -1,4 +1,4 @@
-// SHIT Protocol Tokenomics Lab — Pyodide frontend
+// SYM Protocol Tokenomics Lab — Pyodide frontend
 // Runs Python simulation models in-browser via WASM, renders with Plotly.js
 // Deployable as static site on Cloudflare Pages
 
@@ -23,9 +23,9 @@ async function initPyodide() {
     const dirs = ['/models', '/scenarios', '/oss', '/glue',
                   '/oss/cadcad', '/oss/cadcad/engine', '/oss/cadcad/configuration',
                   '/oss/cadcad/configuration/utils', '/oss/cadcad/utils',
-                  '/oss/shit-protocol', '/oss/shit-protocol/behavioral', '/oss/shit-protocol/mechanism',
-                  '/oss/shit-protocol/policy', '/oss/shit-protocol/psub_functions',
-                  '/oss/shit-protocol/signals', '/oss/shit-protocol/types', '/oss/shit-protocol/utility',
+                  '/oss/sym-protocol', '/oss/sym-protocol/behavioral', '/oss/sym-protocol/mechanism',
+                  '/oss/sym-protocol/policy', '/oss/sym-protocol/psub_functions',
+                  '/oss/sym-protocol/signals', '/oss/sym-protocol/types', '/oss/sym-protocol/utility',
                   '/oss/curve', '/oss/liquity',
                   '/oss/pendle', '/oss/stablecoin', '/oss/crvusdrisk'];
     for (const d of dirs) { try { pyodide.FS.mkdir(d); } catch(e) {} }
@@ -132,58 +132,58 @@ async function getAllPythonFiles() {
         'oss/cadcad/configuration/utils/userDefinedObject.py',
         'oss/cadcad/utils/__init__.py',
         'oss/cadcad/utils/execution.py',
-        // oss/shit-protocol (full model/ directory structure)
-        'oss/shit-protocol/__init__.py',
-        'oss/shit-protocol/rbs_utils.py',
-        'oss/shit-protocol/rbs_init_functions.py',
-        'oss/shit-protocol/psub.py',
-        'oss/shit-protocol/run.py',
-        'oss/shit-protocol/behavioral/__init__.py',
-        'oss/shit-protocol/behavioral/demand.py',
-        'oss/shit-protocol/behavioral/shitbond.py',
-        'oss/shit-protocol/mechanism/__init__.py',
-        'oss/shit-protocol/mechanism/amm_k.py',
-        'oss/shit-protocol/mechanism/demand.py',
-        'oss/shit-protocol/mechanism/liquidity_exchange.py',
-        'oss/shit-protocol/mechanism/protocol.py',
-        'oss/shit-protocol/mechanism/rbs_price.py',
-        'oss/shit-protocol/mechanism/reward_rate.py',
-        'oss/shit-protocol/mechanism/supply.py',
-        'oss/shit-protocol/mechanism/treasury.py',
-        'oss/shit-protocol/policy/__init__.py',
-        'oss/shit-protocol/policy/shitbond.py',
-        'oss/shit-protocol/policy/rbs_price.py',
-        'oss/shit-protocol/policy/reward_rate.py',
-        'oss/shit-protocol/policy/treasury_market_operations.py',
-        'oss/shit-protocol/policy/treasury.py',
-        'oss/shit-protocol/policy/utility.py',
-        'oss/shit-protocol/psub_functions/__init__.py',
-        'oss/shit-protocol/psub_functions/amm_k.py',
-        'oss/shit-protocol/psub_functions/demand.py',
-        'oss/shit-protocol/psub_functions/shitbond.py',
-        'oss/shit-protocol/psub_functions/protocol.py',
-        'oss/shit-protocol/psub_functions/reward_rate.py',
-        'oss/shit-protocol/psub_functions/soros.py',
-        'oss/shit-protocol/psub_functions/supply.py',
-        'oss/shit-protocol/psub_functions/target_capacity.py',
-        'oss/shit-protocol/psub_functions/treasury_market_operations.py',
-        'oss/shit-protocol/psub_functions/treasury.py',
-        'oss/shit-protocol/psub_functions/utility.py',
-        'oss/shit-protocol/signals/__init__.py',
-        'oss/shit-protocol/signals/bond_signals.py',
-        'oss/shit-protocol/types/__init__.py',
-        'oss/shit-protocol/types/compound.py',
-        'oss/shit-protocol/types/config.py',
-        'oss/shit-protocol/types/primitives.py',
-        'oss/shit-protocol/utility/__init__.py',
-        'oss/shit-protocol/utility/default_initial_state.py',
-        'oss/shit-protocol/utility/default_parameters.py',
-        'oss/shit-protocol/utility/initial_state_functions.py',
-        'oss/shit-protocol/utility/shitbond_metrics.py',
-        'oss/shit-protocol/utility/panic_sell_metrics.py',
-        'oss/shit-protocol/utility/par_sweep.py',
-        'oss/shit-protocol/utility/par_validity_check.py',
-        'oss/shit-protocol/utility/visualization.py',
+        // oss/sym-protocol (full model/ directory structure)
+        'oss/sym-protocol/__init__.py',
+        'oss/sym-protocol/rbs_utils.py',
+        'oss/sym-protocol/rbs_init_functions.py',
+        'oss/sym-protocol/psub.py',
+        'oss/sym-protocol/run.py',
+        'oss/sym-protocol/behavioral/__init__.py',
+        'oss/sym-protocol/behavioral/demand.py',
+        'oss/sym-protocol/behavioral/shitbond.py',
+        'oss/sym-protocol/mechanism/__init__.py',
+        'oss/sym-protocol/mechanism/amm_k.py',
+        'oss/sym-protocol/mechanism/demand.py',
+        'oss/sym-protocol/mechanism/liquidity_exchange.py',
+        'oss/sym-protocol/mechanism/protocol.py',
+        'oss/sym-protocol/mechanism/rbs_price.py',
+        'oss/sym-protocol/mechanism/reward_rate.py',
+        'oss/sym-protocol/mechanism/supply.py',
+        'oss/sym-protocol/mechanism/treasury.py',
+        'oss/sym-protocol/policy/__init__.py',
+        'oss/sym-protocol/policy/shitbond.py',
+        'oss/sym-protocol/policy/rbs_price.py',
+        'oss/sym-protocol/policy/reward_rate.py',
+        'oss/sym-protocol/policy/treasury_market_operations.py',
+        'oss/sym-protocol/policy/treasury.py',
+        'oss/sym-protocol/policy/utility.py',
+        'oss/sym-protocol/psub_functions/__init__.py',
+        'oss/sym-protocol/psub_functions/amm_k.py',
+        'oss/sym-protocol/psub_functions/demand.py',
+        'oss/sym-protocol/psub_functions/shitbond.py',
+        'oss/sym-protocol/psub_functions/protocol.py',
+        'oss/sym-protocol/psub_functions/reward_rate.py',
+        'oss/sym-protocol/psub_functions/soros.py',
+        'oss/sym-protocol/psub_functions/supply.py',
+        'oss/sym-protocol/psub_functions/target_capacity.py',
+        'oss/sym-protocol/psub_functions/treasury_market_operations.py',
+        'oss/sym-protocol/psub_functions/treasury.py',
+        'oss/sym-protocol/psub_functions/utility.py',
+        'oss/sym-protocol/signals/__init__.py',
+        'oss/sym-protocol/signals/bond_signals.py',
+        'oss/sym-protocol/types/__init__.py',
+        'oss/sym-protocol/types/compound.py',
+        'oss/sym-protocol/types/config.py',
+        'oss/sym-protocol/types/primitives.py',
+        'oss/sym-protocol/utility/__init__.py',
+        'oss/sym-protocol/utility/default_initial_state.py',
+        'oss/sym-protocol/utility/default_parameters.py',
+        'oss/sym-protocol/utility/initial_state_functions.py',
+        'oss/sym-protocol/utility/shitbond_metrics.py',
+        'oss/sym-protocol/utility/panic_sell_metrics.py',
+        'oss/sym-protocol/utility/par_sweep.py',
+        'oss/sym-protocol/utility/par_validity_check.py',
+        'oss/sym-protocol/utility/visualization.py',
         // oss/curve
         'oss/curve/__init__.py',
         'oss/curve/pegkeeper.py',
@@ -244,10 +244,10 @@ async function loadModelsInline() {
     // Ensure directories exist
     const dirs = ['/oss', '/glue', '/oss/cadcad', '/oss/cadcad/engine',
                   '/oss/cadcad/configuration', '/oss/cadcad/configuration/utils',
-                  '/oss/cadcad/utils', '/oss/shit-protocol',
-                  '/oss/shit-protocol/behavioral', '/oss/shit-protocol/mechanism',
-                  '/oss/shit-protocol/policy', '/oss/shit-protocol/psub_functions',
-                  '/oss/shit-protocol/signals', '/oss/shit-protocol/types', '/oss/shit-protocol/utility',
+                  '/oss/cadcad/utils', '/oss/sym-protocol',
+                  '/oss/sym-protocol/behavioral', '/oss/sym-protocol/mechanism',
+                  '/oss/sym-protocol/policy', '/oss/sym-protocol/psub_functions',
+                  '/oss/sym-protocol/signals', '/oss/sym-protocol/types', '/oss/sym-protocol/utility',
                   '/oss/curve', '/oss/liquity', '/oss/pendle', '/oss/stablecoin', '/oss/crvusdrisk'];
     for (const d of dirs) { try { pyodide.FS.mkdir(d); } catch(e) {} }
 
@@ -340,7 +340,7 @@ else:
 # Build DataFrame from raw events (list of dicts with varying keys per substep)
 if isinstance(raw, (list, tuple)) and len(raw) > 0:
     df = pd.DataFrame(raw)
-    # Take only the last substep per timestep (like SHIT Protocol post_processing)
+    # Take only the last substep per timestep (like SYM Protocol post_processing)
     if 'substep' in df.columns and 'timestep' in df.columns:
         df = df.groupby(['simulation', 'subset', 'run', 'timestep']).last().reset_index()
 elif isinstance(raw, dict):
@@ -348,9 +348,9 @@ elif isinstance(raw, dict):
 else:
     df = pd.DataFrame()
 
-# Map SHIT Protocol/cadCAD output columns to frontend-expected field names
+# Map SYM Protocol/cadCAD output columns to frontend-expected field names
 if not df.empty:
-    # Time axis: SHIT Protocol uses 'timestep', frontend expects 'day'
+    # Time axis: SYM Protocol uses 'timestep', frontend expects 'day'
     df['day'] = df.get('timestep', range(len(df)))
 
     # Price / floor / NAV
@@ -371,7 +371,7 @@ if not df.empty:
 
     # NAV = all accumulated protocol value (floor + band + POL + yield + reserves)
     df['nav'] = floor_r + band_r + pol_v + yield_c + reserves
-    # NAV per SHIT = total treasury / supply (grows as treasury accumulates)
+    # NAV per SYM = total treasury / supply (grows as treasury accumulates)
     if 'nav_per_shit' not in df.columns or df['nav_per_shit'].sum() == 0:
         df['nav_per_shit'] = df['nav'] / supply_col
     else:
@@ -386,7 +386,7 @@ if not df.empty:
     df['floor_price'] = (df['rfv'] / supply_col).clip(lower=0.01)
     df['treasury_total'] = df['nav']
 
-    # Treasury composition: stacked components from SHIT protocol
+    # Treasury composition: stacked components from SYM protocol
     df['treasury_total_chart'] = df['nav']  # Total treasury for PSM chart
     df['treasury_floor'] = floor_r
     df['treasury_band'] = band_r
@@ -418,7 +418,7 @@ if not df.empty:
     # Rebase rate in bps
     df['rebase_rate_bps'] = reward_rate * 10000
 
-    # Supply — SHIT supply tracks SHIT Protocol supply (same token, rebases + mints - burns)
+    # Supply — SYM supply tracks SYM Protocol supply (same token, rebases + mints - burns)
     df['shit_supply'] = df.get('supply', df.get('shit_supply', 100e6))
     df['redeemable_supply'] = df.get('floating_supply', 0)
 
@@ -449,7 +449,7 @@ if not df.empty:
         df['circuit_breaker_count'] = cb_counts
         df['circuit_breaker_tripped'] = (df['circuit_breaker_count'] >= 21).astype(bool)
 
-    # Bonding — inverse bonds burn SHIT, premium seller mints SHIT
+    # Bonding — inverse bonds burn SYM, premium seller mints SYM
     # These vary with market conditions: burn rate spikes when price weak,
     # premium seller activates when price > 2x NAV (per whitepaper). Add per-epoch noise for realism.
     import random
@@ -481,8 +481,8 @@ if not df.empty:
     # Premium seller: mints when price > 2x NAV (per whitepaper), rate scales with premium
     # Fully self-contained calculation with soft activation + double EMA smoothing
     # to eliminate any staircase / vertical cliff artifacts.
-    # NOTE: Always use this custom calculation — SHIT Protocol' cum_shit_minted tracks AMM
-    # minting, NOT the SHIT premium seller mechanism.
+    # NOTE: Always use this custom calculation — SYM Protocol' cum_shit_minted tracks AMM
+    # minting, NOT the SYM premium seller mechanism.
     cum = 0
     mints = []
     smoothed_rate = 0.0
@@ -641,7 +641,7 @@ if not df.empty:
     if 'market_price' in df.columns:
         df['market_price'] = ema_smooth(df['market_price'], alpha=0.35)
 
-    # Smooth NAV per SHIT (jumps from 0 when treasury starts growing)
+    # Smooth NAV per SYM (jumps from 0 when treasury starts growing)
     if 'nav_per_shit' in df.columns:
         df['nav_per_shit'] = ema_smooth(df['nav_per_shit'], alpha=0.25)
 
@@ -653,7 +653,7 @@ if not df.empty:
     if 'staking_ratio' in df.columns:
         df['staking_ratio'] = ema_smooth(df['staking_ratio'], alpha=0.30)
 
-    # Smooth shit supply (supplemental minting toggles can create steps)
+    # Smooth SYM supply (supplemental minting toggles can create steps)
     if 'shit_supply' in df.columns:
         df['shit_supply'] = ema_smooth(df['shit_supply'], alpha=0.30)
 
@@ -790,7 +790,7 @@ function renderOverview() {
 
     stats.innerHTML = `
         <div class="stat-card">
-            <div class="label">SHIT Supply</div>
+            <div class="label">SYM Supply</div>
             <div class="value">${fmt(s.shit_supply)}</div>
             <div class="sub">Supplemental: ${fmt(s.total_supplemental)}</div>
         </div>
@@ -807,7 +807,7 @@ function renderOverview() {
         <div class="stat-card">
             <div class="label">Treasury</div>
             <div class="value">$${fmt(s.treasury_total)}</div>
-            <div class="sub">NAV/SHIT: $${s.nav_per_shit.toFixed(2)}</div>
+            <div class="sub">NAV/SYM: $${s.nav_per_shit.toFixed(2)}</div>
         </div>
         <div class="stat-card">
             <div class="label">Bucky Peg</div>
@@ -847,7 +847,7 @@ function renderOverview() {
     }, {
         x: days, y: d.floor_price, name: 'Floor Price', mode: 'lines', line: { color: '#3fb950', dash: 'dash' }
     }, {
-        x: days, y: d.nav_per_shit, name: 'NAV/SHIT', mode: 'lines', line: { color: '#bc8cff', dash: 'dot' }
+        x: days, y: d.nav_per_shit, name: 'NAV/SYM', mode: 'lines', line: { color: '#bc8cff', dash: 'dot' }
     }], {
         paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
         font: { color: '#8b949e', size: 11 },
@@ -858,7 +858,7 @@ function renderOverview() {
     }, { responsive: true });
 
     Plotly.newPlot('chart-supply', [{
-        x: days, y: d.shit_supply, name: 'SHIT Supply', mode: 'lines', line: { color: '#58a6ff' }
+        x: days, y: d.shit_supply, name: 'SYM Supply', mode: 'lines', line: { color: '#58a6ff' }
     }, {
         x: days, y: d.st_shit_supply, name: 'stSHIT Supply', mode: 'lines', line: { color: '#d29922' }
     }], {
@@ -923,7 +923,7 @@ function renderStaking() {
     Plotly.newPlot('chart-staked-supply', [{
         x: days, y: d.st_shit_supply, name: 'stSHIT Supply', mode: 'lines', line: { color: '#d29922', width: 2 }
     }, {
-        x: days, y: d.shit_supply, name: 'Total SHIT Supply', mode: 'lines', line: { color: '#58a6ff', dash: 'dot' }
+        x: days, y: d.shit_supply, name: 'Total SYM Supply', mode: 'lines', line: { color: '#58a6ff', dash: 'dot' }
     }], {
         paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
         font: { color: '#8b949e', size: 11 },
@@ -963,14 +963,14 @@ function renderTreasury() {
     Plotly.newPlot('chart-rfv-nav', [{
         x: days, y: d.market_price, name: 'Market Price', mode: 'lines', line: { color: '#58a6ff', width: 2 }
     }, {
-        x: days, y: d.floor_price, name: 'Floor Price (RFV/SHIT)', mode: 'lines', line: { color: '#3fb950', dash: 'dash' }
+        x: days, y: d.floor_price, name: 'Floor Price (RFV/SYM)', mode: 'lines', line: { color: '#3fb950', dash: 'dash' }
     }, {
-        x: days, y: d.nav_per_shit, name: 'NAV/SHIT', mode: 'lines', line: { color: '#bc8cff', dash: 'dot' }
+        x: days, y: d.nav_per_shit, name: 'NAV/SYM', mode: 'lines', line: { color: '#bc8cff', dash: 'dot' }
     }], {
         paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
         font: { color: '#8b949e', size: 11 },
         xaxis: { title: 'Days', gridcolor: '#30363d' },
-        yaxis: { title: 'USD per SHIT', gridcolor: '#30363d' },
+        yaxis: { title: 'USD per SYM', gridcolor: '#30363d' },
         margin: { l: 50, r: 20, t: 10, b: 40 },
         legend: { orientation: 'h', y: -0.3 },
     }, { responsive: true });
@@ -1009,7 +1009,7 @@ function renderTreasury() {
         font: { color: '#8b949e', size: 11 },
         xaxis: { title: 'Days', gridcolor: '#30363d' },
         yaxis: { title: 'Reserves', gridcolor: '#30363d' },
-        yaxis2: { title: 'SHIT', overlaying: 'y', side: 'right', gridcolor: '#30363d' },
+        yaxis2: { title: 'SYM', overlaying: 'y', side: 'right', gridcolor: '#30363d' },
         margin: { l: 50, r: 50, t: 10, b: 40 },
         legend: { orientation: 'h', y: -0.3 },
     }, { responsive: true });
@@ -1040,7 +1040,7 @@ function renderBonding() {
     }, {
         x: days, y: d.floor_price, name: 'Floor Price', mode: 'lines', line: { color: '#3fb950', dash: 'dash' }
     }, {
-        x: days, y: d.nav_per_shit, name: 'NAV/SHIT', mode: 'lines', line: { color: '#bc8cff', dash: 'dot' }
+        x: days, y: d.nav_per_shit, name: 'NAV/SYM', mode: 'lines', line: { color: '#bc8cff', dash: 'dot' }
     }, {
         x: days, y: d.nav_per_shit.map(v => v * 2.0), name: '2x NAV (Premium Seller Threshold)',
         mode: 'lines', line: { color: '#f85149', dash: 'dash' }
@@ -1054,24 +1054,24 @@ function renderBonding() {
     }, { responsive: true });
 
     Plotly.newPlot('chart-inverse-burn', [{
-        x: days, y: d.shit_burned_inverse, name: 'Cumulative SHIT Burned (Inverse Bonds)', mode: 'lines',
+        x: days, y: d.shit_burned_inverse, name: 'Cumulative SYM Burned (Inverse Bonds)', mode: 'lines',
         line: { color: '#d29922', width: 2 }
     }], {
         paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
         font: { color: '#8b949e', size: 11 },
         xaxis: { title: 'Days', gridcolor: '#30363d' },
-        yaxis: { title: 'SHIT', gridcolor: '#30363d' },
+        yaxis: { title: 'SYM', gridcolor: '#30363d' },
         margin: { l: 50, r: 20, t: 10, b: 40 },
     }, { responsive: true });
 
     Plotly.newPlot('chart-premium-sold', [{
-        x: days, y: d.total_shit_sold_premium, name: 'Cumulative SHIT Sold', mode: 'lines',
+        x: days, y: d.total_shit_sold_premium, name: 'Cumulative SYM Sold', mode: 'lines',
         line: { color: '#d29922' }
     }], {
         paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
         font: { color: '#8b949e', size: 11 },
         xaxis: { title: 'Days', gridcolor: '#30363d' },
-        yaxis: { title: 'SHIT', gridcolor: '#30363d' },
+        yaxis: { title: 'SYM', gridcolor: '#30363d' },
         margin: { l: 50, r: 20, t: 10, b: 40 },
     }, { responsive: true });
 }
@@ -1185,8 +1185,8 @@ function renderReport() {
 
     // Executive Summary
     html += `<h3>Executive Summary</h3><ul>`;
-    html += `<li><b>Final SHIT Supply:</b> ${fmt(s.shit_supply)} (supplemental minted: ${fmt(s.total_supplemental)})</li>`;
-    html += `<li><b>Market Price:</b> $${s.market_price.toFixed(2)} | Floor: $${s.floor_price.toFixed(2)} | NAV/SHIT: $${s.nav_per_shit.toFixed(2)}</li>`;
+    html += `<li><b>Final SYM Supply:</b> ${fmt(s.shit_supply)} (supplemental minted: ${fmt(s.total_supplemental)})</li>`;
+    html += `<li><b>Market Price:</b> $${s.market_price.toFixed(2)} | Floor: $${s.floor_price.toFixed(2)} | NAV/SYM: $${s.nav_per_shit.toFixed(2)}</li>`;
     html += `<li><b>Price vs Floor:</b> ${s.market_price > s.floor_price ? 'Premium' : 'Discount'} of ${Math.abs(((s.market_price - s.floor_price) / Math.max(s.floor_price, 0.01) * 100)).toFixed(1)}%</li>`;
     html += `<li><b>Staking APY:</b> ${s.staking_apy.toFixed(1)}% (staking ratio: ${fmtPct(s.staking_ratio * 100)})</li>`;
     html += `<li><b>Treasury Total:</b> $${fmt(s.treasury_total)} (grew from $0 — all from protocol fee revenue)</li>`;
@@ -1238,7 +1238,7 @@ function renderReport() {
     html += `<li><b>POL Haircut:</b> ${document.getElementById('pol_haircut').value} bps (${(parseInt(document.getElementById('pol_haircut').value)/100).toFixed(0)}% discount on POL value for RFV)</li>`;
     html += `<li><b>Redemption Probability:</b> ${document.getElementById('redemption_prob').value}% chance per epoch of a redemption event</li>`;
     html += `<li><b>Redemption Size:</b> ${document.getElementById('redemption_size').value}% of total supply redeemed per event</li>`;
-    html += `<li><b>Premium Seller Threshold:</b> 2x NAV (from whitepaper) — mints SHIT in 0.25% pool-reserve clips, min 1hr between sales, when price exceeds this level</li>`;
+    html += `<li><b>Premium Seller Threshold:</b> 2x NAV (from whitepaper) — mints SYM in 0.25% pool-reserve clips, min 1hr between sales, when price exceeds this level</li>`;
     html += `</ul>`;
 
     // Recommendations
@@ -1264,13 +1264,13 @@ function renderReport() {
 
     // Model Assumptions & Transparency
     html += `<h3>Model Assumptions & Transparency</h3><ul>`;
-    html += `<li><b>Simulation framework:</b> cadCAD (Python in WASM via Pyodide) with SHIT Protocol base model extended by SHIT-specific policies</li>`;
+    html += `<li><b>Simulation framework:</b> cadCAD (Python in WASM via Pyodide) with SYM Protocol base model extended by SYM-specific policies</li>`;
     html += `<li><b>Staking dynamics:</b> Staking ratio converges toward target based on market premium (85% in bull, 20% in bear). APY = base yield from POL fees + supplemental emissions, smoothed at 10% max change per epoch.</li>`;
     html += `<li><b>Treasury model:</b> Starts at $0. Grows from DEX fees (0.5% of volume), V4 hook fees (0.5% of swaps split 50/50 floor/band), POL fees, and yield revenue. RFV applies haircuts to each component.</li>`;
-    html += `<li><b>Bonding:</b> Inverse bonds burn SHIT when price is weak (rate scales with discount to floor). Premium seller mints SHIT when price > 2x NAV, selling in 0.25% pool-reserve clips with 1hr cooldown (per whitepaper). Both have stochastic variation for realism.</li>`;
+    html += `<li><b>Bonding:</b> Inverse bonds burn SYM when price is weak (rate scales with discount to floor). Premium seller mints SYM when price > 2x NAV, selling in 0.25% pool-reserve clips with 1hr cooldown (per whitepaper). Both have stochastic variation for realism.</li>`;
     html += `<li><b>Circuit breaker:</b> Tracks consecutive epochs where price is near or below floor. Trips at threshold, halting supplemental emissions. Gradual decay when price recovers.</li>`;
     html += `<li><b>Epoch definition:</b> 1 epoch = 1 day in this simulation (protocol uses 8-hour epochs in production)</li>`;
-    html += `<li><b>Initial state:</b> 100M SHIT supply, $1.00 price, 5% staking ratio, $0 treasury (grows from protocol fee revenue)</li>`;
+    html += `<li><b>Initial state:</b> 100M SYM supply, $1.00 price, 5% staking ratio, $0 treasury (grows from protocol fee revenue)</li>`;
     html += `<li><b>Key equations:</b> Supplemental = stSHIT × rMax × (premiumBps / rangeBps); Rebase cap = 0.45%/epoch (protocol hard limit); Staking gate = 50%; RFV invariant at 90% backing; Rate limiter 30-epoch window at 5% cap; Premium seller at 2x NAV</li>`;
     html += `<li><b>Simplifications:</b> AMM uses constant-product model; yield rates are fixed; no external market correlation; no MEV or latency effects; stablecoin (Bucky) model runs separately</li>`;
     html += `<li><b>Open source:</b> All model code, parameters, and equations are open-source and available for community audit</li>`;
@@ -1279,7 +1279,7 @@ function renderReport() {
 
     // Historical Lessons
     html += `<h3>Historical Context</h3><ul>`;
-    html += `<li><b>SHIT Protocol:</b> Death spiral when price fell below backing — circuit breaker is the key defense</li>`;
+    html += `<li><b>SYM Protocol:</b> Death spiral when price fell below backing — circuit breaker is the key defense</li>`;
     html += `<li><b>Klima DAO:</b> Over-reliance on supplemental emissions — R_MAX and K_BPS must be conservative</li>`;
     html += `<li><b>Terra/UST:</b> Stablecoin depeg cascade — Bucky's PSM + RBS + PegKeeper must be tested under reserve depeg</li>`;
     html += `<li><b>Hector/Rome/Spartacus:</b> Insufficient treasury backing — RFV invariant and haircuts are critical</li>`;

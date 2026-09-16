@@ -1,15 +1,15 @@
-# SHIT Protocol
+# SYM Protocol
 
-> SHIT Protocol is a decentralized treasury protocol on Base. Deposit, stake, and your position compounds automatically — backed by real assets, not promises. Featuring impact tokens, climate-backed reserves, vote markets, and governance.
+> SYM Protocol is a decentralized treasury protocol on Base. Deposit, stake, and your position compounds automatically — backed by real assets, not promises. Featuring impact tokens, climate-backed reserves, vote markets, and governance.
 
-## What is SHIT Protocol?
+## What is SYM Protocol?
 
-SHIT Protocol is a DeFi protocol that creates a sustainable treasury backed by real-world assets, including climate-positive impact tokens. The protocol features:
+SYM Protocol is a DeFi protocol that creates a sustainable treasury backed by real-world assets, including climate-positive impact tokens. The protocol features:
 
-- **Staking & Yield**: Stake SHIT tokens to earn auto-compounding yield from treasury revenue
+- **Staking & Yield**: Stake SYM tokens to earn auto-compounding yield from treasury revenue
 - **Impact Tokens**: Environmentally-focused ERC20 tokens (Solarcoin, Treegens, Regen, DOVU, KVCM, CEN) whitelisted as reserve assets, channeling treasury backing toward climate-positive initiatives
 - **Vote Markets**: Protocol participates in Curve, Balancer, and Aerodrome vote bribing markets to maximize yield for stakers
-- **Governance**: On-chain governance with SHIT Governor for protocol decisions
+- **Governance**: On-chain governance with SYM Governor for protocol decisions
 - **Treasury Management**: Decentralized treasury with POL (Protocol-Owned Liquidity), fee splitting, and vesting
 - **Bonds & Premium**: Bonding mechanism and premium seller for protocol revenue generation
 - **Pendle Integration**: stSHIT SY token for yield splitting (PT/YT)
@@ -27,7 +27,7 @@ SHIT Protocol is a DeFi protocol that creates a sustainable treasury backed by r
 ## Monorepo Structure
 
 ```
-shit-finance/
+symbient-finance/
 ├── apps/
 │   ├── frontend/              # React 19 + Vite 7 + wagmi 2 + Tailwind 4
 │   └── impact-clarity-map/    # Mapbox-based impact visualization app
@@ -53,14 +53,14 @@ shit-finance/
 
 ## Protocol Architecture
 
-The protocol uses the **SHIT Protocol V3 Kernel & Policy** pattern:
+The protocol uses the **SYM Protocol V3 Kernel & Policy** pattern:
 
 - **Kernel** — Central module registry. Modules register and expose functions that Policies can request permission to call.
 - **Policies** — Contracts that configure and interact with Kernel modules. Each declares dependencies via `configureDependencies()` and `requestPermissions()`.
 
 ### Key Design Principles
 
-1. **RFV Invariant** — SHIT minting is gated by `ITreasuryPolicy.enforceRfvInvariant()`. Cannot mint more SHIT than treasury backing supports at floor price.
+1. **RFV Invariant** — SYM minting is gated by `ITreasuryPolicy.enforceRfvInvariant()`. Cannot mint more SYM than treasury backing supports at floor price.
 2. **Haircuts** — Treasury RFV applies conservative haircuts: 2% on Morpho, 50% on impact tokens, 50% on POL (double slippage).
 3. **Idle Caps** — ≤30% idle USDC, ≤10% idle impact tokens, 0% idle POL (all must be deployed).
 4. **Multisig Control** — All privileged operations across every contract are gated by `MultisigGuard` with `onlyMultisig` modifier. No single-key access.
@@ -85,8 +85,8 @@ All contracts are in `protocols/contracts/src/`, built with Foundry, licensed AG
 - **ShitWstSHIT.sol** — Non-rebasing wrapper (Lido wstETH pattern).
 
 ### Bonding (`src/bonding/`)
-- **ShitBonding.sol** — Bond Protocol integration. Discounted SHIT for USDC.
-- **ShitInverseBond.sol** — Buyback bid at NAV × (1 - 1.5%). Burns received SHIT.
+- **ShitBonding.sol** — Bond Protocol integration. Discounted SYM for USDC.
+- **ShitInverseBond.sol** — Buyback bid at NAV × (1 - 1.5%). Burns received SYM.
 
 ### DEX — Uniswap V4 Hooks (`src/dex/`)
 - **ShitFloorHook.sol** — Monotone redemption floor, USDC backing.
@@ -102,7 +102,7 @@ All contracts are in `protocols/contracts/src/`, built with Foundry, licensed AG
 - **ShitLendingAMO.sol** — Deploys Bucky into Morpho lending markets.
 - **ShitUniswapV4AMO.sol** — Bucky liquidity with protocol-controlled V4 hooks.
 
-### Kernel — SHIT Protocol V3 Policies (`src/kernel/`)
+### Kernel — SYM Protocol V3 Policies (`src/kernel/`)
 - **ShitTreasuryPolicy.sol** — RFV/NAV tracking, Morpho yield deployment, idle caps, haircuts, team compensation cap, dissolution mechanism.
 - **ShitPOLPolicy.sol** — POL management (V4/Curve/Balancer).
 - **ShitStakingPolicy.sol** — Staking module configuration.
@@ -143,7 +143,7 @@ All contracts are in `protocols/contracts/src/`, built with Foundry, licensed AG
 - Adapters: StakeDAO, Paladin, yBribe, Votium, Hidden Hand, Aerodrome.
 
 ### Treasury (`src/treasury/`)
-- **ShitBurner.sol** — Burns SHIT, rescues non-SHIT tokens to treasury.
+- **ShitBurner.sol** — Burns SYM, rescues non-SYM tokens to treasury.
 
 ### Automation (`src/automation/`)
 - **ShitHeartKeeper.sol** — Heart keeper resolver for keeper-triggered automation.
@@ -205,7 +205,7 @@ src/
 - **cds/** — Convertible Deposits
 - **cooler/** — Cooler Loans (borrow, repay, clearing house)
 - **governance/** — Full proposal lifecycle
-- **shit/** — Balance, wrap, bridge, utility. V1 migration with Merkle proof
+- **symbient/** — Balance, wrap, bridge, utility. V1 migration with Merkle proof
 - **strategies/** — Vault list, deposit/withdraw, vote markets
 - **rbs/** — Range stability price bands
 - **psm/** — Mint/redeem Bucky with USDC
@@ -228,7 +228,7 @@ pnpm format            # Format all files
 
 Requires Node.js 24+ and pnpm.
 
-> **Important:** Run `pnpm codegen` after initial install and whenever the API spec changes. It generates `src/generated/shit-protocolUnits.ts` — typed React Query hooks for the SHIT Protocol Units API. The app will not compile without this file. Config lives in `orval.config.ts`; spec URL controlled by `SHIT_API_URL` env var.
+> **Important:** Run `pnpm codegen` after initial install and whenever the API spec changes. It generates `src/generated/symbient-protocolUnits.ts` — typed React Query hooks for the SYM Protocol Units API. The app will not compile without this file. Config lives in `orval.config.ts`; spec URL controlled by `SHIT_API_URL` env var.
 
 Lockfile installs are frozen by default. If you intentionally need to re-generate `pnpm-lock.yaml`, run `pnpm install --no-frozen-lockfile`.
 
@@ -291,9 +291,9 @@ forge script script/DeployShitStablecoin.s.sol --rpc-url $ETH_RPC_URL --broadcas
 
 ## Token
 
-- **SHIT**: The native governance and staking token (100M max supply, 18 decimals)
-- **stSHIT**: Staked SHIT (yield-bearing, rebasing, 8-hour epochs)
-- **wstSHIT**: Wrapped staked SHIT (non-rebasing, DeFi composable)
+- **SYM**: The native governance and staking token (100M max supply, 18 decimals)
+- **stSHIT**: Staked SYM (yield-bearing, rebasing, 8-hour epochs)
+- **wstSHIT**: Wrapped staked SYM (non-rebasing, DeFi composable)
 - **Bucky**: USD-pegged overcollateralized stablecoin
 - **RIDX**: Reserve index token
 
@@ -314,9 +314,9 @@ forge script script/DeployShitStablecoin.s.sol --rpc-url $ETH_RPC_URL --broadcas
 
 ## Contact
 
-- Website: https://shit-token-frontend.pages.dev
+- Website: https://symbient-token-frontend.pages.dev
 - Twitter: https://twitter.com/shitfinance
-- GitHub: https://github.com/shit-finance
+- GitHub: https://github.com/symbient-finance
 
 ## Privacy & Consent
 

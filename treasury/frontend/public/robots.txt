@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 
 # Sitemap
-Sitemap: https://shit-token-frontend.pages.dev/sitemap.xml
+Sitemap: https://symbient-token-frontend.pages.dev/sitemap.xml

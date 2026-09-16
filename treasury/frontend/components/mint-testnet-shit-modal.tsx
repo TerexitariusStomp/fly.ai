@@ -17,12 +17,12 @@ import { getTokenAddress, TokenName, TOKENS } from "@/lib/tokens";
 import { useTransactionToast, type TransactionToastConfig } from "@/hooks/use-transaction-toast";
 import MockERC20Abi from "@/abis/MockERC20";
 
-interface MintTestnetShitModalProps {
+interface MintTestnetSymbientModalProps {
   trigger: React.ReactElement;
-  token?: TokenName.SHIT | TokenName.WSTSHIT;
+  token?: TokenName.SYM | TokenName.Wstsym;
 }
 
-export function MintTestnetShitModal({ trigger, token = TokenName.SHIT }: MintTestnetShitModalProps) {
+export function MintTestnetSymbientModal({ trigger, token = TokenName.SYM }: MintTestnetSymbientModalProps) {
   const [amount, setAmount] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const { address } = useConnectedAddress();

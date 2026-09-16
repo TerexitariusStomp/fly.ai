@@ -4,7 +4,7 @@ import { useConnectedAddress } from "@/hooks/use-connected-address";
 import type { Hex } from "viem";
 import { zeroHash } from "viem";
 import { ContractName, getContractAddress } from "@/lib/contracts";
-import V1MigratorAbi from "@/abis/ShitV1Migrator";
+import V1MigratorAbi from "@/abis/SymbientV1Migrator";
 import { getMigrationMerkleRootOverride } from "@/lib/migration-config";
 
 // The migrator's merkle root (and a claim's verification against it) only changes via an
@@ -66,7 +66,7 @@ export function useV1MigratorMerkleRoot() {
 }
 
 /**
- * On-chain status for the SHIT v1 migrator, scoped to the connected user.
+ * On-chain status for the SYM v1 migrator, scoped to the connected user.
  * Combines the migrator's enabled state, the user's already-migrated amount,
  * the global remaining mint approval, and (when a claim is supplied) on-chain
  * proof verification.

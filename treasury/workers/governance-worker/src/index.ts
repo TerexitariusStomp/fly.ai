@@ -95,7 +95,7 @@ async function runEpoch(env: Env): Promise<Record<string, unknown>> {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: "SHIT Governance",
+          username: "SYM Governance",
           embeds: [{
             title: `Epoch ${epoch} settled`,
             color: 0x9b59b6,

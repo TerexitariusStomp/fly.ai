@@ -1,7 +1,7 @@
 # @version 0.4.3
 """
 @title StableSwap
-@author Curve.Fi, adapted by SHIT Protocol
+@author Curve.Fi, adapted by SYM Protocol
 @license AGPL-3.0-only
 @notice 2 coin pool implementation with no lending
 @dev ERC20 support for return True/revert, return True/False, return None

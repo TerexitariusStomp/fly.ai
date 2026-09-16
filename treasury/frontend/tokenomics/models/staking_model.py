@@ -1,8 +1,8 @@
 """
-Staking & Rebasing Model for SHIT Protocol (SHIT)
+Staking & Rebasing Model for SYM Protocol (SYM)
 
-Mirrors the logic in contracts/src/staking/ShitStaking.sol:
-- 8-hour epochs, rebasing stSHIT
+Mirrors the logic in contracts/src/staking/SymbientStaking.sol:
+- 8-hour epochs, rebasing stSYM
 - Base yield from POL fees / harvest
 - Supplemental emissions when TWAP > NAV (scaled by R_MAX and K_BPS)
 - Circuit breaker: 21 consecutive epochs (7 days) below floor → halt supplemental emissions
@@ -18,7 +18,7 @@ import pandas as pd
 from dataclasses import dataclass, field
 from typing import Optional
 
-# ─── Contract Constants (from ShitStaking.sol) ───
+# ─── Contract Constants (from SymbientStaking.sol) ───
 EPOCH_LENGTH = 8 * 3600  # 8 hours in seconds
 R_MAX = 55               # 0.55% max rebase per epoch (in bps)
 K_BPS = 17500            # 1.75x supplemental emission multiplier
@@ -42,18 +42,18 @@ class StakingParams:
     deployment_grace_epochs: int = DEPLOYMENT_GRACE_PERIOD_EPOCHS
 
     # Initial conditions
-    initial_shit_supply: float = 1_000_000.0   # SHIT in circulation
-    initial_staking_ratio: float = 0.65          # % of SHIT staked
-    initial_staking_index: float = 1.0           # stSHIT index (1e18 precision)
+    initial_shit_supply: float = 1_000_000.0   # SYM in circulation
+    initial_staking_ratio: float = 0.65          # % of SYM staked
+    initial_staking_index: float = 1.0           # stSYM index (1e18 precision)
 
     # Yield params
-    base_yield_per_epoch_bps: float = 40.0       # POL yield per epoch in bps (0.4% — matches SHIT Protocol sustained rate of ~7,457% APY)
+    base_yield_per_epoch_bps: float = 40.0       # POL yield per epoch in bps (0.4% — matches SYM Protocol sustained rate of ~7,457% APY)
     reward_rate_bps: float = 0.0                 # Additional reward rate (governed, timelocked)
 
     # Market params
-    initial_price: float = 10.0                  # SHIT price in USD
-    initial_nav_per_shit: float = 0.0           # NAV per SHIT — starts at 0, grows from treasury
-    initial_floor_price: float = 0.0             # Floor price per SHIT — starts at 0, grows from treasury
+    initial_price: float = 10.0                  # SYM price in USD
+    initial_nav_per_shit: float = 0.0           # NAV per SYM — starts at 0, grows from treasury
+    initial_floor_price: float = 0.0             # Floor price per SYM — starts at 0, grows from treasury
 
     # Simulation
     num_epochs: int = 90                         # 30 days = 90 epochs
@@ -62,7 +62,7 @@ class StakingParams:
     random_seed: Optional[int] = 42
 
     # Staking flow params
-    stake_elasticity: float = 3.0                # How responsive staking is to APY (higher → closer to SHIT Protocol's 93% staking ratio)
+    stake_elasticity: float = 3.0                # How responsive staking is to APY (higher → closer to SYM Protocol's 93% staking ratio)
     unstake_threshold_bps: float = -200.0        # Rebase bps that triggers unstaking
 
     # Price mean-reversion (floor hook + inverse bond provide buy support)
@@ -101,8 +101,8 @@ def simulate_staking(params: StakingParams) -> pd.DataFrame:
     """
     Run the staking simulation and return a DataFrame with per-epoch results.
 
-    Implements the rebase() logic from ShitStaking.sol:
-    1. Compute base yield from contract SHIT balance (POL fees + harvest)
+    Implements the rebase() logic from SymbientStaking.sol:
+    1. Compute base yield from contract SYM balance (POL fees + harvest)
     2. Check circuit breaker conditions
     3. If TWAP > NAV and circuit breaker not tripped, compute supplemental emissions
     4. Update staking index
@@ -150,7 +150,7 @@ def simulate_staking(params: StakingParams) -> pd.DataFrame:
         state.floor_price = state.rfv / state.shit_supply if state.shit_supply > 0 else 0
 
         # ─── 2. Compute base yield ───
-        # Yield is based on TOTAL supply (SHIT Protocol pattern: SHIT_stakers = totalSupply * rewardRate)
+        # Yield is based on TOTAL supply (SYM Protocol pattern: SHIT_stakers = totalSupply * rewardRate)
         # Not staked supply — so yield_per_token = base_yield / staking_ratio
         # This means APY is high when few stakers (early protocol) and decreases as ratio rises
         contract_balance = state.shit_supply * params.base_yield_per_epoch_bps / BPS_DENOMINATOR
@@ -251,18 +251,18 @@ def simulate_staking(params: StakingParams) -> pd.DataFrame:
         state.staking_index = new_index if new_index > 0 else state.staking_index
         # Rebase rate = yield fraction per epoch (not index ratio, which dilutes over time)
         state.rebase_rate_bps = yield_fraction * BPS_DENOMINATOR if yield_fraction > 0 else 0
-        state.rebase_rate_bps = min(state.rebase_rate_bps, 70.0)  # Cap rebase at 0.7% per epoch (matches SHIT Protocol peak ~180K% APY)
+        state.rebase_rate_bps = min(state.rebase_rate_bps, 70.0)  # Cap rebase at 0.7% per epoch (matches SYM Protocol peak ~180K% APY)
 
         # Track rebase-minted tokens for supply reconciliation
         state.total_rebase_minted += yield_fraction * state.st_shit_supply if state.st_shit_supply > 0 else 0
 
-        # Update SHIT supply from supplemental mint
+        # Update SYM supply from supplemental mint
         state.shit_supply += state.supplemental_mint
 
         # ─── 6. Staker behavior (stake/unstake flows) ───
         # APY = rebase_rate * 3 epochs/day * 365 days
         state.staking_apy = ((1 + state.rebase_rate_bps / BPS_DENOMINATOR) ** (EPOCHS_PER_DAY * 365) - 1) * 100
-        state.staking_apy = min(state.staking_apy, 220000.0)  # Cap at 220,000% (SHIT Protocol peak was 180,724%)
+        state.staking_apy = min(state.staking_apy, 220000.0)  # Cap at 220,000% (SYM Protocol peak was 180,724%)
 
         # Market yield alternative (e.g., Morpho ~5% APY)
         market_yield = 5.0

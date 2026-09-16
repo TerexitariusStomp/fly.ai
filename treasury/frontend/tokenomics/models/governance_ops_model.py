@@ -2,16 +2,16 @@
 Governance, automation, token registry, and deployment configuration simulation.
 
 Models:
-- ShitGovernor: On-chain governance (proposal, voting, timelock)
-- ShitGelatoResolver: Automation dependency (Gelato outage risk + fallback keeper)
+- SymbientGovernor: On-chain governance (proposal, voting, timelock)
+- SymbientGelatoResolver: Automation dependency (Gelato outage risk + fallback keeper)
 - TokenRegistry / TokenOnboardingManager: Dynamic impact token onboarding (min liquidity $10K)
-- ShitCoolerConfig: Peg-support interest rate discount when price below floor
-- Deployment misconfiguration: Missing setUsdc/setShitToken/setAuthorizedMinter
+- SymbientCoolerConfig: Peg-support interest rate discount when price below floor
+- Deployment misconfiguration: Missing setUsdc/setSymbientToken/setAuthorizedMinter
 - Kernel policy activation: Module/policy install/activate lifecycle
 
 Contract sources:
-- contracts/src/governance/ShitGovernor.sol
-- contracts/src/automation/ShitGelatoResolver.sol
+- contracts/src/governance/SymbientGovernor.sol
+- contracts/src/automation/SymbientGelatoResolver.sol
 - contracts/src/token-management/TokenRegistry.sol
 - contracts/src/token-management/TokenOnboardingManager.sol
 - contracts/script/DeployAll.s.sol
@@ -56,7 +56,7 @@ class GovernanceParams:
     # Deployment config risks
     authorized_minter_set: bool = True  # Was setAuthorizedMinter called?
     usdc_address_correct: bool = True  # Was setUsdc called with correct address?
-    shit_token_set: bool = True  # Was setShitToken called?
+    shit_token_set: bool = True  # Was setSymbientToken called?
 
     num_epochs: int = 90
     random_seed: int = 42

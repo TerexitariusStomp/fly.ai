@@ -3,8 +3,8 @@ pragma solidity ^0.8.24;
 
 import {Script, console2} from "forge-std/Script.sol";
 
-import {MonoCooler} from "@shit-v3/policies/cooler/MonoCooler.sol";
-import {ShitCoolerComposites} from "../src/ShitCoolerComposites.sol";
+import {MonoCooler} from "@symbient-v3/policies/cooler/MonoCooler.sol";
+import {SymbientCoolerComposites} from "../src/SymbientCoolerComposites.sol";
 
 contract DeployComposites is Script {
     // Existing deployed MonoCooler on Base Sepolia
@@ -17,14 +17,14 @@ contract DeployComposites is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        console2.log("=== Deploying ShitCoolerComposites ===");
+        console2.log("=== Deploying SymbientCoolerComposites ===");
         console2.log("MonoCooler:", MONOCOOLER);
 
-        ShitCoolerComposites composites = new ShitCoolerComposites(
+        SymbientCoolerComposites composites = new SymbientCoolerComposites(
             MonoCooler(MONOCOOLER),
             deployer
         );
-        console2.log("ShitCoolerComposites:", address(composites));
+        console2.log("SymbientCoolerComposites:", address(composites));
 
         composites.enable("");
         console2.log("Composites enabled");

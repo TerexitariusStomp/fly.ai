@@ -131,7 +131,7 @@ BEARISH_WORDS = {
     "overhyped",
     "hype",
     "shitcoin",
-    "shit",
+    "symbient",
     "trash",
     "garbage",
     "red",

@@ -60,7 +60,7 @@ function BorrowStatsBar() {
       loading: capacityLoading,
     },
     {
-      label: "Borrow per wstSHIT",
+      label: "Borrow per wstSYM",
       value: position ? bigintToNumber(position.maxOriginationLtv) : null,
       format: { style: "decimal", minimumFractionDigits: 2, maximumFractionDigits: 2 },
       suffix: "USDC",
@@ -190,8 +190,8 @@ export function BorrowPositionInfo({
         <div className="flex flex-col gap-3">
           <InfoRow label="Collateral">
             <div className="flex items-center gap-1.5">
-              <Icon name="WSTSHITTokenIcon" className="size-4" />
-              <span className="font-medium">{formatGshit(projectedCollateral)} wstSHIT</span>
+              <Icon name="WstsymTokenIcon" className="size-4" />
+              <span className="font-medium">{formatGshit(projectedCollateral)} wstSYM</span>
             </div>
           </InfoRow>
 
@@ -439,7 +439,7 @@ interface BorrowFormProps {
 function BorrowForm({ calculations, loan }: BorrowFormProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { address, chainId } = useConnectedAddress();
-  const gshitToken = useToken(TokenName.WSTSHIT, address);
+  const gsymToken = useToken(TokenName.Wstsym, address);
   const usdsToken = useToken(TokenName.USDC, address);
 
   const { isSmartContractWallet } = useIsSmartContractWallet();
@@ -506,7 +506,7 @@ function BorrowForm({ calculations, loan }: BorrowFormProps) {
   const spenderAddress = isComposite ? compositesAddress : monoCoolerAddress;
 
   const { allowance, queryKey: allowanceQueryKey } = useTokenAllowance(
-    gshitToken.address!,
+    gsymToken.address!,
     address,
     spenderAddress,
   );
@@ -570,10 +570,10 @@ function BorrowForm({ calculations, loan }: BorrowFormProps) {
       return { label: "Enter Amount", disabled: true };
     if (
       collateralAmount > ZERO &&
-      gshitToken.balance !== undefined &&
-      collateralAmount > gshitToken.balance
+      gsymToken.balance !== undefined &&
+      collateralAmount > gsymToken.balance
     )
-      return { label: "Insufficient wstSHIT Balance", disabled: true };
+      return { label: "Insufficient wstSYM Balance", disabled: true };
     if (!loan && borrowAmount > ZERO && collateralAmount === ZERO)
       return { label: "Enter Collateral Amount", disabled: true };
     if (borrowAmount > ZERO && borrowAmount > additionalBorrowingAvailable)
@@ -583,7 +583,7 @@ function BorrowForm({ calculations, loan }: BorrowFormProps) {
     address,
     collateralAmount,
     borrowAmount,
-    gshitToken.balance,
+    gsymToken.balance,
     additionalBorrowingAvailable,
     isBelowMinDebt,
     projectedDebt,
@@ -621,7 +621,7 @@ function BorrowForm({ calculations, loan }: BorrowFormProps) {
 
     steps.push({
       number: stepNum++,
-      title: "Approve wstSHIT",
+      title: "Approve wstSYM",
       isActive: needsApproval && !approvalSuccess,
       isCompleted: hasSufficientAllowance || approvalSuccess,
       isLoading: isApproving,
@@ -677,7 +677,7 @@ function BorrowForm({ calculations, loan }: BorrowFormProps) {
       title: txTitle,
       detail:
         collateralAmount > ZERO && borrowAmount > ZERO
-          ? `${formatTokenAmount(collateralAmount).toFixed(4)} wstSHIT → ${formatTokenAmount(borrowAmount).toFixed(2)} USDC`
+          ? `${formatTokenAmount(collateralAmount).toFixed(4)} wstSYM → ${formatTokenAmount(borrowAmount).toFixed(2)} USDC`
           : undefined,
       isActive:
         (hasSufficientAllowance || approvalSuccess) &&
@@ -730,10 +730,10 @@ function BorrowForm({ calculations, loan }: BorrowFormProps) {
     const activeStep = modalSteps.find((s) => s.isActive && !s.isCompleted);
     if (!activeStep) return;
 
-    if (activeStep.title === "Approve wstSHIT") {
-      if (!gshitToken.address || !spenderAddress) return;
+    if (activeStep.title === "Approve wstSYM") {
+      if (!gsymToken.address || !spenderAddress) return;
       approve({
-        tokenAddress: gshitToken.address,
+        tokenAddress: gsymToken.address,
         spender: spenderAddress,
         amount: collateralAmount,
         queryKey: allowanceQueryKey,
@@ -765,7 +765,7 @@ function BorrowForm({ calculations, loan }: BorrowFormProps) {
       <div data-slot="borrow-form" className="flex flex-col gap-4">
         <TokenBigInput
           label="Add Collateral"
-          token={gshitToken}
+          token={gsymToken}
           value={collateralInputValue}
           onChange={handleCollateralInputChange}
           disabled={isAnyPending}
@@ -1104,7 +1104,7 @@ function RepayForm({ calculations }: RepayFormProps) {
       <div data-slot="repay-form" className="flex flex-col gap-4">
         {currentDebt === ZERO && (
           <div className="rounded-2xl bg-surface-a3 border border-a3-b px-4 py-3 text-sm text-secondary-t">
-            You have no outstanding debt. Go to the Borrow tab to take a loan against your wstSHIT collateral.
+            You have no outstanding debt. Go to the Borrow tab to take a loan against your wstSYM collateral.
           </div>
         )}
         <TokenBigInput
@@ -1134,8 +1134,8 @@ function RepayForm({ calculations }: RepayFormProps) {
               {collateralToBeReleased > ZERO ? formatGshit(collateralToBeReleased) : "0.0000"}
             </p>
             <div className="bg-surface-a3 border border-a3-b inline-flex shrink-0 items-center gap-2 rounded-full px-3 py-2">
-              <Icon name="WSTSHITTokenIcon" className="size-5" />
-              <p className="text-[15px]/[20px] font-semibold whitespace-nowrap">wstSHIT</p>
+              <Icon name="WstsymTokenIcon" className="size-5" />
+              <p className="text-[15px]/[20px] font-semibold whitespace-nowrap">wstSYM</p>
             </div>
           </div>
         </div>

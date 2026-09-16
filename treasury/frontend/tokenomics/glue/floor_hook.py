@@ -1,6 +1,6 @@
 """
-Uniswap V4 floor hook fee routing — SHIT-specific.
-~50 lines. Price floor logic delegated to SHIT Protocol price.py.
+Uniswap V4 floor hook fee routing — SYM-specific.
+~50 lines. Price floor logic delegated to SYM Protocol price.py.
 """
 import random as _random
 
@@ -22,7 +22,7 @@ def floor_hook_policy(params, substep, state_history, previous_state):
     band_topup = floor_fees * (1 - band_split)
     shit_absorbed = sell_volume * 0.001 / price if price > 0 else 0  # 10bps absorption
 
-    # Redemption events: holders redeem SHIT for a proportional share of the floor
+    # Redemption events: holders redeem SYM for a proportional share of the floor
     # reserve. Driven by UI "Redemption Probability" / "Redemption Size" sliders.
     p2 = params if isinstance(params, dict) else {}
     redemption_prob = p2.get('redemptionProbability', 0.0) or 0.0
@@ -65,7 +65,7 @@ def floor_hook_fees(params, substep, state_history, previous_state, policy_input
     floor_absorb = floor_fees * band_split
     band_topup = floor_fees * (1 - band_split)
 
-    # SHIT absorbed from sells (deflationary pressure)
+    # SYM absorbed from sells (deflationary pressure)
     shit_absorbed = sell_volume * 0.001  # 10bps absorption rate
 
     return {

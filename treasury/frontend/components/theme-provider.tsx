@@ -49,7 +49,7 @@ function disableTransitionsOnce() {
 export function ThemeProvider({
   children,
   defaultTheme = "dark",
-  storageKey = "shit-ui-theme",
+  storageKey = "symbient-ui-theme",
   ...props
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(

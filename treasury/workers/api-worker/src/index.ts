@@ -7,9 +7,8 @@
 interface Env {
   DB: D1Database;
   BRAIN_BUCKET?: R2Bucket;
-  FLYAI_TOKEN?: string;
   TREASURY_VALUATION?: string;
-  ROBINHOOD_RPC_URL?: string;
+  ARC_RPC_URL?: string;
 }
 
 // Fetch token price from GeckoTerminal (updates more frequently than DexScreener)
@@ -21,7 +20,7 @@ async function fetchTokenPrice(tokenAddress: string): Promise<number> {
   // Try GeckoTerminal first (more frequent updates)
   let basePrice = 0;
   try {
-    const resp = await fetch(`https://api.geckoterminal.com/api/v2/networks/robinhood/tokens/${tokenAddress}`);
+    const resp = await fetch(`https://api.geckoterminal.com/api/v2/networks/arc/tokens/${tokenAddress}`);
     if (resp.ok) {
       const data = await resp.json() as any;
       basePrice = parseFloat(data?.data?.attributes?.price_usd || "0");
@@ -87,7 +86,6 @@ export default {
         "/api/positions": 15,
         "/api/signals": 15,
         "/api/trades": 15,
-        "/api/flyai": 30,
         "/api/tokens": 30,
         "/api/model-status": 60,
         "/api/training-data": 60,
@@ -106,11 +104,11 @@ export default {
       const handle = async () => {
       if (url.pathname === "/api/token-stats") return json(await getTokenStats(env), corsHeaders);
       if (url.pathname === "/api/treasury") return json(await getTreasury(env), corsHeaders);
+      if (url.pathname === "/api/treasury/history") return json(await getTreasuryHistory(env), corsHeaders);
       if (url.pathname === "/api/treasury/onchain") return json(await getOnchainTreasury(env), corsHeaders);
       if (url.pathname === "/api/positions") return json(await getPositions(env), corsHeaders);
       if (url.pathname === "/api/signals") return json(await getSignals(env), corsHeaders);
       if (url.pathname === "/api/trades") return json(await getTrades(env), corsHeaders);
-      if (url.pathname === "/api/flyai") return json(await getFlyai(env), corsHeaders);
       if (url.pathname === "/api/tokens") return json(await getTokens(env, url.searchParams), corsHeaders);
       if (url.pathname === "/api/health") return json({ status: "ok", time: Date.now() }, corsHeaders);
       if (url.pathname === "/api/model-status") return json(await getModelStatus(env), corsHeaders);
@@ -162,7 +160,7 @@ export default {
 
     return json({ error: "unknown endpoint", endpoints: [
       "/api/token-stats", "/api/treasury", "/api/treasury/onchain", "/api/positions", "/api/signals",
-      "/api/trades", "/api/flyai", "/api/tokens", "/api/health",
+      "/api/trades", "/api/treasury", "/api/treasury/history", "/api/tokens", "/api/health",
       "/api/model-status", "/api/training-data", "/api/performance",
       "/api/connectomes", "/api/wallets", "/api/governance",
       "/api/betting/leaderboard", "/api/betting/rounds", "/api/betting/user/:address",
@@ -186,76 +184,57 @@ async function getTokenStats(env: Env) {
 }
 
 async function getTreasury(env: Env) {
-  const flyai = await env.DB.prepare(
-    "SELECT * FROM flyai_treasury ORDER BY updated_at DESC LIMIT 1"
-  ).first();
   const openPositions = await env.DB.prepare(
     "SELECT COUNT(*) as count, SUM(entry_amount) as total_eth FROM positions WHERE status = 'open'"
   ).first();
+  const onchain = await getOnchainTreasury(env);
   return {
-    flyai_balance: flyai?.balance || 0,
-    flyai_price_usd: flyai?.price_usd || 0,
-    total_rfv: flyai?.total_rfv || 0,
-    shit_floor_price: flyai?.shit_floor_price || 0,
+    rfv: onchain.rfv || 0,
+    floor_price: onchain.floor_price || 0,
     open_positions: openPositions?.count || 0,
     eth_deployed: openPositions?.total_eth || 0,
   };
 }
 
-// Read real on-chain FLYAI balance and floor price from TreasuryValuation contract
+// Read on-chain RFV and floor price from TreasuryValuation contract (single-token system)
 async function getOnchainTreasury(env: Env) {
-  const flyaiToken = env.FLYAI_TOKEN || "0x0088CE7905025c4B5ea1d49aB6179B6aaADB3B9C";
   const treasuryAddr = env.TREASURY_VALUATION;
-  const rpcUrl = env.ROBINHOOD_RPC_URL || "https://rpc.mainnet.chain.robinhood.com/";
+  const rpcUrl = env.ARC_RPC_URL || "https://rpc.testnet.arc.io";
 
   if (!treasuryAddr) {
     return { error: "TREASURY_VALUATION not configured", mode: "paper" };
   }
 
   try {
-    // Read FLYAI balance from TreasuryValuation contract via eth_call
-    const balanceData = "0x70a08231" + treasuryAddr.slice(2).padStart(64, "0");
-    const balanceResp = await fetch(rpcUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_call", params: [{ to: flyaiToken, data: balanceData }, "latest"] }),
-    });
-    const balanceJson = await balanceResp.json() as any;
-    const flyaiBalance = BigInt(balanceJson.result || "0x0");
-
-    // Read rfv, nav, floorPrice from TreasuryValuation contract
-    // rfv() selector: 0x23a4f4a9 (computed from "rfv()")
-    // nav() selector: 0xbd3dd48d
-    // floorPrice() selector: 0x0a3b7bf4
-    const rfvData = "0x23a4f4a9";
-    const rfvResp = await fetch(rpcUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "eth_call", params: [{ to: treasuryAddr, data: rfvData }, "latest"] }),
-    });
-    const rfvJson = await rfvResp.json() as any;
-    const rfv = BigInt(rfvJson.result || "0x0");
-
-    const floorData = "0x0a3b7bf4";
-    const floorResp = await fetch(rpcUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 3, method: "eth_call", params: [{ to: treasuryAddr, data: floorData }, "latest"] }),
-    });
-    const floorJson = await floorResp.json() as any;
-    const floorPrice = BigInt(floorJson.result || "0x0");
+    // rfv() selector: 0x23a4f4a9 — floorPrice() selector: 0x0a3b7bf4
+    const call = async (data: string) => {
+      const resp = await fetch(rpcUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_call", params: [{ to: treasuryAddr, data }, "latest"] }),
+      });
+      const j = await resp.json() as any;
+      return BigInt(j.result || "0x0");
+    };
+    const rfv = await call("0x23a4f4a9");
+    const floorPrice = await call("0x0a3b7bf4");
 
     return {
       mode: "real",
-      flyai_balance: Number(flyaiBalance) / 1e18,
       rfv: Number(rfv) / 1e18,
       floor_price: Number(floorPrice) / 1e18,
       treasury_address: treasuryAddr,
-      flyai_token: flyaiToken,
     };
   } catch (e) {
     return { error: String(e), mode: "real" };
   }
+}
+
+async function getTreasuryHistory(env: Env) {
+  const result = await env.DB.prepare(
+    "SELECT * FROM treasury_snapshots ORDER BY updated_at DESC LIMIT 30"
+  ).all();
+  return result.results;
 }
 
 async function getPositions(env: Env) {
@@ -283,7 +262,7 @@ async function getPositions(env: Env) {
 }
 
 async function getSignals(env: Env) {
-  // Return latest signal per connectome (so all 16 connectomes are represented
+  // Return latest signal per connectome (so all connectomes are represented
   // even when one connectome generates many re-entry signals that would
   // otherwise dominate a simple LIMIT 50 query).
   const result = await env.DB.prepare(
@@ -303,13 +282,6 @@ async function getSignals(env: Env) {
 async function getTrades(env: Env) {
   const result = await env.DB.prepare(
     "SELECT * FROM trades ORDER BY created_at DESC LIMIT 50"
-  ).all();
-  return result.results;
-}
-
-async function getFlyai(env: Env) {
-  const result = await env.DB.prepare(
-    "SELECT * FROM flyai_treasury ORDER BY updated_at DESC LIMIT 30"
   ).all();
   return result.results;
 }
@@ -393,7 +365,7 @@ async function getConnectomes(env: Env) {
   // Compute unrealized P&L per connectome
   const unrealizedPnl: Record<string, number> = {};
   for (const p of openPositions) {
-    const cid = p.connectome_id || "malecns";
+    const cid = p.connectome_id || "drosophila";
     const currentPrice = priceCache[p.token_address] || 0;
     if (p.entry_price > 0 && currentPrice > 0) {
       const pnl = p.entry_amount * ((currentPrice - p.entry_price) / p.entry_price);
@@ -465,7 +437,7 @@ async function getGovernance(env: Env) {
   ).first();
   const latestReports = await env.DB.prepare(
     "SELECT connectome_id, epoch, pnl_percent, n_trades, reported_at " +
-    "FROM connectome_pnl_reports ORDER BY reported_at DESC LIMIT 16"
+    "FROM connectome_pnl_reports ORDER BY reported_at DESC LIMIT 20"
   ).all();
   return {
     individual: individual.results,
@@ -583,7 +555,7 @@ async function getConnectomeBrain(env: Env, cid: string, corsHeaders: Record<str
   if (!env.BRAIN_BUCKET) {
     return json({ error: `brain data not available — R2 not bound` }, corsHeaders);
   }
-  const key = cid === "malecns" ? "brain.json" : `${cid}/brain.json`;
+  const key = `${cid}/brain.json`;
   const obj = await env.BRAIN_BUCKET.get(key);
   if (!obj) {
     return json({ error: `brain data not found for ${cid}` }, corsHeaders);
@@ -600,7 +572,7 @@ async function getRawR2Object(env: Env, cid: string, filename: string, corsHeade
   if (!env.BRAIN_BUCKET) {
     return json({ error: `${filename} not available — R2 not bound` }, corsHeaders);
   }
-  const key = cid === "malecns" ? filename : `${cid}/${filename}`;
+  const key = `${cid}/${filename}`;
   const obj = await env.BRAIN_BUCKET.get(key);
   if (!obj) {
     return json({ error: `${key} not found` }, { ...corsHeaders, "status": 404 } as any);

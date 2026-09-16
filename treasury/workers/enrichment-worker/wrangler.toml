@@ -6,7 +6,7 @@ compatibility_flags = ["python_workers"]
 # D1 database
 [[d1_databases]]
 binding = "DB"
-database_name = "shit-token"
+database_name = "symbient-token"
 database_id = "YOUR_D1_DATABASE_ID"
 
 # Cron trigger — every 2 minutes

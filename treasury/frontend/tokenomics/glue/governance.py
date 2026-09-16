@@ -1,6 +1,6 @@
 """
-ReferralRegistry + TokenOnboardingManager — SHIT-specific governance.
-~30 lines. General governance delegated to SHIT Protocol governance.py.
+ReferralRegistry + TokenOnboardingManager — SYM-specific governance.
+~30 lines. General governance delegated to SYM Protocol governance.py.
 """
 
 def governance_policy(params, substep, state_history, previous_state):
@@ -11,7 +11,7 @@ def governance_policy(params, substep, state_history, previous_state):
     }
 
 def governance_step(params, substep, state_history, previous_state, policy_input):
-    """Handle SHIT-specific governance: referrals + token onboarding."""
+    """Handle SYM-specific governance: referrals + token onboarding."""
     p = params.get('governance', {})
 
     # Referral fee splitting

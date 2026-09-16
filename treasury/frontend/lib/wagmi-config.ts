@@ -14,7 +14,7 @@ export const config = createConfig({
   transports,
   ssr: false,
   storage: createStorage({
-    key: "5h1t-wagmi",
+    key: "sym-wagmi",
   }),
   batch: {
     multicall: true,

@@ -1,6 +1,6 @@
-# SHIT/5H1T — Treasury-Backed Token with Fly Connectome Trader
+# SYM/SYM — Treasury-Backed Token with Fly Connectome Trader
 
-SHIT (Shitcoin) / 5H1T is a treasury-backed token on Robinhood Chain (chain ID 4663), forked from SHIT Protocol (SHIT Protocol V3, AGPL-3.0). The treasury is traded by 16 real biological connectomes (fruit fly, C. elegans, mouse, etc.) and holds FLYAI as a reserve asset. The entire system runs on Cloudflare Free Tier ($0/month).
+SYM (Symbientcoin) / SYM is a treasury-backed token on Robinhood Chain (chain ID 4663), forked from SYM Protocol (SYM Protocol V3, AGPL-3.0). The treasury is traded by 16 real biological connectomes (fruit fly, C. elegans, mouse, etc.) and holds FLYAI as a reserve asset. The entire system runs on Cloudflare Free Tier ($0/month).
 
 Real trading mode: connectomes swap real ETH/tokens via Uniswap V2 Router02. 50% of realized profits auto-buy real FLYAI tokens, which are transferred to the on-chain TreasuryValuation contract. A keeper function auto-pushes the computed RFV/floor price on-chain each epoch.
 
@@ -31,9 +31,9 @@ Real trading mode: connectomes swap real ETH/tokens via Uniswap V2 Router02. 50%
 ┌─────────────────────────────────────────────────────────────┐
 │  Robinhood Chain (4663)                                      │
 │                                                               │
-│  SHIT token contracts (forked from SHIT Protocol, AGPL)     │
+│  SYM token contracts (forked from SYM Protocol, AGPL)     │
 │  TreasuryValuation holds FLYAI as reserve asset               │
-│  Floor price = RFV / SHIT supply (enforced on-chain)          │
+│  Floor price = RFV / SYM supply (enforced on-chain)          │
 │                                                               │
 │  Trade worker (viem + loxley swap encoding):                  │
 │    1. Buy token via Uniswap V2 Router02                       │
@@ -41,7 +41,7 @@ Real trading mode: connectomes swap real ETH/tokens via Uniswap V2 Router02. 50%
 │    3. 50% of profit → buy FLYAI on DEX                        │
 │    4. Transfer FLYAI to TreasuryValuation contract            │
 │    5. Push RFV → refreshValuationsFromKeeper()                │
-│    6. SHIT floor price updated on-chain                       │
+│    6. SYM floor price updated on-chain                       │
 │    7. enforceRfvInvariant gates minting                       │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -50,13 +50,13 @@ Real trading mode: connectomes swap real ETH/tokens via Uniswap V2 Router02. 50%
 
 | Component | CF Service | OSS Used | License | Custom Code |
 |---|---|---|---|---|
-| Frontend | Pages | SHIT Protocol (fork) | AGPL-3.0 | ~30 lines |
+| Frontend | Pages | SYM Protocol (fork) | AGPL-3.0 | ~30 lines |
 | API Worker | Workers (TS) | — | MIT | ~530 lines |
 | Discovery Worker | Workers Cron (TS) | loxley patterns | MIT | ~224 lines |
 | Enrichment Worker | Python Worker | hermes-token-screener | MIT | ~209 lines |
 | Fly Brain | Python Durable Object | flycoinrh (alextitonis/fly.ai) | MIT | ~776 lines |
 | Trade Worker | Workers (TS) | viem + loxley swap encoding | MIT | ~920 lines |
-| Contracts | Robinhood Chain | SHIT Protocol (fork) | AGPL-3.0 | ~25 lines (keeper) |
+| Contracts | Robinhood Chain | SYM Protocol (fork) | AGPL-3.0 | ~25 lines (keeper) |
 | Migrations | D1 | — | MIT | ~343 lines |
 | **Total custom** | | | | **~3,000 lines (1.9%)** |
 | **Total OSS** | | | | **~156,000 lines (98.1%)** |
@@ -93,8 +93,8 @@ Real trading mode: connectomes swap real ETH/tokens via Uniswap V2 Router02. 50%
 ### Step 1: Clone the repository
 
 ```bash
-git clone <your-repo-url> shit-token
-cd shit-token
+git clone <your-repo-url> symbient-token
+cd symbient-token
 ```
 
 ### Step 2: Install Cloudflare Wrangler
@@ -110,11 +110,11 @@ Create the D1 database, R2 bucket, and KV namespace:
 
 ```bash
 # D1 database (free: 5GB, 5M reads/day, 100K writes/day)
-npx wrangler d1 create shit-token
+npx wrangler d1 create symbient-token
 # Note the database_id from the output
 
 # R2 bucket (free: 10GB) — stores connectome weights
-npx wrangler r2 bucket create shit-token-weights
+npx wrangler r2 bucket create symbient-token-weights
 
 # KV namespace (free: 100K reads/day) — caching
 npx wrangler kv namespace create CACHE
@@ -134,13 +134,13 @@ Update the `database_id` and KV `id` in every `wrangler.toml` file:
 
 ```bash
 # Apply schema migrations in order
-npx wrangler d1 execute shit-token --file=migrations/schema.sql
-npx wrangler d1 execute shit-token --file=migrations/schema_v2.sql
-npx wrangler d1 execute shit-token --file=migrations/schema_v3.sql
-npx wrangler d1 execute shit-token --file=migrations/schema_v4.sql
+npx wrangler d1 execute symbient-token --file=migrations/schema.sql
+npx wrangler d1 execute symbient-token --file=migrations/schema_v2.sql
+npx wrangler d1 execute symbient-token --file=migrations/schema_v3.sql
+npx wrangler d1 execute symbient-token --file=migrations/schema_v4.sql
 
 # Seed 16 connectomes + 18 wallets
-npx wrangler d1 execute shit-token --file=migrations/seed_connectomes.sql
+npx wrangler d1 execute symbient-token --file=migrations/seed_connectomes.sql
 ```
 
 ### Step 5: Upload connectome weights to R2
@@ -154,14 +154,14 @@ The fly brain needs connectome weight files (`.npz`) in R2. These come from the 
 # Upload each connectome's weights to R2
 for cid in celegans celegans_herm celegans_male ciona drosophila hemibrain human larva macaque macaque_modha malecns medulla mouse mouse_retina platynereis rat; do
   if [ -f "flycoinrh/data/${cid}/weights.npz" ]; then
-    npx wrangler r2 object put "shit-token-weights/${cid}/weights.npz" --file="flycoinrh/data/${cid}/weights.npz"
-    npx wrangler r2 object put "shit-token-weights/${cid}/brain.npz" --file="flycoinrh/data/${cid}/brain.npz"
+    npx wrangler r2 object put "symbient-token-weights/${cid}/weights.npz" --file="flycoinrh/data/${cid}/weights.npz"
+    npx wrangler r2 object put "symbient-token-weights/${cid}/brain.npz" --file="flycoinrh/data/${cid}/brain.npz"
   fi
 done
 
 # The malecns connectome uses root-level paths
-npx wrangler r2 object put "shit-token-weights/weights.npz" --file="flycoinrh/data/weights.npz"
-npx wrangler r2 object put "shit-token-weights/brain.npz" --file="flycoinrh/data/brain.npz"
+npx wrangler r2 object put "symbient-token-weights/weights.npz" --file="flycoinrh/data/weights.npz"
+npx wrangler r2 object put "symbient-token-weights/brain.npz" --file="flycoinrh/data/brain.npz"
 ```
 
 ### Step 6: Deploy Solidity contracts
@@ -190,9 +190,9 @@ forge script script/DeployAll.s.sol \
   --private-key $PRIVATE_KEY
 
 # Note the deployed addresses from the output:
-#   ShitToken: 0x...
+#   SymbientToken: 0x...
 #   TreasuryValuation: 0x...
-#   ShitStaking: 0x...
+#   SymbientStaking: 0x...
 #   etc.
 ```
 
@@ -225,14 +225,14 @@ npx wrangler secret put DISCORD_WEBHOOK_URL
 # Enter: https://discord.com/api/webhooks/.../...
 
 # Update wrangler.toml with deployed contract addresses
-# SHIT_TOKEN = "<ShitToken address from Step 6>"
+# SHIT_TOKEN = "<SymbientToken address from Step 6>"
 # TREASURY_VALUATION = "<TreasuryValuation address from Step 6>"
 ```
 
 Edit `workers/trade-worker/wrangler.toml` and set:
 ```toml
 [vars]
-SHIT_TOKEN = "0x<your-deployed-shit-token-address>"
+SHIT_TOKEN = "0x<your-deployed-symbient-token-address>"
 TREASURY_VALUATION = "0x<your-deployed-treasury-valuation-address>"
 REAL_TRADING = "false"  # Set to "true" to enable real trading
 ```
@@ -294,7 +294,7 @@ EOF
 pnpm build
 
 # Deploy to Cloudflare Pages
-npx wrangler pages deploy dist --project-name shit-token
+npx wrangler pages deploy dist --project-name symbient-token
 ```
 
 Get a WalletConnect project ID at https://cloud.walletconnect.com (free).
@@ -377,7 +377,7 @@ npx wrangler deploy
 - `refreshValuationsFromKeeper()` computes RFV/NAV/floorPrice and stores them on-chain
 - `enforceRfvInvariant()` reverts if minting would breach the floor
 - The trade worker's executor wallet is authorized as the `rfvKeeper` (set via multisig)
-- This creates a circular flywheel: connectomes trade → profits buy FLYAI → FLYAI held in treasury → floor price rises → SHIT token backed by more reserves
+- This creates a circular flywheel: connectomes trade → profits buy FLYAI → FLYAI held in treasury → floor price rises → SYM token backed by more reserves
 
 ### Connectomes (16 biological brains)
 
@@ -485,11 +485,11 @@ curl http://localhost:8787/positions
 
 ## Tokenomics
 
-- **SHIT** (Shitcoin) — 100M max supply, SHIT Protocol V3 fork, AGPL-3.0
+- **SYM** (Symbientcoin) — 100M max supply, SYM Protocol V3 fork, AGPL-3.0
 - **Treasury** holds FLYAI (fly.ai token) as reserve asset
 - **50% of trading profits** buy FLYAI → transfer to TreasuryValuation contract
 - **RFV** (Risk-Free Value) = FLYAI balance × price × 50% haircut
-- **Floor price** = RFV / SHIT supply (enforced on-chain via `enforceRfvInvariant`)
+- **Floor price** = RFV / SYM supply (enforced on-chain via `enforceRfvInvariant`)
 - **Circular flywheel**: connectomes trade → profits buy FLYAI → floor price rises
 - **No spending caps** (user choice) — emergency stop is the only protection
 
@@ -512,7 +512,7 @@ FLYAI gives no ownership, governance, revenue share, or claim on the project. It
 
 | Repo | License | Purpose |
 |---|---|---|
-| SHIT Protocol (SHIT Protocol V3) | AGPL-3.0 | Contracts + frontend fork |
+| SYM Protocol (SYM Protocol V3) | AGPL-3.0 | Contracts + frontend fork |
 | alextitonis/fly.ai (flycoinrh) | MIT | Fly brain connectome simulation |
 | shmidtqq65/loxley | MIT | Robinhood Chain swap encoding (Uniswap V4) |
 | TerexitariusStomp/hermes | MIT | Token screener / enrichment |
@@ -522,7 +522,7 @@ FLYAI gives no ownership, governance, revenue share, or claim on the project. It
 
 ## License
 
-- Contracts: AGPL-3.0 (SHIT Protocol fork)
+- Contracts: AGPL-3.0 (SYM Protocol fork)
 - Fly brain: MIT (flycoinrh / alextitonis/fly.ai)
 - Enrichment: MIT (hermes-token-screener)
 - Trading patterns: MIT (loxley)

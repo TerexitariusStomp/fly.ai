@@ -101,7 +101,7 @@ export function useMonoCoolerDebt() {
   });
 
   const usdsTokenAddress = getTokenAddress(TokenName.USDC, chainId);
-  const gshitTokenAddress = getTokenAddress(TokenName.WSTSHIT, chainId);
+  const gsymTokenAddress = getTokenAddress(TokenName.Wstsym, chainId);
 
   const invalidateQueries = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: positionQueryKey });
@@ -117,12 +117,12 @@ export function useMonoCoolerDebt() {
         queryKey: ["readContract", { address: usdsTokenAddress, functionName: "balanceOf" }],
       });
     }
-    if (gshitTokenAddress) {
+    if (gsymTokenAddress) {
       queryClient.invalidateQueries({
-        queryKey: ["readContract", { address: gshitTokenAddress, functionName: "balanceOf" }],
+        queryKey: ["readContract", { address: gsymTokenAddress, functionName: "balanceOf" }],
       });
     }
-  }, [queryClient, positionQueryKey, nonceQueryKey, monoCoolerAddress, usdsTokenAddress, gshitTokenAddress]);
+  }, [queryClient, positionQueryKey, nonceQueryKey, monoCoolerAddress, usdsTokenAddress, gsymTokenAddress]);
 
   // --- Composite Authorization Signature (EOA) ---
   const [compositeAuth, setCompositeAuth] = useState<{

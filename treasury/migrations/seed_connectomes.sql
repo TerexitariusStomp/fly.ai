@@ -1,5 +1,5 @@
 -- Seed D1 with 16 real connectomes + 18 wallets for paper trading
--- Run: npx wrangler d1 execute shit-token --file=migrations/seed_connectomes.sql v2
+-- Run: npx wrangler d1 execute symbient-token --file=migrations/seed_connectomes.sql v2
 
 -- === 16 Connectomes (real published data) ===
 INSERT INTO connectomes (id, species, n_neurons, n_synapses, resolution, r2_weights_key, r2_meta_key, source, status, created_at) VALUES

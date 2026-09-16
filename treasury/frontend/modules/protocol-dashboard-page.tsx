@@ -1,4 +1,4 @@
-import { BalancesPage } from "@/modules/shit-balance-page";
+import { BalancesPage } from "@/modules/symbient-balance-page";
 import { DashboardActions } from "@/components/dashboard-actions";
 
 export function DashboardPage() {

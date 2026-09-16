@@ -1,5 +1,5 @@
 /**
- * 5H1T API adapter — maps our live API responses to vendored OSS component prop shapes.
+ * SYM API adapter — maps our live API responses to vendored OSS component prop shapes.
  * ~80 lines of glue code. All UI rendering is done by vendored MIT-licensed components.
  */
 import { useEffect, useState, useCallback } from "react";

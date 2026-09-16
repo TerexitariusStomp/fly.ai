@@ -9,9 +9,9 @@ import { TOKENS } from "@/lib/tokens";
 import { parseTokenAmount } from "@/lib/utils-token-amount";
 import { Link } from "react-router";
 import { blockExplorerTxBaseUrl } from "@/lib/helpers";
-import { WRAP_FLOWS, type WrapFlow } from "@/modules/shit-wrap-flows";
+import { WRAP_FLOWS, type WrapFlow } from "@/modules/symbient-wrap-flows";
 
-interface WrapShitModalProps {
+interface WrapSymbientModalProps {
   isOpen: boolean;
   onClose: () => void;
   flow: WrapFlow;
@@ -19,13 +19,13 @@ interface WrapShitModalProps {
   outputAmount: string;
 }
 
-export function WrapShitModal({
+export function WrapSymbientModal({
   isOpen,
   onClose,
   flow,
   inputAmount,
   outputAmount,
-}: WrapShitModalProps) {
+}: WrapSymbientModalProps) {
   const { address } = useConnectedAddress();
   console.log("[wrap-modal] render", { flow, isOpen, address, inputAmount });
 
@@ -51,7 +51,7 @@ export function WrapShitModal({
   useEffect(() => {
     if (!error) return;
     const reason = error.message?.toLowerCase().includes("reject") ? "user_rejected" : "error";
-    trackTransactionFailed("shit", analyticsAction, { reason });
+    trackTransactionFailed("symbient", analyticsAction, { reason });
   }, [error]);
 
   const formatTxHash = (hash?: `0x${string}`) => {

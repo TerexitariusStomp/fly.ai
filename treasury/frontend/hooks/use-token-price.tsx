@@ -2,12 +2,12 @@ import type { Address } from "viem";
 import { parseUnits } from "viem";
 import { useReadContract } from "wagmi";
 import PriceAbi from "@/abis/Price";
-import gShitAbi from "@/abis/wstSHIT";
+import gSymbientAbi from "@/abis/wstSYM";
 import { getTokenAddress, TokenName } from "@/lib/tokens";
 import { getContractAddress, ContractName } from "@/lib/contracts";
 import { formatTokenAmount } from "@/lib/math";
 
-const ONE_WSTSHIT = parseUnits("1", 18);
+const ONE_Wstsym = parseUnits("1", 18);
 const PRICE_QUERY_OPTIONS = {
   staleTime: 60_000,
   gcTime: 5 * 60_000,
@@ -21,18 +21,18 @@ function sameAddress(a?: Address, b?: Address): boolean {
 }
 
 export const useTokenPrice = (chainId: number, tokenAddress?: Address): { price: number } => {
-  const shitAddress = getTokenAddress(TokenName.SHIT, chainId);
+  const shitAddress = getTokenAddress(TokenName.SYM, chainId);
   const usdsAddress = getTokenAddress(TokenName.USDS, chainId);
   const azusdAddress = getTokenAddress(TokenName.USDC, chainId);
-  const gShitAddress = getTokenAddress(TokenName.WSTSHIT, chainId);
+  const gSymbientAddress = getTokenAddress(TokenName.Wstsym, chainId);
   const priceAddress = getContractAddress(ContractName.PRICE, chainId);
 
-  const isShitToken = sameAddress(tokenAddress, shitAddress);
+  const isSymbientToken = sameAddress(tokenAddress, shitAddress);
   const isUsdsToken = sameAddress(tokenAddress, usdsAddress);
   const isAzusdToken = sameAddress(tokenAddress, azusdAddress);
-  const isWSTSHITToken = sameAddress(tokenAddress, gShitAddress);
+  const isWstsymToken = sameAddress(tokenAddress, gSymbientAddress);
 
-  // PRICE module returns SHIT price in reserve (USDS) with 18 decimals.
+  // PRICE module returns SYM price in reserve (USDS) with 18 decimals.
   const { data: shitPriceRaw } = useReadContract({
     address: priceAddress,
     abi: PriceAbi,
@@ -40,32 +40,32 @@ export const useTokenPrice = (chainId: number, tokenAddress?: Address): { price:
     chainId,
     query: {
       ...PRICE_QUERY_OPTIONS,
-      enabled: !!tokenAddress && !!priceAddress && (isShitToken || isWSTSHITToken),
+      enabled: !!tokenAddress && !!priceAddress && (isSymbientToken || isWstsymToken),
     },
   });
 
-  // Convert exactly 1 wstSHIT to SHIT via token contract helper.
-  // wstShitToStShit returns stSHIT amount, then stShitPerToken gives SHIT per stSHIT.
-  const { data: stShitFromOneWSTSHIT } = useReadContract({
-    address: gShitAddress,
-    abi: gShitAbi,
-    functionName: "wstShitToStShit",
-    args: [ONE_WSTSHIT],
+  // Convert exactly 1 wstSYM to SYM via token contract helper.
+  // wstSymbientToStSymbient returns stSYM amount, then stSymbientPerToken gives SYM per stSYM.
+  const { data: stSymbientFromOneWstsym } = useReadContract({
+    address: gSymbientAddress,
+    abi: gSymbientAbi,
+    functionName: "wstSymbientToStSymbient",
+    args: [ONE_Wstsym],
     chainId,
     query: {
       ...PRICE_QUERY_OPTIONS,
-      enabled: !!tokenAddress && !!gShitAddress && isWSTSHITToken,
+      enabled: !!tokenAddress && !!gSymbientAddress && isWstsymToken,
     },
   });
 
-  const { data: stShitPerToken } = useReadContract({
-    address: gShitAddress,
-    abi: gShitAbi,
-    functionName: "stShitPerToken",
+  const { data: stSymbientPerToken } = useReadContract({
+    address: gSymbientAddress,
+    abi: gSymbientAbi,
+    functionName: "stSymbientPerToken",
     chainId,
     query: {
       ...PRICE_QUERY_OPTIONS,
-      enabled: !!tokenAddress && !!gShitAddress && isWSTSHITToken,
+      enabled: !!tokenAddress && !!gSymbientAddress && isWstsymToken,
     },
   });
 
@@ -74,19 +74,19 @@ export const useTokenPrice = (chainId: number, tokenAddress?: Address): { price:
     return { price: 1 };
   }
 
-  if (isShitToken) {
+  if (isSymbientToken) {
     return { price: shitPriceRaw ? formatTokenAmount(shitPriceRaw) : 0 };
   }
 
-  if (isWSTSHITToken) {
-    if (!shitPriceRaw || !stShitFromOneWSTSHIT || !stShitPerToken) return { price: 0 };
+  if (isWstsymToken) {
+    if (!shitPriceRaw || !stSymbientFromOneWstsym || !stSymbientPerToken) return { price: 0 };
 
     const shitPriceUsd = formatTokenAmount(shitPriceRaw);
-    const stShitPerWstShit = formatTokenAmount(stShitFromOneWSTSHIT);
-    const shitPerStShit = formatTokenAmount(stShitPerToken);
-    const shitPerWstShit = stShitPerWstShit * shitPerStShit;
+    const stSymbientPerWstSymbient = formatTokenAmount(stSymbientFromOneWstsym);
+    const shitPerStSymbient = formatTokenAmount(stSymbientPerToken);
+    const shitPerWstSymbient = stSymbientPerWstSymbient * shitPerStSymbient;
 
-    return { price: shitPriceUsd * shitPerWstShit };
+    return { price: shitPriceUsd * shitPerWstSymbient };
   }
 
   return { price: 0 };

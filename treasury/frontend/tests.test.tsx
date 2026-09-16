@@ -407,9 +407,9 @@ describe("BorrowPositionInfo", () => {
     expect(screen.getByText("Available to Borrow")).toBeDefined();
   });
 
-  it("displays formatted gSHIT value with 4 decimals", () => {
+  it("displays formatted gSYM value with 4 decimals", () => {
     render(<BorrowPositionInfo {...defaultProps} />);
-    expect(screen.getByText(/10\.0000 gSHIT/)).toBeDefined();
+    expect(screen.getByText(/10\.0000 gSYM/)).toBeDefined();
   });
 
   it("displays formatted USDS debt with 2 decimals", () => {

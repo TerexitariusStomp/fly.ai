@@ -1,5 +1,5 @@
 """
-FeeSplitter + ShitBurner — SHIT-specific fee routing.
+FeeSplitter + SymbientBurner — SYM-specific fee routing.
 ~40 lines. No OSS equivalent.
 """
 
@@ -20,7 +20,7 @@ def fee_routing_policy(params, substep, state_history, previous_state):
     }
 
 def fee_routing_step(params, substep, state_history, previous_state, policy_input):
-    """Route DEX swap fees to treasury + staking, burn portion of SHIT."""
+    """Route DEX swap fees to treasury + staking, burn portion of SYM."""
     p = params.get('fee_routing', {})
     treasury_pct = p.get('feeSplitTreasury', 0.60)
     staking_pct = p.get('feeSplitStaking', 0.40)
@@ -37,7 +37,7 @@ def fee_routing_step(params, substep, state_history, previous_state, policy_inpu
     treasury_share = total_fees * treasury_pct
     staking_share = total_fees * staking_pct
 
-    # Burn portion of SHIT from fees (deflationary)
+    # Burn portion of SYM from fees (deflationary)
     shit_price = previous_state.get('price', 1.0)
     shit_to_burn = (total_fees * burn_pct) / shit_price if shit_price > 0 else 0
 

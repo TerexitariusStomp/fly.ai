@@ -1,17 +1,17 @@
 """
-Stablecoin (Bucky) & RBS Model for SHIT Protocol
+Stablecoin (Bucky) & RBS Model for SYM Protocol
 
 Mirrors:
-- contracts/src/stablecoin/ShitPsm.sol (1:1 USDC↔Bucky via Spark PSM3)
-- contracts/src/stablecoin/ShitPegKeeper.sol (Curve PegKeeper wrapper)
-- contracts/src/stablecoin/ShitLendingAMO.sol (Bucky in lending markets)
-- contracts/src/stablecoin/ShitUniswapV4AMO.sol (Bucky liquidity in V4 pools)
+- contracts/src/stablecoin/SymbientPsm.sol (1:1 USDC↔Bucky via Spark PSM3)
+- contracts/src/stablecoin/SymbientPegKeeper.sol (Curve PegKeeper wrapper)
+- contracts/src/stablecoin/SymbientLendingAMO.sol (Bucky in lending markets)
+- contracts/src/stablecoin/SymbientUniswapV4AMO.sol (Bucky liquidity in V4 pools)
 - contracts/src/rbs/RBSConfig.sol (Range Bound Stability price bands)
-- contracts/src/rbs/ShitRBSBondMarket.sol (RBS bond markets)
-- contracts/src/rbs/ShitWallAdjuster.sol (automated wall adjustments)
+- contracts/src/rbs/SymbientRBSBondMarket.sol (RBS bond markets)
+- contracts/src/rbs/SymbientWallAdjuster.sol (automated wall adjustments)
 
 Adapts patterns from:
-- shit-protocol-rbs-sims/src/utils.py (RBS wall/cushion logic)
+- symbient-protocol-rbs-sims/src/utils.py (RBS wall/cushion logic)
 - crvusdsim (PegKeeper patterns)
 """
 
@@ -43,7 +43,7 @@ class StablecoinParams:
     lending_apy: float = 0.06            # 6% APY from lending
     liquidity_fee_apy: float = 0.03      # 3% APY from LP fees
 
-    # RBS configuration (adapted from shit-protocol-rbs-sims ModelParams)
+    # RBS configuration (adapted from symbient-protocol-rbs-sims ModelParams)
     lower_wall: float = 0.02             # 2% below target
     upper_wall: float = 0.02             # 2% above target
     lower_cushion: float = 0.01          # 1% below target
@@ -107,7 +107,7 @@ class StablecoinState:
 def simulate_stablecoin(params: StablecoinParams) -> pd.DataFrame:
     """
     Run Bucky stablecoin & RBS simulation.
-    Adapts RBS logic from shit-protocol-rbs-sims/src/utils.py (Day class).
+    Adapts RBS logic from symbient-protocol-rbs-sims/src/utils.py (Day class).
     """
     rng = np.random.default_rng(params.random_seed)
 

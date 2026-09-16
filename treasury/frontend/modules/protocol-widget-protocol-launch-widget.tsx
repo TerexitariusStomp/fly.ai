@@ -5,7 +5,7 @@ import { Card } from "@/components/ui-card";
 import { Button } from "@/components/ui-button";
 import { ContractName, getContractAddress } from "@/lib/contracts";
 import { TOKENS, TokenName } from "@/lib/tokens";
-import ShitStakingAbi from "@/abis/ShitStaking";
+import SymbientStakingAbi from "@/abis/SymbientStaking";
 import { FEE_SPLITTER_ABI } from "@/abis/FeeSplitter";
 import { useGETAdminMultisigMembers } from "@/generated-shitUnits";
 import type { LibChainId } from "@/generated-shitUnits";
@@ -39,7 +39,7 @@ export function ProtocolLaunchWidget() {
   const stakingAddress = getContractAddress(ContractName.STAKING, chainId);
   const feeSplitterAddress = getContractAddress(ContractName.FEE_SPLITTER, chainId);
   const treasuryAddress = getContractAddress(ContractName.SHIT_TREASURY, chainId);
-  const shitAddress = (TOKENS[TokenName.SHIT].addresses[chainId] ?? "0x0") as `0x${string}`;
+  const shitAddress = (TOKENS[TokenName.SYM].addresses[chainId] ?? "0x0") as `0x${string}`;
 
   // Check multisig membership
   const { data: membersData } = useGETAdminMultisigMembers(
@@ -54,7 +54,7 @@ export function ProtocolLaunchWidget() {
   // Check staking price feed
   const { data: priceFeed } = useReadContract({
     address: stakingAddress as `0x${string}`,
-    abi: ShitStakingAbi,
+    abi: SymbientStakingAbi,
     functionName: "priceFeed",
     query: { enabled: !!stakingAddress },
   });
@@ -62,7 +62,7 @@ export function ProtocolLaunchWidget() {
   // Check staking index (should be > 1e18 if emissions have started)
   const { data: stakingIndex } = useReadContract({
     address: stakingAddress as `0x${string}`,
-    abi: ShitStakingAbi,
+    abi: SymbientStakingAbi,
     functionName: "index",
     query: { enabled: !!stakingAddress },
   });
@@ -99,7 +99,7 @@ export function ProtocolLaunchWidget() {
 
   const steps = [
     {
-      label: "SHIT token deployed",
+      label: "SYM token deployed",
       status: shitDeployed ? "done" : "pending" as StepStatus,
       detail: shitDeployed ? `${shitAddress.slice(0, 10)}...${shitAddress.slice(-8)}` : "Not deployed",
     },

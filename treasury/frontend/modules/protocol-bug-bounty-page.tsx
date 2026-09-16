@@ -3,7 +3,7 @@ import { Button } from "@/components/ui-button";
 import { baseSepolia } from "@/lib/chains";
 
 const SEVERITY_ROWS = [
-  { severity: "Critical / serious bug", examples: "Irrecoverable loss of treasury or user funds, infinite mint, unauthorized access to privileged functions", reward: "Up to 5% of the token allocation before mainnet launch, paid in testnet SHIT with a mainnet reward weight" },
+  { severity: "Critical / serious bug", examples: "Irrecoverable loss of treasury or user funds, infinite mint, unauthorized access to privileged functions", reward: "Up to 5% of the token allocation before mainnet launch, paid in testnet SYM with a mainnet reward weight" },
   { severity: "High", examples: "Temporary freezing of funds, significant oracle manipulation, bypass of the 2-day timelock", reward: "Large testnet allocation + mainnet reward weight" },
   { severity: "Medium", examples: "Logic errors causing incorrect haircuts, UI misrepresentation, edge-case reverts", reward: "Moderate testnet allocation + mainnet reward weight" },
   { severity: "Low / Informational", examples: "Gas optimization, documentation mismatch, best-practice recommendations", reward: "Acknowledgment + small testnet allocation" },
@@ -21,7 +21,7 @@ export function BugBountyPage() {
           Bug bounty
         </h1>
         <p className="text-secondary-t text-lg max-w-3xl">
-          Help find real bugs before mainnet. Reports are rewarded in testnet SHIT and
+          Help find real bugs before mainnet. Reports are rewarded in testnet SYM and
           weighted for a future mainnet allocation. The people who find bugs are exactly
           the kind of technical, skeptical people we want knowing the project exists.
         </p>
@@ -33,8 +33,8 @@ export function BugBountyPage() {
           <Card className="p-6">
             <h3 className="font-serif text-lg mb-2 text-primary-t">In scope</h3>
             <ul className="list-disc list-inside space-y-2 text-secondary-t text-sm">
-              <li>SHIT token and staking contracts</li>
-              <li>SHIT Protocol-style treasury, minter, and RBS modules</li>
+              <li>SYM token and staking contracts</li>
+              <li>SYM Protocol-style treasury, minter, and RBS modules</li>
               <li>Token onboarding, registry, and oracle adapter</li>
               <li>DSS-style stablecoin vaults (Bucky)</li>
               <li>PSM and AMO contracts</li>
@@ -49,7 +49,7 @@ export function BugBountyPage() {
               <li>
                 Front-end UI bugs that do not affect contract state — report these in our{" "}
                 <a
-                  href="https://matrix.to/#/#shit-finance:matrix.org"
+                  href="https://matrix.to/#/#symbient-finance:matrix.org"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-green underline"
@@ -69,7 +69,7 @@ export function BugBountyPage() {
       <div className="mb-10">
         <h2 className="font-serif text-2xl mb-4 text-primary-t">Rewards</h2>
         <p className="text-secondary-t mb-4 text-sm">
-          Rewards are paid in testnet SHIT. Severity is decided by the core team after a
+          Rewards are paid in testnet SYM. Severity is decided by the core team after a
           public or private report. A future mainnet allocation weight is also assigned
           based on severity and report quality.
         </p>
@@ -127,7 +127,7 @@ export function BugBountyPage() {
           to receive rewards.
         </p>
         <a
-          href="https://matrix.to/#/#shit-finance:matrix.org"
+          href="https://matrix.to/#/#symbient-finance:matrix.org"
           target="_blank"
           rel="noopener noreferrer"
         >

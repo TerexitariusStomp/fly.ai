@@ -1,6 +1,6 @@
 """
-LBP Dutch auction + impact token allocations — SHIT-specific.
-~30 lines. General liquidity delegated to SHIT Protocol liquidity.py.
+LBP Dutch auction + impact token allocations — SYM-specific.
+~30 lines. General liquidity delegated to SYM Protocol liquidity.py.
 """
 
 def market_structure_policy(params, substep, state_history, previous_state):
@@ -28,7 +28,7 @@ def market_structure_step(params, substep, state_history, previous_state, policy
     current_epoch = previous_state.get('timestep', 0)
     lbp_active = current_epoch < lbp_duration
 
-    # LBP Dutch auction: weight shifts from SHIT to reserve over time
+    # LBP Dutch auction: weight shifts from SYM to reserve over time
     if lbp_active:
         progress = current_epoch / lbp_duration
         shit_weight = 0.80 * (1 - progress) + 0.20

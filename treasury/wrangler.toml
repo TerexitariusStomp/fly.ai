@@ -1,20 +1,20 @@
-# SHIT Token — Cloudflare Free Tier Config
+# SYM Token — Cloudflare Free Tier Config
 # $0/month: Workers (100K req/day), D1 (5GB), R2 (10GB), KV (100K reads), DO (100 classes)
 
-name = "shit-token"
+name = "symbient-token"
 compatibility_date = "2026-09-12"
 compatibility_flags = ["python_workers"]
 
 # D1 database (free: 5GB, 5M reads/day, 100K writes/day)
 [[d1_databases]]
 binding = "DB"
-database_name = "shit-token"
+database_name = "symbient-token"
 database_id = "YOUR_D1_DATABASE_ID"
 
 # R2 bucket (free: 10GB) — stores connectome weights
 [[r2_buckets]]
 binding = "WEIGHTS"
-bucket_name = "shit-token-weights"
+bucket_name = "symbient-token-weights"
 
 # KV namespace (free: 100K reads/day) — caching
 [[kv_namespaces]]

@@ -24,7 +24,7 @@ export function FeatureTourWelcomeModal({ open, onSkip, onStart }: FeatureTourWe
         <div className="flex flex-col px-6 py-8">
           <div className="text-center mb-6">
             <h2 className="text-[20px]/[24px] font-semibold text-primary-t mb-3">
-              5H1T, Redesigned
+              SYM, Redesigned
             </h2>
             <p className="text-[14px]/[20px] font-normal text-secondary-t ">
               New navigation. Convertible Deposits built in. Pulse – a real-time view of the

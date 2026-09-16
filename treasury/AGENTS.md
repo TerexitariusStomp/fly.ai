@@ -1,15 +1,15 @@
-# AGENTS.md — SHIT Token
+# AGENTS.md — SYM Token
 
 ## Project Overview
 
-SHIT (Shitcoin) is a treasury-backed token on Robinhood Chain (4663), forked from SHIT Protocol (SHIT Protocol V3, AGPL-3.0). The treasury is traded by a real fruit fly connectome (165K neurons) and holds FLYAI as a reserve asset. The entire system runs on Cloudflare Free Tier ($0/month).
+SYM (Symbientcoin) is a treasury-backed token on Robinhood Chain (4663), forked from SYM Protocol (SYM Protocol V3, AGPL-3.0). The treasury is traded by a real fruit fly connectome (165K neurons) and holds FLYAI as a reserve asset. The entire system runs on Cloudflare Free Tier ($0/month).
 
 ## Directory Structure
 
 ```
-shit-token/
-├── contracts/              # Foundry Solidity (AGPL-3.0, forked from SHIT Protocol)
-│   ├── src/Shit*.sol       # Renamed from shit*.sol
+symbient-token/
+├── contracts/              # Foundry Solidity (AGPL-3.0, forked from SYM Protocol)
+│   ├── src/Symbient*.sol       # Renamed from symbient*.sol
 │   ├── script/DeployAll.s.sol  # FLYAI registration added
 │   └── foundry.toml
 ├── workers/                # Cloudflare Workers (all free tier)
@@ -19,7 +19,7 @@ shit-token/
 │   ├── api-worker/         # TS (API endpoints)
 │   └── enrichment-worker/  # Python Worker (imports hermes)
 ├── migrations/schema.sql   # D1 schema
-├── frontend/               # Forked from SHIT Protocol (AGPL-3.0)
+├── frontend/               # Forked from SYM Protocol (AGPL-3.0)
 │   └── lib/chains.ts       # Updated for Robinhood Chain (4663)
 ├── flycoinrh/              # Fly brain (MIT, alextitonis/fly.ai)
 ├── loxley/                  # Trading patterns (MIT, shmidtqq65/loxley)

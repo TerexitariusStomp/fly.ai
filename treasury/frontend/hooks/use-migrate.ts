@@ -1,22 +1,22 @@
 import { useChainId } from "wagmi";
 import type { Hex } from "viem";
 import { ContractName, getContractAddress } from "@/lib/contracts";
-import V1MigratorAbi from "@/abis/ShitV1Migrator";
+import V1MigratorAbi from "@/abis/SymbientV1Migrator";
 import { useContractWriteFlow } from "./use-contract-write-flow";
 import type { TransactionToastConfig } from "./use-transaction-toast";
 
 const toastConfig: TransactionToastConfig = {
   pending: {
-    title: "Migrating SHIT v1...",
+    title: "Migrating SYM v1...",
     description: "Please wait while your transaction is confirmed.",
   },
   success: {
     title: "Migration complete!",
-    description: "Your SHIT v1 has been migrated to SHIT v2.",
+    description: "Your SYM v1 has been migrated to SYM v2.",
   },
   error: {
     title: "Migration failed",
-    description: "There was an error migrating your SHIT v1. Please try again.",
+    description: "There was an error migrating your SYM v1. Please try again.",
     userRejected: {
       title: "Transaction cancelled",
       description: "You cancelled the migration transaction.",
@@ -29,8 +29,8 @@ const toastConfig: TransactionToastConfig = {
 };
 
 /**
- * Migrate SHIT v1 → SHIT v2 via the V1Migrator policy. The migrator `burnFrom`s SHIT v1
- * (requires a prior exact-amount approval to the migrator) and mints SHIT v2 to the user.
+ * Migrate SYM v1 → SYM v2 via the V1Migrator policy. The migrator `burnFrom`s SYM v1
+ * (requires a prior exact-amount approval to the migrator) and mints SYM v2 to the user.
  */
 export function useMigrate() {
   const chainId = useChainId();

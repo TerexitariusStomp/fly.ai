@@ -117,9 +117,9 @@ export function ImpactTokensPage() {
       <div>
         <h2 className="text-xl font-bold mb-2">Impact Tokens</h2>
         <p className="text-base text-secondary-t max-w-2xl leading-relaxed">
-          Impact tokens are environmentally-focused ERC20 tokens whitelisted in the 5H1T
+          Impact tokens are environmentally-focused ERC20 tokens whitelisted in the SYM
           Token Registry. These tokens represent verified ecological outcomes — carbon credits,
-          reforestation, clean energy generation, and regenerative agriculture. The 5H1T
+          reforestation, clean energy generation, and regenerative agriculture. The SYM
           protocol accepts these tokens as reserve assets, channeling treasury backing toward
           climate-positive initiatives while maintaining protocol solvency.
         </p>

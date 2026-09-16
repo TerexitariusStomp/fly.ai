@@ -1,6 +1,6 @@
 import { useChainId } from "wagmi";
 import { ContractName, getContractAddress } from "@/lib/contracts";
-import ShitStakingV1Abi from "@/abis/ShitStakingV1";
+import SymbientStakingV1Abi from "@/abis/SymbientStakingV1";
 import { useContractWriteFlow } from "./use-contract-write-flow";
 import type { TransactionToastConfig } from "./use-transaction-toast";
 
@@ -10,8 +10,8 @@ const toastConfig: TransactionToastConfig = {
     description: "Please wait while your transaction is confirmed.",
   },
   success: {
-    title: "Unstaked to SHIT v1",
-    description: "Your sSHIT v1 has been unstaked to SHIT v1. You can now migrate.",
+    title: "Unstaked to SYM v1",
+    description: "Your sSHIT v1 has been unstaked to SYM v1. You can now migrate.",
   },
   error: {
     title: "Unstake failed",
@@ -28,9 +28,9 @@ const toastConfig: TransactionToastConfig = {
 };
 
 /**
- * Unstake sSHIT v1 → SHIT v1 via the legacy 5H1T v1 staking contract (1:1). Requires a
+ * Unstake sSHIT v1 → SYM v1 via the legacy SYM v1 staking contract (1:1). Requires a
  * prior exact-amount sSHIT v1 approval to the staking contract. This is the prerequisite
- * step for sSHIT v1 holders who want to migrate (the migrator only burns SHIT v1).
+ * step for sSHIT v1 holders who want to migrate (the migrator only burns SYM v1).
  */
 export function useUnstakeV1() {
   const chainId = useChainId();
@@ -38,7 +38,7 @@ export function useUnstakeV1() {
 
   const { write, ...flow } = useContractWriteFlow({
     address: stakingV1,
-    abi: ShitStakingV1Abi,
+    abi: SymbientStakingV1Abi,
     functionName: "unstake",
     toastConfig,
   });

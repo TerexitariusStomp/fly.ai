@@ -20,7 +20,7 @@ export function ReferralEarnings() {
             value={totalPending}
             format={{ style: "decimal", maximumFractionDigits: 4 }}
             className="text-[24px]/[28px] font-semibold"
-            suffix=" SHIT"
+            suffix=" SYM"
           />
         </div>
       </div>

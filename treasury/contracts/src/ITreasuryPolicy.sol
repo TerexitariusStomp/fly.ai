@@ -6,6 +6,6 @@ pragma solidity ^0.8.24;
 interface ITreasuryPolicy {
     function enforceRfvInvariant(uint256 shitSupply) external view;
     function floorPrice() external view returns (uint256);
-    function navPerShit() external view returns (uint256);
+    function navPerSymbient() external view returns (uint256);
     function rfv() external view returns (uint256);
 }

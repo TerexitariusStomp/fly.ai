@@ -130,7 +130,7 @@ export function ProductCard({
         <div
           className={cn(
             "size-9 rounded-full flex items-center justify-center text-lg overflow-hidden",
-            symbol === "SHIT" && "bg-green/20",
+            symbol === "SYM" && "bg-green/20",
             symbol === "BUCKY" && "bg-yellow/20",
             symbol === "RIDX" && "bg-blue/20",
           )}

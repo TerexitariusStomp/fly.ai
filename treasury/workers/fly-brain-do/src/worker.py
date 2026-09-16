@@ -623,7 +623,7 @@ class ConnectomeDO(DurableObject):
                 "method": "POST",
                 "headers": {"Content-Type": "application/json"},
                 "body": json.dumps({
-                    "username": "SHIT Brain Trainer",
+                    "username": "SYM Brain Trainer",
                     "embeds": [{
                         "title": f"Model retrained ({n_trades} trades)",
                         "color": 0x9b59b6,

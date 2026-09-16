@@ -8,7 +8,7 @@ export function ImpactLaunchPage() {
         <h1 className="text-2xl font-bold mb-2">Protocol Launch Status</h1>
         <p className="text-sm text-secondary-t max-w-2xl">
           Staking distributor, emissions, and fee splitter configuration. These on-chain
-          parameters control how staking rewards flow to SHIT stakers and how treasury
+          parameters control how staking rewards flow to SYM stakers and how treasury
           revenue is split between the treasury and staking rewards.
         </p>
       </div>

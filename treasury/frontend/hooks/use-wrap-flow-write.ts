@@ -2,9 +2,9 @@ import { useChainId } from "wagmi";
 import { useConnectedAddress } from "@/hooks/use-connected-address";
 import { ContractName, getContractAddress } from "@/lib/contracts";
 import { TOKENS } from "@/lib/tokens";
-import ShitStakingAbi from "@/abis/ShitStaking";
-import wstShitAbi from "@/abis/wstSHIT";
-import { WRAP_FLOWS, type WrapFlow } from "@/modules/shit-wrap-flows";
+import SymbientStakingAbi from "@/abis/SymbientStaking";
+import wstSymbientAbi from "@/abis/wstSYM";
+import { WRAP_FLOWS, type WrapFlow } from "@/modules/symbient-wrap-flows";
 import { useContractWriteFlow } from "./use-contract-write-flow";
 import type { TransactionToastConfig } from "./use-transaction-toast";
 import type { Abi, Address } from "viem";
@@ -27,22 +27,22 @@ type StakingCall = {
  * Contract call for each Wrap-page flow.
  *
  * Deployed contract surface:
- *   - ShitStaking:  stake(address,uint256,bool,bool) / unstake(address,uint256,bool,bool)
- *   - wstSHIT:      wrap(uint256)  / unwrap(uint256)
+ *   - SymbientStaking:  stake(address,uint256,bool,bool) / unstake(address,uint256,bool,bool)
+ *   - wstSYM:      wrap(uint256)  / unwrap(uint256)
  */
 const FLOW_CALLS: Record<WrapFlow, StakingCall> = {
-  // stake(to, amount, true, false) -> SHIT → stSHIT  [rebasing=true, StakingAdapter sends stSHIT directly]
-  "wrap-shit": { contract: ContractName.STAKING, abi: ShitStakingAbi, functionName: "stake", args: (addr, amount) => [addr, amount, true, false], approvalSpender: ContractName.STAKING },
-  // stake(to, amount, false, false) -> SHIT → wstSHIT  [rebasing=false, StakingAdapter wraps to wstSHIT]
-  "wrap-shit-to-wstshit": { contract: ContractName.STAKING, abi: ShitStakingAbi, functionName: "stake", args: (addr, amount) => [addr, amount, false, false], approvalSpender: ContractName.STAKING },
-  // wrap(amount) -> stSHIT → wstSHIT  [wstSHIT pulls stSHIT]
-  "wrap-stshit": { contract: ContractName.WSTSHIT, abi: wstShitAbi, functionName: "wrap", args: (_addr, amount) => [amount], approvalSpender: ContractName.WSTSHIT },
-  // unwrap(amount) -> wstSHIT → stSHIT  [burns caller's wstSHIT, no approval needed]
-  "unwrap-wstshit": { contract: ContractName.WSTSHIT, abi: wstShitAbi, functionName: "unwrap", args: (_addr, amount) => [amount], approvalSpender: undefined },
-  // unstake(to, amount, false, false) -> wstSHIT → SHIT  [Staking pulls wstSHIT via transferFrom]
-  "unwrap-wstshit-to-shit": { contract: ContractName.STAKING, abi: ShitStakingAbi, functionName: "unstake", args: (addr, amount) => [addr, amount, false, false], approvalSpender: ContractName.STAKING },
-  // unstake(to, amount, false, true) -> stSHIT → SHIT  [rebasing=true, StakingAdapter pulls stSHIT directly]
-  "unstake-stshit": { contract: ContractName.STAKING, abi: ShitStakingAbi, functionName: "unstake", args: (addr, amount) => [addr, amount, false, true], approvalSpender: ContractName.STAKING },
+  // stake(to, amount, true, false) -> SYM → stSYM  [rebasing=true, StakingAdapter sends stSYM directly]
+  "wrap-symbient": { contract: ContractName.STAKING, abi: SymbientStakingAbi, functionName: "stake", args: (addr, amount) => [addr, amount, true, false], approvalSpender: ContractName.STAKING },
+  // stake(to, amount, false, false) -> SYM → wstSYM  [rebasing=false, StakingAdapter wraps to wstSYM]
+  "wrap-symbient-to-wstsym": { contract: ContractName.STAKING, abi: SymbientStakingAbi, functionName: "stake", args: (addr, amount) => [addr, amount, false, false], approvalSpender: ContractName.STAKING },
+  // wrap(amount) -> stSYM → wstSYM  [wstSYM pulls stSYM]
+  "wrap-stsym": { contract: ContractName.Wstsym, abi: wstSymbientAbi, functionName: "wrap", args: (_addr, amount) => [amount], approvalSpender: ContractName.Wstsym },
+  // unwrap(amount) -> wstSYM → stSYM  [burns caller's wstSYM, no approval needed]
+  "unwrap-wstsym": { contract: ContractName.Wstsym, abi: wstSymbientAbi, functionName: "unwrap", args: (_addr, amount) => [amount], approvalSpender: undefined },
+  // unstake(to, amount, false, false) -> wstSYM → SYM  [Staking pulls wstSYM via transferFrom]
+  "unwrap-wstsym-to-symbient": { contract: ContractName.STAKING, abi: SymbientStakingAbi, functionName: "unstake", args: (addr, amount) => [addr, amount, false, false], approvalSpender: ContractName.STAKING },
+  // unstake(to, amount, false, true) -> stSYM → SYM  [rebasing=true, StakingAdapter pulls stSYM directly]
+  "unstake-stsym": { contract: ContractName.STAKING, abi: SymbientStakingAbi, functionName: "unstake", args: (addr, amount) => [addr, amount, false, true], approvalSpender: ContractName.STAKING },
 };
 
 /** Contract the input token must be approved to for a flow, or undefined if none is needed. */
@@ -79,7 +79,7 @@ function toastConfigFor(flow: WrapFlow): TransactionToastConfig {
 }
 
 /**
- * Executes the staking-contract write for a Wrap-page flow (SHIT/sSHIT → wstSHIT, wstSHIT/sSHIT → SHIT).
+ * Executes the staking-contract write for a Wrap-page flow (SYM/sSHIT → wstSYM, wstSYM/sSHIT → SYM).
  * Built on useContractWriteFlow for gas buffering, double-submit protection, query
  * invalidation, and toasts. Requires a prior input-token approval to the staking contract.
  */

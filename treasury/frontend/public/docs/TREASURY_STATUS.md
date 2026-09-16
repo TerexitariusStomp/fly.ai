@@ -1,6 +1,6 @@
 # Treasury — what's actually in it right now
 
-The live source of truth for the SHIT Protocol treasury is the frontend page at `/#/treasury`. That page reads balances, valuations, and prices directly from the on-chain contracts. It is the only place that should show current numbers. This document explains how to interpret what you see there.
+The live source of truth for the SYM Protocol treasury is the frontend page at `/#/treasury`. That page reads balances, valuations, and prices directly from the on-chain contracts. It is the only place that should show current numbers. This document explains how to interpret what you see there.
 
 ## How to verify the treasury yourself
 
@@ -16,9 +16,9 @@ These are the asset classes the protocol is built to hold. The live page shows w
 
 | Asset | Type | Haircut | How it's verified | Yield source |
 |---|---|---|---|---|
-| SHIT | Protocol | 0% | ERC-20 balance | n/a while in treasury |
-| stSHIT | Protocol | 0% | ERC-20 balance at ShitStaking | Rebasing share of treasury revenue |
-| wstSHIT | Protocol | 0% | ERC-20 balance | Accrues to the wrapped share price |
+| SYM | Protocol | 0% | ERC-20 balance | n/a while in treasury |
+| stSYM | Protocol | 0% | ERC-20 balance at SymbientStaking | Rebasing share of treasury revenue |
+| wstSYM | Protocol | 0% | ERC-20 balance | Accrues to the wrapped share price |
 | Bucky | Stablecoin | 0% | DSS Vat/Spotter/ilk + overcollateralization | Lending AMO + Uniswap V4 AMO |
 | RIDX | Protocol | 0% | ERC-20 balance | Index component yield when configured |
 | USDC | Reserve | 0% | StablecoinPriceFeed (fixed $1) + ERC-20 balance | Aave/Sky savings yield |

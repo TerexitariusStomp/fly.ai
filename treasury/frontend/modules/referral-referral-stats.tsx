@@ -10,7 +10,7 @@ export function ReferralStats() {
   const pendingFees = stats?.pendingFees ?? [];
   const claimedFees = stats?.totalClaimed ?? [];
 
-  // Sum pending fees across all tokens (display in SHIT equivalent)
+  // Sum pending fees across all tokens (display in SYM equivalent)
   const totalPending = pendingFees.reduce((sum, f) => sum + Number(f.total) / 1e18, 0);
   const totalClaimedAmount = claimedFees.reduce((sum, f) => sum + Number(f.total) / 1e18, 0);
 
@@ -24,7 +24,7 @@ export function ReferralStats() {
             value={totalClaimedAmount}
             format={{ style: "decimal", maximumFractionDigits: 4 }}
             className="text-[15px]/[20px] font-semibold"
-            suffix="SHIT"
+            suffix="SYM"
           />
         </div>
         <div className="flex items-center justify-between">
@@ -33,7 +33,7 @@ export function ReferralStats() {
             value={totalPending}
             format={{ style: "decimal", maximumFractionDigits: 4 }}
             className="text-[15px]/[20px] font-semibold"
-            suffix="SHIT"
+            suffix="SYM"
           />
         </div>
         <div className="flex items-center justify-between">

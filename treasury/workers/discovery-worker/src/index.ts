@@ -161,7 +161,7 @@ async function pollPonsFactory(env: Env) {
 async function pollDexScreener(env: Env) {
   try {
     const resp = await fetch(`${DEXSCREENER_API}/search?q=robinhood`, {
-      headers: { "User-Agent": "SHIT-Token-Bot/1.0" },
+      headers: { "User-Agent": "SYM-Token-Bot/1.0" },
     });
     if (!resp.ok) return;
 

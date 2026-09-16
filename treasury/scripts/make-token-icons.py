@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-"""Generate SHIT/stSHIT/wstSHIT token icons from the circuit-poop base image.
+"""Generate SYM/stSYM/wstSYM token icons from the circuit-poop base image.
 
-Reads the base image from frontend/public/pictures/shit/5h1t-poop.png
+Reads the base image from frontend/public/pictures/symbient/sym-poop.png
 (the AI-generated circuit poop emoji) and writes hue-shifted variants:
 
-  - 5h1t-poop.png        → SHIT    (original colors: purple body, orange smile)
-  - 5h1t-poop-green.png  → stSHIT  (hue +60: green-shifted)
-  - 5h1t-poop-blue.png   → wstSHIT (hue +180: blue-shifted)
+  - sym-poop.png        → SYM    (original colors: purple body, orange smile)
+  - sym-poop-green.png  → stSYM  (hue +60: green-shifted)
+  - sym-poop-blue.png   → wstSYM (hue +180: blue-shifted)
 
 Outputs:
-  frontend/icons/token-SHIT.png
-  frontend/icons/token-stSHIT.png
-  frontend/icons/token-wstSHIT.png
-  frontend/public/pictures/shit/5h1t-poop{,-green,-blue}.png
+  frontend/icons/token-SYM.png
+  frontend/icons/token-stSYM.png
+  frontend/icons/token-wstSYM.png
+  frontend/public/pictures/symbient/sym-poop{,-green,-blue}.png
 
 Usage:
   python3 scripts/make-token-icons.py [path/to/base.png]
@@ -24,14 +24,14 @@ from PIL import Image, ImageEnhance
 
 ROOT = Path(__file__).resolve().parent.parent
 FRONTEND = ROOT / "frontend"
-PUBLIC_DIR = FRONTEND / "public" / "pictures" / "shit"
+PUBLIC_DIR = FRONTEND / "public" / "pictures" / "symbient"
 ICONS_DIR = FRONTEND / "icons"
 
 # Hue rotation per variant (degrees on the color wheel)
 VARIANTS = {
-    "": 0,          # SHIT — original
-    "-green": 60,   # stSHIT — staked variant
-    "-blue": 200,   # wstSHIT — wrapped variant
+    "": 0,          # SYM — original
+    "-green": 60,   # stSYM — staked variant
+    "-blue": 200,   # wstSYM — wrapped variant
 }
 
 ICON_SIZES = {"": 256, "-green": 256, "-blue": 256}
@@ -65,10 +65,10 @@ def crop_to_content(img: Image.Image, pad_frac: float = 0.04) -> Image.Image:
 
 
 def main() -> None:
-    src_path = Path(sys.argv[1]) if len(sys.argv) > 1 else PUBLIC_DIR / "5h1t-poop.png"
+    src_path = Path(sys.argv[1]) if len(sys.argv) > 1 else PUBLIC_DIR / "sym-poop.png"
     if not src_path.exists():
         sys.exit(f"Base image not found: {src_path}\n"
-                 f"Save the circuit-poop image to {PUBLIC_DIR}/5h1t-poop.png first.")
+                 f"Save the circuit-poop image to {PUBLIC_DIR}/sym-poop.png first.")
 
     base = Image.open(src_path)
     cropped = crop_to_content(base)
@@ -83,12 +83,12 @@ def main() -> None:
     for suffix, deg in VARIANTS.items():
         variant = square if deg == 0 else hue_shift(square, deg)
         # Public copy (used by SHITLogo + pages)
-        pub = PUBLIC_DIR / f"5h1t-poop{suffix}.png"
+        pub = PUBLIC_DIR / f"sym-poop{suffix}.png"
         variant.save(pub)
         # Icon copy (used by <Icon name="...TokenIcon">)
         icon_size = ICON_SIZES[suffix]
         icon = variant.resize((icon_size, icon_size), Image.LANCZOS)
-        icon_name = {"": "token-SHIT.png", "-green": "token-stSHIT.png", "-blue": "token-wstSHIT.png"}[suffix]
+        icon_name = {"": "token-SYM.png", "-green": "token-stSYM.png", "-blue": "token-wstSYM.png"}[suffix]
         icon.save(ICONS_DIR / icon_name)
         print(f"wrote {pub.name} + icons/{icon_name} ({icon_size}px)")
 

@@ -1,6 +1,6 @@
 # OSS Attributions
 
-This directory contains vendored open-source code used by the SHIT Protocol tokenomics simulator.
+This directory contains vendored open-source code used by the SYM Protocol tokenomics simulator.
 
 ## cadCAD
 - Source: https://github.com/cadCAD-org/cadCAD
@@ -9,9 +9,9 @@ This directory contains vendored open-source code used by the SHIT Protocol toke
 - Modifications: Removed `dill`, `funcy`, `pathos`, `tqdm` dependencies for Pyodide/WASM compatibility.
 - Usage: Simulation engine for cadCAD state machine.
 
-## SHIT Protocol Digital Twin
-- Source: https://github.com/SHIT Protocol/shit-protocol-digital-twin
-- Created by: BlockScience for SHIT Protocol
+## SYM Protocol Digital Twin
+- Source: https://github.com/SYM Protocol/symbient-protocol-digital-twin
+- Created by: BlockScience for SYM Protocol
 - License: No explicit license file present in the repository.
 - Usage: RBS (Range Bound Stability) price floor mechanics, base PSUB structure, default initial state.
 - Note: This code is used at our own risk. No explicit license was provided by the upstream repository.
@@ -42,7 +42,7 @@ This directory contains vendored open-source code used by the SHIT Protocol toke
 - License: GPL-3.0
 - Files: `pendle/PyIndexHarness.sol`, `pendle/MarketMathHarness.sol`, `pendle/py_index_sim.py`, `pendle/py_index.py`
 - Modifications: Created `py_index.py` as a Python port of `PyIndexHarness.sol` and `SimplifiedMarketMathHarness.sol`. Original `py_index_sim.py` requires `web3` and Forge artifacts. The port preserves the exact math: `pyIndexCurrent = max(SY.exchangeRate(), pyIndexStored)`, stress gap, SY-PY conversion, market proportion, exchange rate, PT price, implied APY proxy.
-- Usage: wstSHIT yield accounting via Pendle-style monotonic PY index. Models accounting value vs recoverable backing divergence under SY impairment.
+- Usage: wstSYM yield accounting via Pendle-style monotonic PY index. Models accounting value vs recoverable backing divergence under SY impairment.
 
 ## Stablecoin Dynamics
 - Source: Custom model based on algorithmic stablecoin death-spiral dynamics.
@@ -55,7 +55,7 @@ This directory contains vendored open-source code used by the SHIT Protocol toke
 | Repository | License | Commercial Use |
 |---|---|---|
 | cadCAD | MIT | Yes |
-| SHIT Protocol Digital Twin | No explicit license | At own risk |
+| SYM Protocol Digital Twin | No explicit license | At own risk |
 | Curve PegKeeper | MIT | Yes |
 | Liquity (Bold) | AGPL-3.0 | Yes (with source disclosure) |
 | crvUSD Risk | MIT | Yes |

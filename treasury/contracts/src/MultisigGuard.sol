@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 /// @title MultisigGuard
-/// @notice Shared multisig enforcement for all SHIT Protocol contracts
+/// @notice Shared multisig enforcement for all SYM Protocol contracts
 /// @dev Inherited by contracts that require multisig control for privileged operations.
 ///      Fortress DAO lesson: a single individual controlling treasury = catastrophic.
 ///      Minotaur lesson: single admin key compromise = total loss.

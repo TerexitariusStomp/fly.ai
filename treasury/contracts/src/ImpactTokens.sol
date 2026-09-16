@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 /// @title ImpactTokens
-/// @notice Initial impact token addresses for the SHIT Protocol protocol (Base chain)
+/// @notice Initial impact token addresses for the SYM Protocol protocol (Base chain)
 /// @dev These are the tokens auto-whitelisted in the TokenRegistry at deployment on Base.
 library ImpactTokens {
     struct TokenInfo {

@@ -6,7 +6,7 @@ export interface GohmPriceHistory {
   dataPoints: Array<{ date: string; price: number }>;
 }
 
-export function useWstShitPriceHistory() {
+export function useWstSymbientPriceHistory() {
   return useQuery<GohmPriceHistory>({
     queryKey: ["gohmPriceHistory", "treasury-subgraph"],
     queryFn: async () => {

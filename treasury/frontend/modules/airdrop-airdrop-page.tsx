@@ -4,7 +4,7 @@ import { Card } from "@/components/ui-card";
 import { Button } from "@/components/ui-button";
 import { Input } from "@/components/ui-input";
 import { SectionWrapper, SectionHead, useScrollReveal } from "@/modules/shared-sections";
-import { SHITLogo } from "@/components/shit-logo";
+import { SHITLogo } from "@/components/symbient-logo";
 
 interface AirdropEntry { a: string; s: number; src: string[]; m: number; }
 
@@ -184,7 +184,7 @@ export function AirdropPage() {
             to get airdropped tokens — you just need to claim them.
           </p>
           <p className="text-sm text-secondary-t leading-relaxed mt-3">
-            5H1T is giving SHIT tokens to people who have helped the regenerative
+            SYM is giving SYM tokens to people who have helped the regenerative
             finance community. This includes people who hold impact tokens, donate to public
             goods projects, or participate in climate-focused communities. Check your wallet
             address below to see if you qualify.
@@ -194,21 +194,21 @@ export function AirdropPage() {
         <Card className="p-6 max-w-2xl mt-4" data-reveal>
           <h3 className="font-serif text-xl mb-3">Airdrop economics</h3>
           <p className="text-sm text-secondary-t leading-relaxed">
-            <strong className="text-primary-t">10% of the total SHIT supply</strong> is allocated to this airdrop,
+            <strong className="text-primary-t">10% of the total SYM supply</strong> is allocated to this airdrop,
             distributed across {loading ? "..." : `${totalEligible.toLocaleString()}`} eligible addresses at approximately
             <strong className="text-green"> $100 per address</strong>.
           </p>
           <p className="text-sm text-secondary-t leading-relaxed mt-3">
             The full airdrop value of <strong className="text-green">≈ ${(totalEligible * 100).toLocaleString()}</strong> is
-            claimable immediately at token launch. This represents 10% of the total SHIT supply, meaning the airdrop
-            reaches its full $100-per-address value when SHIT achieves a market cap of approximately
+            claimable immediately at token launch. This represents 10% of the total SYM supply, meaning the airdrop
+            reaches its full $100-per-address value when SYM achieves a market cap of approximately
             <strong className="text-primary-t"> ${((totalEligible * 100) / 0.1).toLocaleString()}</strong>.
           </p>
           <p className="text-sm text-secondary-t leading-relaxed mt-3">
             <strong className="text-primary-t">How does the airdrop reach ~$6 million?</strong> With approximately
             60,000 eligible addresses at $100 per address, the total airdrop pool is ~$6 million. This is funded by
-            allocating 10% of the total SHIT supply to the airdrop. At token launch, these SHIT are distributed pro-rata
-            to eligible addresses. The $100-per-address figure assumes SHIT reaches its target market cap — if the market
+            allocating 10% of the total SYM supply to the airdrop. At token launch, these SYM are distributed pro-rata
+            to eligible addresses. The $100-per-address figure assumes SYM reaches its target market cap — if the market
             cap is higher, each address receives more value; if lower, less.
           </p>
         </Card>
@@ -467,10 +467,10 @@ export function AirdropPage() {
         <div className="flex justify-between items-start flex-wrap gap-6">
           <div>
             <div className="flex items-center gap-2 font-serif text-base">
-              <SHITLogo className="size-6" /> SHIT
+              <SHITLogo className="size-6" /> SYM
             </div>
             <p className="text-tertiary-t text-sm max-w-sm mt-2.5">
-              SHIT is a decentralized savings protocol backed by a shared treasury, including verified climate impact assets.
+              SYM is a decentralized savings protocol backed by a shared treasury, including verified climate impact assets.
             </p>
           </div>
           <div className="flex gap-6 text-sm text-secondary-t flex-wrap">

@@ -323,7 +323,7 @@ export default [
   },
   {
     inputs: [],
-    name: "gSHIT",
+    name: "gSYM",
     outputs: [
       {
         internalType: "contract IgSHIT",

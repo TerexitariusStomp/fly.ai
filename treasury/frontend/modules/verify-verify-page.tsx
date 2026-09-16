@@ -138,7 +138,7 @@ Issued At: ${new Date().toISOString()}`;
     <div className="min-h-screen flex items-center justify-center bg-[#0a0a0f] px-4">
       <div className="w-full max-w-md text-center">
         <div className="text-3xl font-bold mb-1 bg-gradient-to-br from-indigo-500 to-purple-500 bg-clip-text text-transparent">
-          5H1T
+          SYM
         </div>
         <div className="text-gray-500 text-sm mb-8">Verify your wallet to complete onboarding</div>
 
@@ -239,7 +239,7 @@ Issued At: ${new Date().toISOString()}`;
 
         {status === "success" && (
           <a
-            href={`https://twitter.com/intent/tweet?text=${encodeURIComponent("Just verified my wallet on @shitfinance — a decentralized treasury protocol on Base 🌱")}&url=${encodeURIComponent("https://shit.finance")}`}
+            href={`https://twitter.com/intent/tweet?text=${encodeURIComponent("Just verified my wallet on @shitfinance — a decentralized treasury protocol on Base 🌱")}&url=${encodeURIComponent("https://symbient.finance")}`}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => trackShareClick({ platform: "twitter", content_type: "verify_success" })}

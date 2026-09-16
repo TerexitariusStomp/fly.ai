@@ -19,27 +19,27 @@ import { useScrollReveal, SectionWrapper, SectionHead } from "@/modules/shared-s
 
 const TREASURY_ASSETS = [
   {
-    symbol: "SHIT",
-    name: "SHIT token",
-    token: TokenName.SHIT,
+    symbol: "SYM",
+    name: "SYM token",
+    token: TokenName.SYM,
     type: "Protocol",
     haircut: "0%",
-    verification: "ERC-20 balance at the SHIT token contract",
+    verification: "ERC-20 balance at the SYM token contract",
     yield: "n/a in treasury",
   },
   {
-    symbol: "stSHIT",
-    name: "Staked SHIT",
-    token: TokenName.STSHIT,
+    symbol: "stSYM",
+    name: "Staked SYM",
+    token: TokenName.stsym,
     type: "Protocol",
     haircut: "0%",
-    verification: "ERC-1155/ERC-20 balance at ShitStaking",
+    verification: "ERC-1155/ERC-20 balance at SymbientStaking",
     yield: "Auto-compounding rebase (from treasury revenue)",
   },
   {
-    symbol: "wstSHIT",
-    name: "Wrapped stSHIT",
-    token: TokenName.WSTSHIT,
+    symbol: "wstSYM",
+    name: "Wrapped stSYM",
+    token: TokenName.Wstsym,
     type: "Protocol",
     haircut: "0%",
     verification: "Non-rebasing wrapper balance",
@@ -199,7 +199,7 @@ export function TreasuryNowPage() {
         <SectionHead
           kicker="On-chain state"
           title="Treasury & price"
-          subtitle="Live valuations from the ShitTreasuryPolicy and price feed contracts. Anyone can trigger valuation updates."
+          subtitle="Live valuations from the SymbientTreasuryPolicy and price feed contracts. Anyone can trigger valuation updates."
         />
         <div className="grid md:grid-cols-2 gap-4 mb-4">
           <TreasuryMetricsWidget />
@@ -345,7 +345,7 @@ export function TreasuryNowPage() {
                   </tr>
                   <tr>
                     <td className="p-2 border border-a10-b">Bucky minted against impact collateral</td>
-                    <td className="p-2 border border-a10-b">ShitPsm overcollateralized minting</td>
+                    <td className="p-2 border border-a10-b">SymbientPsm overcollateralized minting</td>
                     <td className="p-2 border border-a10-b">Collateral ratio, oracle price, DSS liquidation</td>
                   </tr>
                 </tbody>
@@ -359,10 +359,10 @@ export function TreasuryNowPage() {
             </p>
             <ol className="list-decimal list-inside space-y-2 text-secondary-t text-sm">
               <li>
-                <strong className="text-primary-t">Phase 0 — LBP / Launch:</strong> Raise USDC and seed SHIT liquidity, depositing initial reserves.
+                <strong className="text-primary-t">Phase 0 — LBP / Launch:</strong> Raise USDC and seed SYM liquidity, depositing initial reserves.
               </li>
               <li>
-                <strong className="text-primary-t">Phase 1 — Bond markets:</strong> Accept USDC or approved climate impact assets for discounted, vested SHIT.
+                <strong className="text-primary-t">Phase 1 — Bond markets:</strong> Accept USDC or approved climate impact assets for discounted, vested SYM.
               </li>
               <li>
                 <strong className="text-primary-t">Phase 2 — Impact onboarding:</strong> New impact tokens clear a 2-day timelock and TokenRegistry whitelist before becoming collateral.
@@ -380,7 +380,7 @@ export function TreasuryNowPage() {
 
       <SectionWrapper id="markets" className="py-16 border-t border-a10-b">
         <SectionHead
-          kicker="Put your SHIT to work"
+          kicker="Put your SYM to work"
           title="Treasury operations"
           subtitle="The treasury manages its own liquidity and keeps price within a range automatically."
         />

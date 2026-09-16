@@ -7288,7 +7288,7 @@
           "chain": "solana",
           "contract_address": "aHER4UoYSDvS8Dqd8aZWtW7WDfPZ2wpKyFHETt6pump",
           "channel_count": 3,
-          "channels_seen": "discovery:dexscreener_profile:this shit is flying,discovery:dexscreener_boost,discovery:dexscreener_trending_solana",
+          "channels_seen": "discovery:dexscreener_profile:this symbient is flying,discovery:dexscreener_boost,discovery:dexscreener_trending_solana",
           "mentions": 3,
           "first_seen_at": 1776373502.9287162,
           "last_seen_at": 1776414903.4509742,
@@ -10623,7 +10623,7 @@
             "dex": "pumpfun",
             "symbol": "SQUARA",
             "name": "Squara",
-            "pair_address": "GxRh3WZxQhrPGgrrB911r3W5H1Tiggcp6Rph1K47xetw",
+            "pair_address": "GxRh3WZxQhrPGgrrB911r3WSYMiggcp6Rph1K47xetw",
             "twitter_url": "https://x.com/OxSquara",
             "website_url": "https://squara.xyz/"
           },

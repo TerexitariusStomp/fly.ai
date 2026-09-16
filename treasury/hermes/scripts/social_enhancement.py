@@ -297,7 +297,7 @@ def collect_twitter_signals(tokens: list[dict]) -> dict[str, dict]:
                     "sell",
                     "bearish",
                     "avoid",
-                    "shit",
+                    "symbient",
                     "💀",
                     "⚠️",
                 }

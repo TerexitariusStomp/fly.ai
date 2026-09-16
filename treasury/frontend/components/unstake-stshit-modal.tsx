@@ -17,14 +17,14 @@ import { useUnstakeV1 } from "@/hooks/use-unstake-v1";
 import { ContractName, getContractAddress } from "@/lib/contracts";
 import { TokenName, getTokenAddress } from "@/lib/tokens";
 
-interface UnstakeStShitModalProps {
+interface UnstakeStSymbientModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
 const SHIT_DECIMALS = 9;
 
-export function UnstakeStShitModal({ isOpen, onClose }: UnstakeStShitModalProps) {
+export function UnstakeStSymbientModal({ isOpen, onClose }: UnstakeStSymbientModalProps) {
   const { address } = useConnectedAddress();
   const chainId = useChainId();
   const [amount, setAmount] = useState("");
@@ -34,8 +34,8 @@ export function UnstakeStShitModal({ isOpen, onClose }: UnstakeStShitModalProps)
   const sshitV1Address = getTokenAddress(TokenName.V1_SSHIT, chainId);
 
   const sshitToken = useToken(TokenName.V1_SSHIT, address);
-  const shitToken = useToken(TokenName.SHIT);
-  // sSHIT v1 has no price feed; show value using the SHIT price (1:1 with SHIT v1).
+  const shitToken = useToken(TokenName.SYM);
+  // sSHIT v1 has no price feed; show value using the SYM price (1:1 with SYM v1).
   const inputToken = useMemo(
     () => ({ ...sshitToken, price: shitToken.price }),
     [sshitToken, shitToken.price],
@@ -52,7 +52,7 @@ export function UnstakeStShitModal({ isOpen, onClose }: UnstakeStShitModalProps)
     }
   }, [amount]);
 
-  // Unstaking is 1:1 — you receive the same amount of SHIT v1.
+  // Unstaking is 1:1 — you receive the same amount of SYM v1.
   const receiveAmount = amount || "0";
 
   const { allowance, queryKey } = useTokenAllowance(
@@ -84,7 +84,7 @@ export function UnstakeStShitModal({ isOpen, onClose }: UnstakeStShitModalProps)
     if (!address) return { disabled: true, label: "Sign In" };
     if (!amount || amountBigInt === 0n) return { disabled: true, label: "Enter Amount" };
     if (amountBigInt > balance) return { disabled: true, label: "Insufficient sSHIT v1 Balance" };
-    return { disabled: false, label: "Unstake to SHIT v1" };
+    return { disabled: false, label: "Unstake to SYM v1" };
   }, [address, amount, amountBigInt, balance]);
 
   const handleMax = () => setAmount(formatUnits(balance, SHIT_DECIMALS));
@@ -122,8 +122,8 @@ export function UnstakeStShitModal({ isOpen, onClose }: UnstakeStShitModalProps)
     },
     {
       number: 2,
-      title: "Unstake to SHIT v1",
-      badges: [{ label: `-${amount} sSHIT v1` }, { label: `+${receiveAmount} SHIT v1` }],
+      title: "Unstake to SYM v1",
+      badges: [{ label: `-${amount} sSHIT v1` }, { label: `+${receiveAmount} SYM v1` }],
       isActive: currentStep === 2,
       isCompleted: unstakeSuccess,
       isLoading: currentStep === 2 && isUnstaking,
@@ -138,7 +138,7 @@ export function UnstakeStShitModal({ isOpen, onClose }: UnstakeStShitModalProps)
         isOpen={isOpen}
         onClose={handleClose}
         title="Congrats, all done!"
-        description="Your sSHIT v1 has been unstaked to SHIT v1 — you can now migrate it."
+        description="Your sSHIT v1 has been unstaked to SYM v1 — you can now migrate it."
         steps={steps}
       />
     );
@@ -155,7 +155,7 @@ export function UnstakeStShitModal({ isOpen, onClose }: UnstakeStShitModalProps)
         steps={steps}
         showBusyNotice={currentStep === 2 && isUnstaking}
         button={{
-          label: currentStep === 2 ? "Unstake to SHIT v1" : "Approve sSHIT v1",
+          label: currentStep === 2 ? "Unstake to SYM v1" : "Approve sSHIT v1",
           busyLabel: isApproving
             ? "Confirming Approval In Your Wallet"
             : "Confirming Unstake In Your Wallet",
@@ -175,7 +175,7 @@ export function UnstakeStShitModal({ isOpen, onClose }: UnstakeStShitModalProps)
             Unstake sSHIT v1
           </DialogTitle>
           <p className="text-xs/4 font-normal text-secondary-t">
-            Convert sSHIT v1 to SHIT v1 (1:1) so you can migrate it to SHIT v2.
+            Convert sSHIT v1 to SYM v1 (1:1) so you can migrate it to SYM v2.
           </p>
         </DialogHeader>
 
@@ -189,7 +189,7 @@ export function UnstakeStShitModal({ isOpen, onClose }: UnstakeStShitModalProps)
 
         <div className="flex justify-between text-sm px-1">
           <span className="text-secondary-t">You receive</span>
-          <span className="font-semibold text-primary-t">≈ {receiveAmount} SHIT v1</span>
+          <span className="font-semibold text-primary-t">≈ {receiveAmount} SYM v1</span>
         </div>
 
         <Button

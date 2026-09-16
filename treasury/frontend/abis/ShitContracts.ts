@@ -29,7 +29,7 @@ export const SHIT_INVERSE_BOND_ABI = [
   },
   {
     type: "function",
-    name: "navPerShit",
+    name: "navPerSymbient",
     inputs: [],
     outputs: [{ name: "", type: "uint256" }],
     stateMutability: "view",
@@ -305,7 +305,7 @@ export const SHIT_TREASURY_POLICY_ABI = [
   },
   {
     "type": "function",
-    "name": "navPerShit",
+    "name": "navPerSymbient",
     "inputs": [],
     "outputs": [
       {

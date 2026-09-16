@@ -20,16 +20,16 @@ contract RedeployAzusd is Script {
         MockERC20 azusd = new MockERC20("AZUSD", "AZUSD", 6);
         console2.log("New AZUSD:", address(azusd));
 
-        // 2. Approve SHIT payout to the teller so the market can pay out
-        address SHIT = 0x823d5d44F9E647402c949376E54f709Ab3a9015b;
+        // 2. Approve SYM payout to the teller so the market can pay out
+        address SYM = 0x823d5d44F9E647402c949376E54f709Ab3a9015b;
         address TELLER = 0xf4816c51221Cb49BdF24a30e69a1fa26B0cE0703;
-        IERC20(SHIT).approve(TELLER, type(uint256).max);
-        console2.log("Approved SHIT to teller");
+        IERC20(SYM).approve(TELLER, type(uint256).max);
+        console2.log("Approved SYM to teller");
 
         // 3. Create bond market replicating market 1 params with new quote token
         address AUCTIONEER = 0x2baa439C3d29B6B7fE6df60Fdf0840AdEf77fF0a;
         bytes memory params = abi.encode(
-            SHIT,                                            // payoutToken
+            SYM,                                            // payoutToken
             address(azusd),                                   // quoteToken (new)
             address(0),                                       // callbackAddr
             true,                                             // capacityInQuote

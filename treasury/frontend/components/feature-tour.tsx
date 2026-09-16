@@ -15,7 +15,7 @@ import {
 } from "@/lib/analytics";
 
 const DESKTOP_BREAKPOINT = 1023.5;
-const TIGHT_POPOVER_CLASS = "shit-tour-popover shit-tour-popover-tight";
+const TIGHT_POPOVER_CLASS = "symbient-tour-popover symbient-tour-popover-tight";
 const NEW_BADGE = `<span class="px-1.25 pt-px mx-[3px] rounded-full bg-green/20 text-[8px] font-semibold text-green uppercase inline-flex items-center justify-center align-middle relative -top-px">NEW</span>`;
 
 type SHITStep = DriveStep & { name: string };
@@ -30,11 +30,11 @@ function buildSteps(): SHITStep[] {
         description: `
           <ul>
             <li><strong>Pulse</strong>${NEW_BADGE}. Live revenue, treasury health, buyback and emission activity, and every on-chain action.</li>
-            <li><strong>SHIT.</strong> Balances, wrapping (previously Stake), bridging across chains.</li>
-            <li><strong>Cooler.</strong> Borrow USDS against your wstSHIT at 0.5% APR, no liquidation risk.</li>
+            <li><strong>SYM.</strong> Balances, wrapping (previously Stake), bridging across chains.</li>
+            <li><strong>Cooler.</strong> Borrow USDS against your wstSYM at 0.5% APR, no liquidation risk.</li>
             <li><strong>CDs.</strong> Convertible Deposits — now built into the app.</li>
             <li><strong>DAO.</strong> Vote on proposals, delegate, view contract parameters (previously Govern).</li>
-            <li><strong>Engage</strong>${NEW_BADGE}. CD participants accumulate iSHIT, convertible to SHIT below market.</li>
+            <li><strong>Engage</strong>${NEW_BADGE}. CD participants accumulate iSHIT, convertible to SYM below market.</li>
           </ul>
         `,
         side: "right",
@@ -50,7 +50,7 @@ function buildSteps(): SHITStep[] {
           <p style="margin-bottom:20px">What the protocol is doing, what backs it, and every action it takes.</p>
           <ul>
             <li><strong>Overview.</strong> Live revenue, treasury health, buyback and emission activity</li>
-            <li><strong>Treasury.</strong> What backs every SHIT — assets, liabilities, and protocol-owned liquidity</li>
+            <li><strong>Treasury.</strong> What backs every SYM — assets, liabilities, and protocol-owned liquidity</li>
             <li><strong>Protocol.</strong> Where revenue comes from and how it flows through buybacks and emissions</li>
             <li><strong>Feed.</strong> Every on-chain action as it happens</li>
           </ul>
@@ -78,7 +78,7 @@ function buildSteps(): SHITStep[] {
       popover: {
         title: "Engage – Coming Soon",
         description:
-          "Convertible Deposits participants receive convSHIT — the right to purchase SHIT at a discount to market. The more you participate, the more you accumulate.",
+          "Convertible Deposits participants receive convSHIT — the right to purchase SYM at a discount to market. The more you participate, the more you accumulate.",
         side: "right",
         align: "center",
         popoverClass: TIGHT_POPOVER_CLASS,
@@ -125,27 +125,27 @@ function injectFooter(
   isLast: boolean,
 ) {
   // Guard: prevent re-entrant calls (driver.js MutationObserver loop)
-  if (popover.wrapper.querySelector(".shit-tour-footer")) return;
+  if (popover.wrapper.querySelector(".symbient-tour-footer")) return;
 
   const footer = document.createElement("div");
-  footer.className = "shit-tour-footer";
+  footer.className = "symbient-tour-footer";
 
   const dots = document.createElement("div");
-  dots.className = "shit-tour-dots";
+  dots.className = "symbient-tour-dots";
   dots.innerHTML = Array.from({ length: totalSteps })
-    .map((_, i) => `<span class="shit-tour-dot${i === stepIndex ? " active" : ""}"></span>`)
+    .map((_, i) => `<span class="symbient-tour-dot${i === stepIndex ? " active" : ""}"></span>`)
     .join("");
 
   const buttons = document.createElement("div");
-  buttons.className = "shit-tour-buttons";
+  buttons.className = "symbient-tour-buttons";
 
   const skipBtn = document.createElement("button");
-  skipBtn.className = "shit-tour-btn shit-tour-btn-skip";
+  skipBtn.className = "symbient-tour-btn symbient-tour-btn-skip";
   skipBtn.textContent = "Skip";
   skipBtn.addEventListener("click", onSkip);
 
   const nextBtn = document.createElement("button");
-  nextBtn.className = "shit-tour-btn shit-tour-btn-next";
+  nextBtn.className = "symbient-tour-btn symbient-tour-btn-next";
   nextBtn.textContent = isLast ? "Got It" : "Next";
   nextBtn.addEventListener("click", onNext);
 
@@ -190,7 +190,7 @@ export function FeatureTour() {
     const driverInstance = driver({
       animate: true,
       overlayOpacity: 0.5,
-      popoverClass: "shit-tour-popover",
+      popoverClass: "symbient-tour-popover",
       showButtons: [],
       allowClose: false,
       stagePadding: 0,
@@ -242,7 +242,7 @@ export function FeatureTour() {
         rafId = null;
         if (!driverInstance.isActive()) return;
         const el = driverInstance.getActiveElement();
-        const wrapper = document.querySelector<HTMLElement>(".shit-tour-popover.driver-popover");
+        const wrapper = document.querySelector<HTMLElement>(".symbient-tour-popover.driver-popover");
         if (el && wrapper) alignArrow(wrapper, el);
       });
     };

@@ -1,11 +1,11 @@
 #!/bin/bash
-# Upload all 16 connectome artifacts to R2 bucket shit-token-weights
+# Upload all 16 connectome artifacts to R2 bucket symbient-token-weights
 # Usage: bash upload_connectomes_to_r2.sh
 
 set -e
 
 DATA="/home/terex/fly-data/connectomes"
-BUCKET="shit-token-weights"
+BUCKET="symbient-token-weights"
 
 CONNECTOMES=(
   "celegans" "drosophila" "human" "macaque" "macaque_modha" "mouse" "rat"

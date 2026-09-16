@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import {Script, console2} from "forge-std/Script.sol";
 
 // Existing protocol
-import {ShitToken} from "../src/ShitToken.sol";
+import {SymbientToken} from "../src/SymbientToken.sol";
 
 // Vendored OSS contracts (all MIT licensed)
 // Agent ledger — nathcortez/agent-ledger
@@ -26,7 +26,7 @@ import {VUSD} from "@monad-copytrade/VUSD.sol";
 import {ProfitSharingVault} from "@profitSharingVault/ProfitSharingVault.sol";
 
 /// @title DeployBetting
-/// @notice Deploys all vendored OSS betting contracts and wires them to SHIT token
+/// @notice Deploys all vendored OSS betting contracts and wires them to SYM token
 /// @dev All contracts are MIT-licensed OSS. This script is ~90 lines of glue.
 contract DeployBetting is Script {
     string[16] CONNECTOMES = [
@@ -57,11 +57,11 @@ contract DeployBetting is Script {
         // === 3. Monad Copytrade (w1th0ut/monad-copytrade, MIT) ===
         // Deploy VUSD receipt token first
         VUSD vusd = new VUSD(deployer);
-        // Deploy Vault with SHIT as collateral and VUSD as receipt
+        // Deploy Vault with SYM as collateral and VUSD as receipt
         Vault copyVault = new Vault(shitToken, address(vusd), multisig);
         // Deploy TradingEngine
         TradingEngine tradingEngine = new TradingEngine(
-            shitToken,    // usdc_ (using SHIT as collateral)
+            shitToken,    // usdc_ (using SYM as collateral)
             address(copyVault), // vault_
             multisig,     // keeper_
             multisig,     // treasury_
@@ -82,7 +82,7 @@ contract DeployBetting is Script {
         address[] memory vaults = new address[](16);
         for (uint256 i = 0; i < CONNECTOMES.length; i++) {
             ProfitSharingVault vault = new ProfitSharingVault(
-                shitToken,     // _asset (SHIT token)
+                shitToken,     // _asset (SYM token)
                 deployer,      // strategyAddress (connectome's wallet — placeholder)
                 "",            // strategyUri
                 CONNECTOMES[i],// strategyName (connectome ID)

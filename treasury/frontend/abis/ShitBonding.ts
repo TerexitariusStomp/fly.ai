@@ -181,5 +181,5 @@ export const BOND_TELLER_ABI = [
   },
 ] as const;
 
-// ShitBonding ABI — contract deleted, kept as empty placeholder for compatibility
+// SymbientBonding ABI — contract deleted, kept as empty placeholder for compatibility
 export const SHIT_BONDING_ABI = [] as const;

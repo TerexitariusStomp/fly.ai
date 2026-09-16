@@ -1,15 +1,15 @@
 """
-SHIT protocol parameter mapping → OSS ModelParams.
-Maps all SHIT Finance contract parameters to the SHIT Protocol/cadCAD ModelParams format.
+SYM protocol parameter mapping → OSS ModelParams.
+Maps all SYM Finance contract parameters to the SYM Protocol/cadCAD ModelParams format.
 ~80 lines — pure configuration, no logic.
 """
 
 import numpy as np
 
 def get_shit_params():
-    """Return ModelParams dict with all SHIT-specific parameter overrides."""
+    """Return ModelParams dict with all SYM-specific parameter overrides."""
     return {
-        # === STAKING (ShitStaking.sol) ===
+        # === STAKING (SymbientStaking.sol) ===
         'rMax': 55,                       # 55 bps max supplemental per epoch
         'kBps': 14000,                    # 1.4x premium threshold
         'rebaseRateCapBps': 45,           # 45 bps (0.45%) cap per rebase (per whitepaper)
@@ -18,18 +18,18 @@ def get_shit_params():
         'rfvInvariantMin': 0.90,          # 90% backing → proportional supplemental scaling
         'deploymentGracePeriod': 504,     # 7 days in 8h epochs (CB disabled during grace)
 
-        # Rate limiter (ShitStaking.sol:397-409)
+        # Rate limiter (SymbientStaking.sol:397-409)
         'suppRateLimitWindow': 30,        # 30-epoch rolling window
         'suppRateLimitCapBps': 500,       # 5% max supplemental per window
         'suppWarmupEpochs': 30,           # 30-epoch warmup after deploy
         'navWarmupEpochs': 50,            # 50-epoch linear ramp for supplemental at launch
 
-        # Reward smoothing buffer (ShitStaking.sol:412-449)
+        # Reward smoothing buffer (SymbientStaking.sol:412-449)
         'smoothingDivertBps': 3000,       # 30% divert to buffer during high premium
         'smoothingFloorBps': 10,          # 0.1% floor draw during low premium
         'smoothingBufferCapBps': 5000,    # 50% cap on buffer size
 
-        # Circuit breaker auto-reset (ShitStaking.sol:314-355)
+        # Circuit breaker auto-reset (SymbientStaking.sol:314-355)
         'cbAutoReset': 21,                # 21 epochs stable → auto-reset (normal)
         'cbSoftResetThreshold': 7,        # 7 epochs stable → reset (after 60 epochs tripped)
         'cbSoftResetEpochs': 60,          # After 60 epochs tripped, use soft reset
@@ -45,7 +45,7 @@ def get_shit_params():
         },
         'reserveTreasuryEnabled': True,
 
-        # === BONDING (ShitInverseBond.sol + ShitBondPricer.sol) ===
+        # === BONDING (SymbientInverseBond.sol + SymbientBondPricer.sol) ===
         'inverseBondSpread': 150,         # 150 bps spread over NAV
         'inverseBondEpochLength': 8,      # 8 hours
         'inverseBondMaxCapacityBps': 100, # 100 bps (1%) max capacity per epoch — adjustable via multisig
@@ -61,11 +61,11 @@ def get_shit_params():
         'osmDelay': 3600,
         'dutchAuctionStep': 0.01,
 
-        # === CIRCUIT BREAKER (ShitCircuitBreaker.sol) ===
+        # === CIRCUIT BREAKER (SymbientCircuitBreaker.sol) ===
         'depegThreshold': 0.02,           # 2% deviation from $1.00
         'depegDeviationThresholdBps': 200, # 200 bps
 
-        # === DEFENSE BUDGET (ShitDefenseBudget.sol) ===
+        # === DEFENSE BUDGET (SymbientDefenseBudget.sol) ===
         'defenseBudgetPct': 0.02,         # 2% of liquid treasury per epoch
         'defenseBudgetBps': 200,          # 200 bps
         'defenseEpochLength': 8,          # 8 hours
@@ -91,7 +91,7 @@ def get_shit_params():
         'burnRate': 0.10,
 
         # === YIELD (Pendle PY index) ===
-        'wstShitWrapRatio': 1.0,
+        'wstSymbientWrapRatio': 1.0,
         'morphoAllocation': 0.40,
         'gammaAllocation': 0.30,
         'steerAllocation': 0.30,

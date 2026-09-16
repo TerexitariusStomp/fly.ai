@@ -1,4 +1,4 @@
--- SHIT Token D1 Schema v5 — YES/NO prediction sides + query indexes
+-- SYM Token D1 Schema v5 — YES/NO prediction sides + query indexes
 -- Adds side column to user_prediction_bets so users can pick YES or NO
 -- on each connectome (not just "which brain wins")
 

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMockControls } from "@/lib/mock-provider";
 import { SCENARIOS } from "@/lib/mock-scenarios";
 import { ChevronUp, ChevronDown, FlaskConical, Coins } from "lucide-react";
-import { MintTestnetShitModal } from "@/components/mint-testnet-shit-modal";
+import { MintTestnetSymbientModal } from "@/components/mint-testnet-symbient-modal";
 import { MintTestnetUsdsModal } from "@/components/mint-testnet-usds-modal";
 import { TokenName } from "@/lib/tokens";
 import { isTestnetMode, baseSepolia } from "@/lib/chains";
@@ -47,7 +47,7 @@ export function DevToolbar() {
           <div className="flex items-center justify-between border-b border-zinc-700 px-3 py-2">
             <div className="flex items-center gap-1.5">
               <FlaskConical className="size-3.5" />
-              <span className="font-semibold">5H1T Dev Tools</span>
+              <span className="font-semibold">SYM Dev Tools</span>
             </div>
             <button
               type="button"
@@ -117,15 +117,15 @@ export function DevToolbar() {
               <div className="space-y-1.5">
                 <span className="text-zinc-400">Faucet</span>
                 <div className="flex gap-1.5">
-                  <MintTestnetShitModal
-                    token={TokenName.SHIT}
+                  <MintTestnetSymbientModal
+                    token={TokenName.SYM}
                     trigger={
                       <button
                         type="button"
                         className="flex-1 flex items-center justify-center gap-1 rounded bg-zinc-800 border border-zinc-600 px-2 py-1.5 text-zinc-200 hover:bg-zinc-700"
                       >
                         <Coins className="size-3" />
-                        SHIT
+                        SYM
                       </button>
                     }
                   />

@@ -1,5 +1,5 @@
 """
-Integrated Protocol Model for SHIT Protocol
+Integrated Protocol Model for SYM Protocol
 
 Combines all sub-models into a unified simulation with cross-module interactions.
 
@@ -340,14 +340,14 @@ def simulate_protocol(params: ProtocolParams) -> pd.DataFrame:
             floor_hook.band_reserve += net * params.floor_hook.band_reserve_bps / BASIS_POINTS
             floor_hook.pool_usdc = new_usdc
             floor_hook.pool_shit = new_shit
-            # SHIT bought from pool re-enter circulation — reduce hook balance
+            # SYM bought from pool re-enter circulation — reduce hook balance
             if floor_hook.hook_shit_balance > 0:
                 released = min(shit_bought, floor_hook.hook_shit_balance)
                 floor_hook.hook_shit_balance -= released
 
         sell_vol = max(0, rng.normal(params.floor_hook.base_sell_volume_shit,
                                       params.floor_hook.base_sell_volume_shit * params.floor_hook.volume_volatility))
-        # Cap sell volume to available circulating supply (can't sell more SHIT than exist)
+        # Cap sell volume to available circulating supply (can't sell more SYM than exist)
         circulating = floor_hook.total_shit_supply - floor_hook.hook_shit_balance
         sell_vol = min(sell_vol, max(0, circulating * 0.02))  # Max 2% of circulating per epoch
         if sell_vol > 0 and floor_hook.pool_usdc > 0:
@@ -369,10 +369,10 @@ def simulate_protocol(params: ProtocolParams) -> pd.DataFrame:
                 dynamic_sell_fee_bps = 300  # 3% elevated
             else:
                 dynamic_sell_fee_bps = 100  # 1% base
-            # Sell fee takes portion of USDC output → floor reserve (no phantom SHIT)
+            # Sell fee takes portion of USDC output → floor reserve (no phantom SYM)
             sell_fee_usdc = usdc_out * dynamic_sell_fee_bps / BASIS_POINTS
             floor_hook.floor_reserve += sell_fee_usdc
-            # Only the actual sell_vol SHIT are absorbed by the hook
+            # Only the actual sell_vol SYM are absorbed by the hook
             floor_hook.hook_shit_balance += sell_vol
             floor_hook.total_shit_absorbed += sell_vol
 
@@ -391,7 +391,7 @@ def simulate_protocol(params: ProtocolParams) -> pd.DataFrame:
             floor_hook.floor_price = floor_hook.max_floor_price
         floor_hook.redeemable_supply = floor_hook.total_shit_supply - floor_hook.hook_shit_balance
 
-        # ─── 4b. FLOOR HOOK BUYBACK: if pool price < floor, use floor reserve to buy SHIT ───
+        # ─── 4b. FLOOR HOOK BUYBACK: if pool price < floor, use floor reserve to buy SYM ───
         # This is the key mechanism that keeps price above floor — the floor reserve acts as a buyer of last resort
         # Only spends the exact amount needed to push pool price back to floor (not the full cap)
         pool_price = floor_hook.pool_usdc / floor_hook.pool_shit if floor_hook.pool_shit > 0 else 0
@@ -433,13 +433,13 @@ def simulate_protocol(params: ProtocolParams) -> pd.DataFrame:
                 floor_hook.pool_usdc = new_pool_usdc
                 floor_hook.pool_shit = new_pool_shit
                 floor_hook.floor_reserve -= usdc_to_spend
-                # Bought SHIT are absorbed by hook (burned from circulating supply)
+                # Bought SYM are absorbed by hook (burned from circulating supply)
                 floor_hook.hook_shit_balance += shit_bought
                 floor_hook.total_shit_absorbed += shit_bought
 
         # ─── 4c. POST-CB RECOVERY BUYBACK: after CB reset, use treasury USDC to support price ───
         # When CB was tripped and then resets, price is typically well below floor
-        # Treasury deploys USDC to buy SHIT and push price back toward floor
+        # Treasury deploys USDC to buy SYM and push price back toward floor
         cb_just_reset = False
         if hasattr(staking, '_cb_was_tripped') and staking._cb_was_tripped and not staking.circuit_breaker_tripped:
             cb_just_reset = True
@@ -455,13 +455,13 @@ def simulate_protocol(params: ProtocolParams) -> pd.DataFrame:
                 floor_hook.pool_usdc = new_pool_usdc
                 floor_hook.pool_shit = new_pool_shit
                 treasury.usdc_balance -= recovery_usdc
-                # Bought SHIT are burned — permanent supply reduction
+                # Bought SYM are burned — permanent supply reduction
                 floor_hook.hook_shit_balance += shit_bought
                 floor_hook.total_shit_absorbed += shit_bought
                 floor_hook.total_shit_supply -= shit_bought
 
         # ─── 5. STAKING: rebase ───
-        # Yield is based on TOTAL supply (SHIT Protocol pattern: SHIT_stakers = totalSupply * rewardRate)
+        # Yield is based on TOTAL supply (SYM Protocol pattern: SHIT_stakers = totalSupply * rewardRate)
         # Not staked supply — so yield_per_token = base_yield / staking_ratio
         # This means APY is high when few stakers (early protocol) and decreases as ratio rises
         # Early epoch boost: 2x rebase rate for first 10 epochs to allow higher peak APY
@@ -564,7 +564,7 @@ def simulate_protocol(params: ProtocolParams) -> pd.DataFrame:
         staking.staking_index = new_index if new_index > 0 else staking.staking_index
         # Rebase rate = yield fraction per epoch (not index ratio, which dilutes over time)
         staking.rebase_rate_bps = yield_fraction * BPS_DENOMINATOR if yield_fraction > 0 else 0
-        staking.rebase_rate_bps = min(staking.rebase_rate_bps, 70.0)  # Cap rebase at 0.7% per epoch (matches SHIT Protocol peak ~180K% APY)
+        staking.rebase_rate_bps = min(staking.rebase_rate_bps, 70.0)  # Cap rebase at 0.7% per epoch (matches SYM Protocol peak ~180K% APY)
         # Track rebase-minted tokens for informational purposes (not new supply — index growth only)
         rebase_minted = yield_fraction * staking.st_shit_supply
         staking.total_rebase_minted += rebase_minted
@@ -573,7 +573,7 @@ def simulate_protocol(params: ProtocolParams) -> pd.DataFrame:
 
         # Staker behavior
         staking.staking_apy = ((1 + staking.rebase_rate_bps / BPS_DENOMINATOR) ** (EPOCHS_PER_DAY * 365) - 1) * 100
-        staking.staking_apy = min(staking.staking_apy, 220000.0)  # Cap at 220,000% (SHIT Protocol peak was 180,724%)
+        staking.staking_apy = min(staking.staking_apy, 220000.0)  # Cap at 220,000% (SYM Protocol peak was 180,724%)
         market_yield = 5.0
         apy_premium = staking.staking_apy - market_yield
         target_ratio = min(0.95, max(0.05, staking.staking_ratio + apy_premium / 100 * params.staking.stake_elasticity * 0.01))
@@ -634,7 +634,7 @@ def simulate_protocol(params: ProtocolParams) -> pd.DataFrame:
         bonding.pool_shit = floor_hook.pool_shit
         bonding.pool_usdc = floor_hook.pool_usdc
 
-        # ─── 6a. STANDARD BONDS — USDC in, SHIT minted at discount ───
+        # ─── 6a. STANDARD BONDS — USDC in, SYM minted at discount ───
         bonding.nav_per_shit = treasury.nav_per_shit
         premium_ratio = staking.twap_price / bonding.nav_per_shit if bonding.nav_per_shit > 0 else 1.0
         bond_discount = params.bonding.bond_discount_bps * max(1.0, premium_ratio)

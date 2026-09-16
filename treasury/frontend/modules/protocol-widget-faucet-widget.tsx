@@ -88,7 +88,7 @@ export function FaucetWidget() {
         <h3 className="font-serif text-lg mb-4">Protocol testnet tokens</h3>
         <Card className="p-4 mb-4 border-yellow/30 bg-yellow/5">
           <p className="text-sm text-secondary-t">
-            <strong className="text-primary-t">5H1T</strong> cannot be minted from the faucet. On testnet, the only way to get SHIT is by purchasing bonds with USDC. Use the faucet above to get USDC, then visit the Bonds page to buy SHIT at a discount.
+            <strong className="text-primary-t">SYM</strong> cannot be minted from the faucet. On testnet, the only way to get SYM is by purchasing bonds with USDC. Use the faucet above to get USDC, then visit the Bonds page to buy SYM at a discount.
           </p>
         </Card>
         <div className="grid md:grid-cols-3 gap-4">

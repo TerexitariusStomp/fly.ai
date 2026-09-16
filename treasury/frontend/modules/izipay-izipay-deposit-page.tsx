@@ -85,7 +85,7 @@ export function IzipayDepositPage() {
       <Card className="mb-4">
         <CardHeader>
           <CardTitle>Details</CardTitle>
-          <CardDescription>{depositType === "issuance" ? "Issue a new 5H1TPay card. Requires email for card provisioning." : "Top up an existing 5H1TPay card."}</CardDescription>
+          <CardDescription>{depositType === "issuance" ? "Issue a new SYMPay card. Requires email for card provisioning." : "Top up an existing SYMPay card."}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {depositType === "issuance" && (

@@ -20,7 +20,7 @@ import { Card } from "@/components/ui-card";
 import { Button } from "@/components/ui-button";
 import { Input } from "@/components/ui-input";
 import { ConnectButton } from "@/components/connect-button";
-import { SHITLogo } from "@/components/shit-logo";
+import { SHITLogo } from "@/components/symbient-logo";
 import { cn } from "@/lib/utils";
 import { activeChains } from "@/lib/chains.ts";
 
@@ -44,9 +44,9 @@ function shortenAddress(addr: string): string {
 
 function buildMessage(address: string, twitter: string, bluesky: string): string {
   return [
-    "5H1T Whitelist Registration",
+    "SYM Whitelist Registration",
     "",
-    "I confirm that I want to join the 5H1T whitelist.",
+    "I confirm that I want to join the SYM whitelist.",
     `Wallet: ${address}`,
     `Twitter: ${twitter || "N/A"}`,
     `Bluesky: ${bluesky || "N/A"}`,
@@ -162,7 +162,7 @@ export function WhitelistPage() {
 
   const copyToClipboard = useCallback(async () => {
     if (!address || !signature) return;
-    const text = `5H1T Whitelist\nAddress: ${address}\nSignature: ${signature}`;
+    const text = `SYM Whitelist\nAddress: ${address}\nSignature: ${signature}`;
     try {
       await navigator.clipboard.writeText(text);
       toast.success("Copied to clipboard");
@@ -179,7 +179,7 @@ export function WhitelistPage() {
             <RiCheckboxCircleLine className="size-10 text-green" />
           </div>
           <h1 className="text-3xl font-serif font-semibold text-primary-t text-center">
-            Welcome to the 5H1T Whitelist
+            Welcome to the SYM Whitelist
           </h1>
           <p className="text-secondary-t text-center max-w-md">
             Your wallet has been verified and your spot is reserved.
@@ -226,7 +226,7 @@ export function WhitelistPage() {
       <div className="flex flex-col items-center gap-4 text-center">
         <SHITLogo className="size-16" />
         <h1 className="text-3xl md:text-4xl font-serif font-semibold text-primary-t">
-          Join the 5H1T Whitelist
+          Join the SYM Whitelist
         </h1>
         <p className="text-secondary-t max-w-lg">
           Connect your Base wallet and sign a message to secure your spot. No gas, no

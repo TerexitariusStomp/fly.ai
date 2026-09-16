@@ -1,13 +1,13 @@
 /**
- * 5H1T Betting Page — prediction market for connectome performance.
+ * SYM Betting Page — prediction market for connectome performance.
  * Uses live POST endpoints to place bets, stakes, and copy trades. No stubs.
  */
 import { useState } from "react";
-import { useApi, type Connectome, type Governance } from "@/lib/5h1t-api";
+import { useApi, type Connectome, type Governance } from "@/lib/sym-api";
 
 const API_BASE = import.meta.env.VITE_SHIT_UNITS_API_ENDPOINT ?? "https://api-worker.YOUR-SUBDOMAIN.workers.dev";
 
-export function FiveHitBettingPage() {
+export function SymBettingPage() {
   const { data: connectomes } = useApi<Connectome[]>("/api/connectomes");
   const { data: governance } = useApi<Governance>("/api/governance");
   const [userAddress, setUserAddress] = useState("");
@@ -43,7 +43,7 @@ export function FiveHitBettingPage() {
     <div className="min-h-screen bg-[#07090c] text-white">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <h1 className="font-mono text-2xl font-bold mb-2">Bet on Connectomes</h1>
-        <p className="text-gray-400 mb-6">Prediction markets on connectome trader performance. Stake 5H1T on which brain trades best next epoch. No fees. Settled on-chain.</p>
+        <p className="text-gray-400 mb-6">Prediction markets on connectome trader performance. Stake SYM on which brain trades best next epoch. No fees. Settled on-chain.</p>
 
         {/* User controls */}
         <div className="flex flex-wrap gap-3 mb-6">

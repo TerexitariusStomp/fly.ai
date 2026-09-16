@@ -2,18 +2,18 @@
 BAMM (Borrowable AMM) and Perpetual Trading simulation.
 
 Models:
-- ShitBAMM: ERC-4626 wrapper around LP tokens, creates leveraged LP positions
-- ShitPerpVault: ERC-4626 margin vault for perps using Bucky as collateral
-- ShitFundingRateOracle: Funding rate dynamics
-- ShitSwapLiquidator: Liquidation cascades
+- SymbientBAMM: ERC-4626 wrapper around LP tokens, creates leveraged LP positions
+- SymbientPerpVault: ERC-4626 margin vault for perps using Bucky as collateral
+- SymbientFundingRateOracle: Funding rate dynamics
+- SymbientSwapLiquidator: Liquidation cascades
 - Perp circuit breaker: pauses new positions after 5 liquidations in 1 hour
 - Partial liquidation: 10% at a time, max 10 sequential partials
 
 Contract sources:
-- contracts/src/bamm/ShitBAMM.sol
-- contracts/src/perps/ShitPerpVault.sol
-- contracts/src/perps/ShitFundingRateOracle.sol
-- contracts/src/perps/ShitSwapLiquidator.sol
+- contracts/src/bamm/SymbientBAMM.sol
+- contracts/src/perps/SymbientPerpVault.sol
+- contracts/src/perps/SymbientFundingRateOracle.sol
+- contracts/src/perps/SymbientSwapLiquidator.sol
 """
 
 import numpy as np
@@ -32,7 +32,7 @@ class BAMMParams:
     bamm_yield_to_treasury_pct: float = 1.0  # 100% of BAMM yield routed (split 50/50 treasury/floor)
     leverage_multiplier: float = 2.5  # Average leverage ratio
     liquidation_threshold: float = 0.75  # LTV before liquidation
-    price_volatility: float = 0.05  # SHIT price volatility
+    price_volatility: float = 0.05  # SYM price volatility
 
     # Perp vault
     perp_enabled: bool = True
@@ -44,7 +44,7 @@ class BAMMParams:
     long_short_ratio: float = 1.2  # Initial long bias
     open_interest_pct: float = 1.5  # OI / vault TVL ratio (1.5x leverage — balances risk vs TVL preservation)
 
-    # Circuit breaker (from ShitPerpVault.sol)
+    # Circuit breaker (from SymbientPerpVault.sol)
     perp_cb_threshold: int = 3  # Trip after 3 liquidations in window (sim-adjusted: 8h epochs vs 1h contract window)
     perp_cb_window_epochs: int = 3  # ~1 hour at 3 epochs/day (8h epochs → 3 epochs = 24h, but we use 3 for sim)
     partial_liquidation_bps: int = 5000  # 50% of position at a time — aggressive to prevent bad debt

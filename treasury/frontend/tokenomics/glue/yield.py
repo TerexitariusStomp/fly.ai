@@ -1,6 +1,6 @@
 """
-wstSHIT wrap/unwrap + yield routing — SHIT-specific.
-Uses Pendle PY index math from oss.pendle.py_index for wstSHIT
+wstSYM wrap/unwrap + yield routing — SYM-specific.
+Uses Pendle PY index math from oss.pendle.py_index for wstSYM
 yield accounting (monotonic high-water mark index).
 """
 
@@ -68,15 +68,15 @@ def yield_policy(params, substep, state_history, previous_state):
     }
 
 def yield_step(params, substep, state_history, previous_state, policy_input):
-    """wstSHIT wrapping ratio + yield source routing."""
+    """wstSYM wrapping ratio + yield source routing."""
     p = params.get('yield', {})
 
-    # wstSHIT wrap ratio (Lido WstETH pattern)
+    # wstSYM wrap ratio (Lido WstETH pattern)
     st_shit_supply = previous_state.get('st_shit_supply', 1e18)
     wst_shit_supply = previous_state.get('wst_shit_supply', 1e18)
     rebase_index = previous_state.get('rebase_index', 1.0)
 
-    # Conversion: wstSHIT = stSHIT * rebase_index
+    # Conversion: wstSYM = stSYM * rebase_index
     wrap_ratio = rebase_index if rebase_index > 0 else 1.0
 
     # Wrapping/unwrapping activity

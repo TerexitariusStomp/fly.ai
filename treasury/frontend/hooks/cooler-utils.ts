@@ -23,9 +23,9 @@ export function formatUSD(value: number): string {
 }
 
 /**
- * Format a number as wstSHIT with 2 decimal places.
+ * Format a number as wstSYM with 2 decimal places.
  */
-export function formatWSTSHIT(value: number): string {
+export function formatWstsym(value: number): string {
   return new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,

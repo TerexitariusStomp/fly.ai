@@ -29,7 +29,7 @@ export const robinhoodTestnet = defineChain({
   testnet: true,
 });
 
-// Backward-compatible aliases — the 5H1T frontend imports `base` and `baseSepolia`
+// Backward-compatible aliases — the SYM frontend imports `base` and `baseSepolia`
 // We alias them to Robinhood Chain so the existing frontend works without rewriting imports
 export const base = robinhood;
 export const baseSepolia = robinhoodTestnet;

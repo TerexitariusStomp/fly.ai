@@ -1,14 +1,14 @@
 /**
- * 5H1T Traders Page — connectome leaderboard + equity curves + betting.
+ * SYM Traders Page — connectome leaderboard + equity curves + betting.
  * Combined traders + betting into one page.
  */
 import { useState } from "react";
-import { useApi, toTraderSummaries, type Connectome, type Governance, type Signal } from "@/lib/5h1t-api";
+import { useApi, toTraderSummaries, type Connectome, type Governance, type Signal } from "@/lib/sym-api";
 import LeaderboardTable from "@/vendor/nofyai/components/competition/LeaderboardTable";
 
 const API_BASE = import.meta.env.VITE_SHIT_UNITS_API_ENDPOINT ?? "https://api-worker.YOUR-SUBDOMAIN.workers.dev";
 
-export function FiveHitTradersPage() {
+export function SymTradersPage() {
   const { data: connectomes } = useApi<Connectome[]>("/api/connectomes", 5000);
   const { data: governance } = useApi<Governance>("/api/governance", 15000);
   const { data: signals } = useApi<Signal[]>("/api/signals?limit=20", 10000);

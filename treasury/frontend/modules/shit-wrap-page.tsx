@@ -4,9 +4,9 @@ import { useForm } from "react-hook-form";
 import { useConnectedAddress } from "@/hooks/use-connected-address";
 import { formatUnits } from "viem";
 import { RiArrowLeftRightLine, RiArrowRightLine } from "@remixicon/react";
-import { WrapShitModal } from "@/components/wrap-shit-modal";
+import { WrapSymbientModal } from "@/components/wrap-symbient-modal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui-tabs.tsx";
-import { useWstShitConversion } from "@/hooks/use-wst-shit-conversion";
+import { useWstSymbientConversion } from "@/hooks/use-wst-symbient-conversion";
 import { Card } from "@/components/ui-card";
 import { TOKENS, TokenName } from "@/lib/tokens";
 import {
@@ -19,16 +19,16 @@ import {
   parseSourceTokenParam,
   type WrapMode,
   type WrapFlow,
-} from "./shit-wrap-flows";
+} from "./symbient-wrap-flows";
 import { NumberFlow } from "@/components/ui-number-flow.tsx";
 import { Skeleton } from "@/components/ui-skeleton.tsx";
 import { Button } from "@/components/ui-button.tsx";
 import { Form, FormField, FormItem } from "@/components/ui-form.tsx";
 import { TokenBigInput } from "@/components/ui-token-big-input.tsx";
-import { useWstShitConversionRate } from "@/hooks/use-wst-shit-conversion.tsx";
+import { useWstSymbientConversionRate } from "@/hooks/use-wst-symbient-conversion.tsx";
 import { PriceChange } from "@/components/price-change.tsx";
-import { useShitPriceHistory } from "@/modules/pulse-useShitPriceHistory.ts";
-import { useWstShitPriceHistory } from "@/modules/pulse-useWstShitPriceHistory.ts";
+import { useSymbientPriceHistory } from "@/modules/pulse-useSymbientPriceHistory.ts";
+import { useWstSymbientPriceHistory } from "@/modules/pulse-useWstSymbientPriceHistory.ts";
 import { useToken, type TokenWithBalance } from "@/hooks/use-token";
 import { getReferenceSnapshot } from "@/lib/utils";
 import { useStakingAPY } from "@/hooks/use-staking-apy";
@@ -43,47 +43,47 @@ import { DashboardActions } from "@/components/dashboard-actions";
 
 const WRAP_EXPLANATION = [
   {
-    title: "SHIT — Protocol Token",
-    body: "SHIT is the main token of 5H1T. It is backed by real money in the treasury. You can buy it at a lower price through bonds, then stake it to earn more over time. If you don't stake your SHIT, your share slowly dilutes over time as new SHIT are minted to reward stakers.",
+    title: "SYM — Protocol Token",
+    body: "SYM is the main token of SYM. It is backed by real money in the treasury. You can buy it at a lower price through bonds, then stake it to earn more over time. If you don't stake your SYM, your share slowly dilutes over time as new SYM are minted to reward stakers.",
   },
   {
-    title: "stSHIT — Staked SHIT (Rebasing)",
-    body: "When you stake SHIT, you get stSHIT. Your stSHIT balance grows on its own as the protocol earns money. You do not need to claim anything — it just grows.",
+    title: "stSYM — Staked SYM (Rebasing)",
+    body: "When you stake SYM, you get stSYM. Your stSYM balance grows on its own as the protocol earns money. You do not need to claim anything — it just grows.",
   },
   {
-    title: "wstSHIT — Wrapped stSHIT (Non-Rebasing)",
-    body: "wstSHIT is a wrapped version of stSHIT. Instead of your balance growing, the exchange rate goes up over time. This works better in places where a changing balance causes problems, like Liquidity Pool pools and lending markets.",
+    title: "wstSYM — Wrapped stSYM (Non-Rebasing)",
+    body: "wstSYM is a wrapped version of stSYM. Instead of your balance growing, the exchange rate goes up over time. This works better in places where a changing balance causes problems, like Liquidity Pool pools and lending markets.",
   },
   {
     title: "How Staking Works — and Why You Should",
-    body: "Stake SHIT to get stSHIT (grows on its own). Wrap stSHIT to get wstSHIT (exchange rate goes up). Unwrap wstSHIT to get stSHIT back. Unstake stSHIT to get SHIT back at 1:1. If you don't stake, your SHIT slowly dilute over time as new SHIT are minted to stakers — so staking is how you protect and grow your value.",
+    body: "Stake SYM to get stSYM (grows on its own). Wrap stSYM to get wstSYM (exchange rate goes up). Unwrap wstSYM to get stSYM back. Unstake stSYM to get SYM back at 1:1. If you don't stake, your SYM slowly dilute over time as new SYM are minted to stakers — so staking is how you protect and grow your value.",
   },
 ];
 
 function WrapInfoCards() {
-  const GShitToken = useToken(TokenName.WSTSHIT);
-  const ShitToken = useToken(TokenName.SHIT);
-  const { shitPerGshit: shitPerWstShit, gshitPerShit: wstShitPerShit, isLoading: indexLoading } = useWstShitConversionRate();
+  const GSymbientToken = useToken(TokenName.Wstsym);
+  const SymbientToken = useToken(TokenName.SYM);
+  const { shitPerGshit: shitPerWstSymbient, gsymPerSymbient: wstSymbientPerSymbient, isLoading: indexLoading } = useWstSymbientConversionRate();
   const { apy, isLoading: apyLoading } = useStakingAPY();
-  const { data: shitPriceHistory } = useShitPriceHistory();
-  const { data: gshitPriceHistory } = useWstShitPriceHistory();
+  const { data: shitPriceHistory } = useSymbientPriceHistory();
+  const { data: gsymPriceHistory } = useWstSymbientPriceHistory();
 
   const shitRef24h = getReferenceSnapshot(shitPriceHistory?.dataPoints ?? [], 24);
-  const gshitRef24h = getReferenceSnapshot(gshitPriceHistory?.dataPoints ?? [], 24);
+  const gsymRef24h = getReferenceSnapshot(gsymPriceHistory?.dataPoints ?? [], 24);
   const shitChange24h =
-    shitRef24h && ShitToken.price > 0
-      ? ((ShitToken.price - shitRef24h.price) / shitRef24h.price) * 100
+    shitRef24h && SymbientToken.price > 0
+      ? ((SymbientToken.price - shitRef24h.price) / shitRef24h.price) * 100
       : null;
-  const gshitChange24h =
-    gshitRef24h && GShitToken.price > 0
-      ? ((GShitToken.price - gshitRef24h.price) / gshitRef24h.price) * 100
+  const gsymChange24h =
+    gsymRef24h && GSymbientToken.price > 0
+      ? ((GSymbientToken.price - gsymRef24h.price) / gsymRef24h.price) * 100
       : null;
 
   const [inverted, setInverted] = useState(false);
 
-  const fromLabel = inverted ? "SHIT" : "wstSHIT";
-  const toLabel = inverted ? "wstSHIT" : "SHIT";
-  const toValue = Number(inverted ? wstShitPerShit : shitPerWstShit);
+  const fromLabel = inverted ? "SYM" : "wstSYM";
+  const toLabel = inverted ? "wstSYM" : "SYM";
+  const toValue = Number(inverted ? wstSymbientPerSymbient : shitPerWstSymbient);
 
   return (
     <div className="space-y-4">
@@ -98,26 +98,26 @@ function WrapInfoCards() {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
       <Card className="flex flex-col gap-1 p-6">
-        <p className="text-[14px]/[20px] font-normal text-secondary-t">SHIT Price</p>
+        <p className="text-[14px]/[20px] font-normal text-secondary-t">SYM Price</p>
         <div className="flex items-center gap-x-2">
-          {!ShitToken.price ? (
+          {!SymbientToken.price ? (
             <Skeleton className="h-6 w-24" />
           ) : (
-            <NumberFlow className="text-[20px]/[24px] font-semibold" value={ShitToken.price} />
+            <NumberFlow className="text-[20px]/[24px] font-semibold" value={SymbientToken.price} />
           )}
           {shitChange24h !== null && <PriceChange percentage={shitChange24h} timeframe="24h" />}
         </div>
       </Card>
 
       <Card className="flex flex-col gap-1 p-6">
-        <p className="text-[14px]/[20px] font-normal text-secondary-t">wstSHIT Price</p>
+        <p className="text-[14px]/[20px] font-normal text-secondary-t">wstSYM Price</p>
         <div className="flex items-center gap-x-2">
-          {!GShitToken.price ? (
+          {!GSymbientToken.price ? (
             <Skeleton className="h-6 w-24" />
           ) : (
-            <NumberFlow className="text-[20px]/[24px] font-semibold" value={GShitToken.price} />
+            <NumberFlow className="text-[20px]/[24px] font-semibold" value={GSymbientToken.price} />
           )}
-          {gshitChange24h !== null && <PriceChange percentage={gshitChange24h} timeframe="24h" />}
+          {gsymChange24h !== null && <PriceChange percentage={gsymChange24h} timeframe="24h" />}
         </div>
       </Card>
 
@@ -182,7 +182,7 @@ function WrapInfoCards() {
 
 // ─── Wrap form ───
 
-type WrapPageToken = TokenName.SHIT | TokenName.STSHIT | TokenName.WSTSHIT;
+type WrapPageToken = TokenName.SYM | TokenName.stsym | TokenName.Wstsym;
 
 interface WrapFormProps {
   mode: WrapMode;
@@ -211,20 +211,20 @@ function WrapForm({
   const flow = getWrapFlow(mode, sourceToken, outputToken);
   const { copy } = WRAP_FLOWS[flow];
 
-  const ShitToken = useToken(TokenName.SHIT);
-  const GShitToken = useToken(TokenName.WSTSHIT);
+  const SymbientToken = useToken(TokenName.SYM);
+  const GSymbientToken = useToken(TokenName.Wstsym);
 
-  const shitBase = useToken(TokenName.SHIT, address);
-  const sshitBase = useToken(TokenName.STSHIT, address);
-  const gshitBase = useToken(TokenName.WSTSHIT, address);
+  const shitBase = useToken(TokenName.SYM, address);
+  const sshitBase = useToken(TokenName.stsym, address);
+  const gsymBase = useToken(TokenName.Wstsym, address);
 
   const tokensByName = useMemo<Record<WrapPageToken, TokenWithBalance>>(
     () => ({
-      [TokenName.SHIT]: { ...shitBase, price: ShitToken.price },
-      [TokenName.STSHIT]: { ...sshitBase, price: ShitToken.price },
-      [TokenName.WSTSHIT]: { ...gshitBase, price: GShitToken.price },
+      [TokenName.SYM]: { ...shitBase, price: SymbientToken.price },
+      [TokenName.stsym]: { ...sshitBase, price: SymbientToken.price },
+      [TokenName.Wstsym]: { ...gsymBase, price: GSymbientToken.price },
     }),
-    [shitBase, sshitBase, gshitBase, ShitToken.price, GShitToken.price],
+    [shitBase, sshitBase, gsymBase, SymbientToken.price, GSymbientToken.price],
   );
 
   const inputToken = tokensByName[sourceToken as WrapPageToken];
@@ -334,8 +334,8 @@ function WrapForm({
 
 // ─── Wrap balance panel ───
 
-type PanelToken = TokenName.SHIT | TokenName.WSTSHIT | TokenName.STSHIT;
-const PANEL_TOKENS: readonly PanelToken[] = [TokenName.SHIT, TokenName.WSTSHIT, TokenName.STSHIT];
+type PanelToken = TokenName.SYM | TokenName.Wstsym | TokenName.stsym;
+const PANEL_TOKENS: readonly PanelToken[] = [TokenName.SYM, TokenName.Wstsym, TokenName.stsym];
 
 function BalanceRow({
   icon,
@@ -381,21 +381,21 @@ function BalanceRow({
 function WrapBalancePanel({ flow, inputAmount, outputAmount }: { flow: WrapFlow; inputAmount: string; outputAmount: string }) {
   const { address, chainId } = useConnectedAddress();
 
-  const shitAddress = getTokenAddress(TokenName.SHIT, chainId ?? 0);
-  const sshitAddress = getTokenAddress(TokenName.STSHIT, chainId ?? 0);
-  const gshitAddress = getTokenAddress(TokenName.WSTSHIT, chainId ?? 0);
+  const shitAddress = getTokenAddress(TokenName.SYM, chainId ?? 0);
+  const sshitAddress = getTokenAddress(TokenName.stsym, chainId ?? 0);
+  const gsymAddress = getTokenAddress(TokenName.Wstsym, chainId ?? 0);
 
   const { balance: shitBalance } = useTokenBalance(shitAddress, address);
   const { balance: sshitBalance } = useTokenBalance(sshitAddress, address);
-  const { balance: gshitBalance } = useTokenBalance(gshitAddress, address);
+  const { balance: gsymBalance } = useTokenBalance(gsymAddress, address);
 
   const balances: Record<PanelToken, number> = {
-    [TokenName.SHIT]:
-      shitBalance != null ? parseFloat(formatUnits(shitBalance, TOKENS.SHIT.decimals)) : 0,
-    [TokenName.STSHIT]:
-      sshitBalance != null ? parseFloat(formatUnits(sshitBalance, TOKENS.STSHIT.decimals)) : 0,
-    [TokenName.WSTSHIT]:
-      gshitBalance != null ? parseFloat(formatUnits(gshitBalance, TOKENS.WSTSHIT.decimals)) : 0,
+    [TokenName.SYM]:
+      shitBalance != null ? parseFloat(formatUnits(shitBalance, TOKENS.SYM.decimals)) : 0,
+    [TokenName.stsym]:
+      sshitBalance != null ? parseFloat(formatUnits(sshitBalance, TOKENS.stsym.decimals)) : 0,
+    [TokenName.Wstsym]:
+      gsymBalance != null ? parseFloat(formatUnits(gsymBalance, TOKENS.Wstsym.decimals)) : 0,
   };
 
   const inputNum = parseFloat(inputAmount) || 0;
@@ -458,7 +458,7 @@ export function WrapPage() {
 
   const flow = getWrapFlow(mode, sourceToken, outputToken);
 
-  const { outputAmount } = useWstShitConversion(WRAP_FLOWS[flow].conversion, inputAmount);
+  const { outputAmount } = useWstSymbientConversion(WRAP_FLOWS[flow].conversion, inputAmount);
 
   const syncUrl = (nextMode: WrapMode, nextSource: TokenName) => {
     const params: Record<string, string> = {};
@@ -543,7 +543,7 @@ export function WrapPage() {
       </Tabs>
 
       {isModalOpen && (
-        <WrapShitModal
+        <WrapSymbientModal
           isOpen={isModalOpen}
           onClose={() => {
             setIsModalOpen(false);

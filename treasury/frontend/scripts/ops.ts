@@ -1,5 +1,5 @@
 /**
- * 5H1T On-Chain Operations.
+ * SYM On-Chain Operations.
  *
  * Monitors protocol contracts on Base Sepolia and provides a testnet deployment helper.
  * Uses viem to read on-chain state via public RPC.
@@ -23,7 +23,7 @@ const client = createPublicClient({ chain: baseSepolia, transport: http() });
 async function monitorLiquidity(): Promise<void> {
   const chainId = baseSepolia.id;
   const polManager = (CONTRACTS[ContractName.YIELD_ROUTER]?.[chainId] ?? "0x0") as Address;
-  const shitToken = (CONTRACTS[ContractName.SHIT]?.[chainId] ?? "0x0") as Address;
+  const shitToken = (CONTRACTS[ContractName.SYM]?.[chainId] ?? "0x0") as Address;
 
   const ERC20_ABI = [{ type: "function", name: "totalSupply", inputs: [], outputs: [{ type: "uint256" }], stateMutability: "view" }] as const;
   const POL_ABI = [
@@ -32,7 +32,7 @@ async function monitorLiquidity(): Promise<void> {
   ] as const;
 
   let totalPOLValue = 0n, poolCount = 0, shitSupply = 0n;
-  try { shitSupply = await client.readContract({ address: shitToken, abi: ERC20_ABI, functionName: "totalSupply" }); } catch (e) { console.warn("Failed to read SHIT supply:", e); }
+  try { shitSupply = await client.readContract({ address: shitToken, abi: ERC20_ABI, functionName: "totalSupply" }); } catch (e) { console.warn("Failed to read SYM supply:", e); }
   try { poolCount = Number(await client.readContract({ address: polManager, abi: POL_ABI, functionName: "getPoolCount" })); } catch (e) { console.warn("Failed to read pool count:", e); }
   try { totalPOLValue = await client.readContract({ address: polManager, abi: POL_ABI, functionName: "getTotalValue" }); } catch (e) { console.warn("Failed to read POL value:", e); }
 
@@ -44,7 +44,7 @@ async function monitorLiquidity(): Promise<void> {
   console.log(`  Chain ID:      ${chainId}`);
   console.log(`  Total POL:     $${formatUnits(totalPOLValue, 18)}`);
   console.log(`  Pool Count:    ${poolCount}`);
-  console.log(`  SHIT Supply:  ${formatUnits(shitSupply, 18)}`);
+  console.log(`  SYM Supply:  ${formatUnits(shitSupply, 18)}`);
   console.log(`  POL Ratio:     ${polRatio.toFixed(2)}%`);
   if (polRatio < 0.5) console.warn("WARNING: POL ratio below 0.5%");
   console.log("═══════════════════════════════════════════════════");
@@ -157,10 +157,10 @@ async function deployTestnet(): Promise<void> {
   const liveBonds = await publicClient.readContract({ address: SHIT_BONDING, abi: BOND_ABI, functionName: "liveMarkets" });
   console.log(`Live bond markets: ${liveBonds.length}`);
 
-  console.log("\n--- SHIT Balance ---");
+  console.log("\n--- SYM Balance ---");
   const ERC20_ABI = [{ type: "function", name: "balanceOf", inputs: [{ name: "account", type: "address" }], outputs: [{ type: "uint256" }], stateMutability: "view" }] as const;
   const shitBal = await publicClient.readContract({ address: SHIT_TOKEN, abi: ERC20_ABI, functionName: "balanceOf", args: [account.address] });
-  console.log(`SHIT balance: ${shitBal / 10n ** 18n}`);
+  console.log(`SYM balance: ${shitBal / 10n ** 18n}`);
   console.log("\n=== Deployment Complete ===");
 }
 
@@ -184,7 +184,7 @@ async function main() {
       await deployTestnet(); break;
     }
     default:
-      console.error("5H1T On-Chain Operations");
+      console.error("SYM On-Chain Operations");
       console.error("");
       console.error("Usage: node scripts/ops.ts <command> [args...]");
       console.error("");

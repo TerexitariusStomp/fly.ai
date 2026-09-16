@@ -39,7 +39,7 @@ export function DocsPage() {
 
   useEffect(() => {
     if (docId) {
-      document.title = `${DOC_TITLES[docId] ?? docId} — 5H1T`;
+      document.title = `${DOC_TITLES[docId] ?? docId} — SYM`;
     }
   }, [docId]);
 

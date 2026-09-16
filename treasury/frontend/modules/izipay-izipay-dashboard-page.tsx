@@ -34,14 +34,14 @@ export function IzipayDashboardPage() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">5H1TPay Dashboard</h1>
+        <h1 className="text-3xl font-bold">SYMPay Dashboard</h1>
         <p className="text-secondary-t font-mono text-sm">{isConnected ? shortenAddress(address ?? "0x0", 6) : "Preview mode — sign in to manage your account"}</p>
       </div>
 
       {!isConnected && (
         <div className="rounded-2xl border border-green/30 bg-green/5 p-6 flex items-center justify-between">
           <div>
-            <p className="font-medium text-lg">Connect your wallet to manage your 5H1TPay cards</p>
+            <p className="font-medium text-lg">Connect your wallet to manage your SYMPay cards</p>
             <p className="text-secondary-t text-sm mt-1">Connect a Base wallet to create a vault, deposit tokens, and issue cards.</p>
           </div>
         </div>
@@ -49,7 +49,7 @@ export function IzipayDashboardPage() {
 
       <Card className="bg-surface-a3/50">
         <CardHeader>
-          <CardTitle className="text-lg">How 5H1TPay Works</CardTitle>
+          <CardTitle className="text-lg">How SYMPay Works</CardTitle>
           <CardDescription>Deposit tokens on Base → we swap & bridge to TRON → your card gets funded</CardDescription>
         </CardHeader>
         <CardContent>
@@ -57,8 +57,8 @@ export function IzipayDashboardPage() {
             {[
               { n: 1, t: "Create a Vault", d: "Your personal smart contract on Base that holds token deposits securely." },
               { n: 2, t: "Deposit Tokens", d: "Deposit tokens into your vault to issue a new card or top up an existing one." },
-              { n: 3, t: "Auto Pipeline", d: "We swap via 1inch, bridge Base→TRON via Allbridge, and fund your card via 5H1TPay." },
-              { n: 4, t: "Card Ready", d: "Your 5H1TPay card is issued or topped up. Track status in the Cards tab." },
+              { n: 3, t: "Auto Pipeline", d: "We swap via 1inch, bridge Base→TRON via Allbridge, and fund your card via SYMPay." },
+              { n: 4, t: "Card Ready", d: "Your SYMPay card is issued or topped up. Track status in the Cards tab." },
             ].map((s) => (
               <div key={s.n} className="flex flex-col gap-2">
                 <div className="flex items-center gap-2">

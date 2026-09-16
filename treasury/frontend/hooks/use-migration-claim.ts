@@ -10,11 +10,11 @@ import {
 } from "@/lib/migration-config";
 
 /**
- * A single user's SHIT v1 → v2 migration allocation, looked up from the
- * shit-v1-balances proof API for the active merkle root.
+ * A single user's SYM v1 → v2 migration allocation, looked up from the
+ * symbient-v1-balances proof API for the active merkle root.
  */
 export type MigrationClaim = {
-  /** Allocated SHIT v1 amount (raw, 9 decimals). Passed to `migrate` as `allocatedAmount`. */
+  /** Allocated SYM v1 amount (raw, 9 decimals). Passed to `migrate` as `allocatedAmount`. */
   allocatedAmount: bigint;
   /** Merkle proof for `(address, allocatedAmount)`. */
   proof: Hex[];

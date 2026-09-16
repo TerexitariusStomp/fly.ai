@@ -1,13 +1,13 @@
 """
-Floor Hook Model for SHIT Protocol (SHIT)
+Floor Hook Model for SYM Protocol (SYM)
 
-Mirrors the logic in contracts/src/dex/ShitFloorHook.sol:
+Mirrors the logic in contracts/src/dex/SymbientFloorHook.sol:
 - Monotone redemption floor via Uniswap V4 hook
 - 50% of buy net USDC → floor reserve, 50% → band reserve
 - 70% of swap fees → floor reserve
-- Sells: SHIT absorbed into hook (excluded from redeemable supply → floor rises)
-- Redemption at floor price (less 1% fee), SHIT burned
-- Floor = floorReserve / (totalSupply - hookShitBalance)
+- Sells: SYM absorbed into hook (excluded from redeemable supply → floor rises)
+- Redemption at floor price (less 1% fee), SYM burned
+- Floor = floorReserve / (totalSupply - hookSymbientBalance)
 """
 
 import numpy as np
@@ -15,13 +15,13 @@ import pandas as pd
 from dataclasses import dataclass, field
 from typing import Optional
 
-# ─── Contract Constants (from ShitFloorHook.sol) ───
+# ─── Contract Constants (from SymbientFloorHook.sol) ───
 REDEMPTION_FEE_BPS = 100       # 1%
 FLOOR_RESERVE_BPS = 5000       # 50% of buy net USDC → floor
 BAND_RESERVE_BPS = 5000        # 50% of buy net USDC → band
 FEE_TO_FLOOR_BPS = 7000        # 70% of fee → floor
 BUY_FEE_BPS = 100              # 1% hook buy fee → floor reserve
-SELL_FEE_BPS = 100             # 1% hook sell fee → extra SHIT absorbed
+SELL_FEE_BPS = 100             # 1% hook sell fee → extra SYM absorbed
 ASSET_HAIRCUT_DEFAULT_BPS = 8000  # 80% default haircut for non-quote assets
 BASIS_POINTS = 10000
 ONE_E18 = 1e18
@@ -37,13 +37,13 @@ class FloorHookParams:
     redemption_fee_bps: float = REDEMPTION_FEE_BPS
 
     # Initial conditions
-    initial_total_supply: float = 1_000_000.0      # SHIT total supply
+    initial_total_supply: float = 1_000_000.0      # SYM total supply
     initial_floor_reserve: float = 0.0              # USDC in floor reserve — starts at 0
     initial_band_reserve: float = 0.0               # USDC in band reserve — starts at 0
-    initial_hook_shit: float = 0.0                 # SHIT absorbed by hook
+    initial_hook_shit: float = 0.0                 # SYM absorbed by hook
 
     # Pool params
-    initial_pool_shit: float = 200_000.0           # SHIT in V4 pool
+    initial_pool_shit: float = 200_000.0           # SYM in V4 pool
     initial_pool_usdc: float = 2_000_000.0          # USDC in V4 pool
     swap_fee_bps: float = 30                        # 0.3% pool swap fee
     buy_fee_bps: float = BUY_FEE_BPS                 # 1% hook buy fee → floor
@@ -88,10 +88,10 @@ class FloorHookState:
 
 def compute_floor(state: FloorHookState) -> float:
     """
-    Floor = floorReserve / (totalSupply - hookShitBalance)
+    Floor = floorReserve / (totalSupply - hookSymbientBalance)
     Monotone: floor only increases when:
     - Buy USDC flows to floor reserve
-    - Sells absorb SHIT (reducing redeemable supply)
+    - Sells absorb SYM (reducing redeemable supply)
     - Fees flow to floor
     """
     redeemable = state.total_shit_supply - state.hook_shit_balance
@@ -106,7 +106,7 @@ def compute_floor(state: FloorHookState) -> float:
 def simulate_floor_hook(params: FloorHookParams) -> pd.DataFrame:
     """
     Run floor hook simulation.
-    Models swap activity, reserve accumulation, SHIT absorption, and redemptions.
+    Models swap activity, reserve accumulation, SYM absorption, and redemptions.
     """
     rng = np.random.default_rng(params.random_seed)
 
@@ -127,14 +127,14 @@ def simulate_floor_hook(params: FloorHookParams) -> pd.DataFrame:
     for epoch in range(params.num_epochs):
         state.epoch = epoch
 
-        # ─── 1. Simulate buy activity (USDC → SHIT) ───
+        # ─── 1. Simulate buy activity (USDC → SYM) ───
         buy_volume = max(0, rng.normal(
             params.base_buy_volume_usdc,
             params.base_buy_volume_usdc * params.volume_volatility
         ))
 
         if buy_volume > 0 and state.pool_shit > 0:
-            # Constant product swap: USDC in → SHIT out
+            # Constant product swap: USDC in → SYM out
             k = state.pool_shit * state.pool_usdc
             new_pool_usdc = state.pool_usdc + buy_volume
             new_pool_shit = k / new_pool_usdc
@@ -144,7 +144,7 @@ def simulate_floor_hook(params: FloorHookParams) -> pd.DataFrame:
             state.pool_usdc = new_pool_usdc
             state.pool_shit = new_pool_shit
 
-            # SHIT bought from pool re-enter circulation — release from hook balance
+            # SYM bought from pool re-enter circulation — release from hook balance
             if state.hook_shit_balance > 0:
                 release = min(shit_out, state.hook_shit_balance)
                 state.hook_shit_balance -= release
@@ -166,14 +166,14 @@ def simulate_floor_hook(params: FloorHookParams) -> pd.DataFrame:
             state.total_usdc_to_floor += to_floor + fee_to_floor
             state.total_usdc_to_band += to_band
 
-        # ─── 2. Simulate sell activity (SHIT → USDC) ───
+        # ─── 2. Simulate sell activity (SYM → USDC) ───
         sell_volume = max(0, rng.normal(
             params.base_sell_volume_shit,
             params.base_sell_volume_shit * params.volume_volatility
         ))
 
         if sell_volume > 0 and state.pool_usdc > 0:
-            # Constant product swap: SHIT in → USDC out
+            # Constant product swap: SYM in → USDC out
             k = state.pool_shit * state.pool_usdc
             new_pool_shit = state.pool_shit + sell_volume
             new_pool_usdc = k / new_pool_shit
@@ -183,7 +183,7 @@ def simulate_floor_hook(params: FloorHookParams) -> pd.DataFrame:
             state.pool_shit = new_pool_shit
             state.pool_usdc = new_pool_usdc
 
-            # SHIT absorbed by hook (not returned to circulation)
+            # SYM absorbed by hook (not returned to circulation)
             state.hook_shit_balance += sell_volume
             state.total_shit_absorbed += sell_volume
 
@@ -204,7 +204,7 @@ def simulate_floor_hook(params: FloorHookParams) -> pd.DataFrame:
             if net_payout <= state.floor_reserve:
                 # Execute redemption
                 state.floor_reserve -= net_payout
-                state.hook_shit_balance += redeem_amount  # SHIT burned (absorbed)
+                state.hook_shit_balance += redeem_amount  # SYM burned (absorbed)
                 state.total_shit_redeemed += redeem_amount
                 state.total_usdc_paid_out += net_payout
                 # Fee stays in floor reserve
@@ -214,7 +214,7 @@ def simulate_floor_hook(params: FloorHookParams) -> pd.DataFrame:
         state.redeemable_supply = state.total_shit_supply - state.hook_shit_balance
         state.floor_price = compute_floor(state)
 
-        # ─── 4b. FLOOR HOOK BUYBACK: if pool price < floor, use floor reserve to buy SHIT ───
+        # ─── 4b. FLOOR HOOK BUYBACK: if pool price < floor, use floor reserve to buy SYM ───
         pool_price = state.pool_usdc / state.pool_shit if state.pool_shit > 0 else 0
         if pool_price < state.floor_price and state.floor_reserve > 0 and state.pool_shit > 0:
             k = state.pool_shit * state.pool_usdc

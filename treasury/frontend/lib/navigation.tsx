@@ -69,8 +69,8 @@ export function renderNavIcon(
 export const NAV_SECTIONS: NavSection[] = [
   {
     id: "overview",
-    label: "5H1T",
-    sidebarTitle: "5H1T Overview",
+    label: "SYM",
+    sidebarTitle: "SYM Overview",
     icon: TrendingUp,
     section: "overview",
     items: [

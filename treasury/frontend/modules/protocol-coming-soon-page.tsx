@@ -1,4 +1,4 @@
-import { SHITLogo } from "@/components/shit-logo";
+import { SHITLogo } from "@/components/symbient-logo";
 import {
   useScrollReveal,
   SectionWrapper,
@@ -53,7 +53,7 @@ export function ComingSoonPage() {
         <SectionHead
           kicker="Price floor"
           title="Floor market"
-          subtitle="The floor market ensures SHIT always has a minimum price backed by the treasury. The floor only goes up — never down."
+          subtitle="The floor market ensures SYM always has a minimum price backed by the treasury. The floor only goes up — never down."
         />
         <div data-reveal>
           <FloorMarketDashboardWidget />
@@ -107,12 +107,12 @@ export function ComingSoonPage() {
         </div>
       </SectionWrapper>
 
-      {/* Pendle — stSHIT SY */}
+      {/* Pendle — stSYM SY */}
       <SectionWrapper id="pendle" className="py-16 border-t border-a10-b">
         <SectionHead
           kicker="Yield derivatives"
-          title="Pendle — stSHIT SY"
-          subtitle="Split stSHIT yield into Principal Tokens and Yield Tokens. Managed directly on Pendle's app."
+          title="Pendle — stSYM SY"
+          subtitle="Split stSYM yield into Principal Tokens and Yield Tokens. Managed directly on Pendle's app."
         />
         <div data-reveal>
           <YieldSplitWidget />
@@ -130,7 +130,7 @@ export function ComingSoonPage() {
           <div className="border border-a10-b rounded-2xl bg-surface-bg-l2 p-6">
             <h3 className="font-serif text-xl mb-2">Yield strategies</h3>
             <p className="text-secondary-t text-sm">
-              The treasury puts its liquidity into pools that earn yield and reinvest it automatically. This includes leverage looping, external Liquidity Pool positions, and SHIT swap liquidity.
+              The treasury puts its liquidity into pools that earn yield and reinvest it automatically. This includes leverage looping, external Liquidity Pool positions, and SYM swap liquidity.
             </p>
           </div>
           <div className="border border-a10-b rounded-2xl bg-surface-bg-l2 p-6">
@@ -142,7 +142,7 @@ export function ComingSoonPage() {
           <div className="border border-a10-b rounded-2xl bg-surface-bg-l2 p-6">
             <h3 className="font-serif text-xl mb-2">Peg keeper</h3>
             <p className="text-secondary-t text-sm">
-              Automatic market operations that keep BUCKY pegged to $1 by minting or redeeming when the price moves too far. Triggered by a keeper role, following the SHIT Protocol Heart pattern.
+              Automatic market operations that keep BUCKY pegged to $1 by minting or redeeming when the price moves too far. Triggered by a keeper role, following the SYM Protocol Heart pattern.
             </p>
           </div>
         </div>
@@ -167,14 +167,14 @@ export function ComingSoonPage() {
           <div className="border border-a10-b rounded-2xl bg-surface-bg-l2 p-6">
             <h3 className="font-serif text-xl mb-2">Liquidity Bootstrapping Pool (LBP)</h3>
             <p className="text-secondary-t text-sm">
-              LBPs will be used to set up liquidity for new impact tokens paired with SHIT. This helps find a fair price and creates deep liquidity from day one, without needing outside market makers.
+              LBPs will be used to set up liquidity for new impact tokens paired with SYM. This helps find a fair price and creates deep liquidity from day one, without needing outside market makers.
             </p>
           </div>
 
           <div className="border border-a10-b rounded-2xl bg-surface-bg-l2 p-6">
             <h3 className="font-serif text-xl mb-2">Contract interactions</h3>
             <p className="text-secondary-t text-sm">
-              Anyone can trigger the burner to buy and burn SHIT when fee revenue builds up. The fee decay splitter slowly releases fees to smooth out emissions over time.
+              Anyone can trigger the burner to buy and burn SYM when fee revenue builds up. The fee decay splitter slowly releases fees to smooth out emissions over time.
             </p>
           </div>
         </div>
@@ -186,10 +186,10 @@ export function ComingSoonPage() {
           <div>
             <div className="flex items-center gap-2 font-serif text-base">
               <SHITLogo className="size-6" />
-              SHIT
+              SYM
             </div>
             <p className="text-tertiary-t text-sm max-w-sm mt-2.5">
-              SHIT is a decentralized savings protocol backed by a shared
+              SYM is a decentralized savings protocol backed by a shared
               treasury, including verified climate impact assets.
             </p>
           </div>
@@ -198,7 +198,7 @@ export function ComingSoonPage() {
           </div>
         </div>
         <div className="border-t border-a10-b mt-8 pt-4 font-mono text-xs text-tertiary-t">
-          5H1T — testnet preview
+          SYM — testnet preview
         </div>
       </footer>
     </div>

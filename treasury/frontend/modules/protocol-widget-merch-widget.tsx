@@ -6,9 +6,9 @@ interface MerchProduct {
 }
 
 const PRODUCTS: MerchProduct[] = [
-  { name: "T-Shirt", slug: "shit-finance-t-shirt" },
-  { name: "Cap", slug: "m-shit-finance-cap" },
-  { name: "Hoodie", slug: "shit-finance-hoodie" },
+  { name: "T-Shirt", slug: "symbient-finance-t-shirt" },
+  { name: "Cap", slug: "m-symbient-finance-cap" },
+  { name: "Hoodie", slug: "symbient-finance-hoodie" },
 ];
 
 

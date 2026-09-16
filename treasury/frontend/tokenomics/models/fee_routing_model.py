@@ -4,12 +4,12 @@ Fee routing, fee decay, and burner simulation.
 Models:
 - FeeSplitter: 50/50 split between treasury and staking rewards
 - FeeDecaySplitter: 30-day linear decay from 80% mgmt / 20% treasury to 0% / 100%
-- ShitBurner: Burns SHIT sent to treasury (deflationary mechanism)
+- SymbientBurner: Burns SYM sent to treasury (deflationary mechanism)
 
 Contract sources:
 - contracts/src/dex/FeeSplitter.sol
 - contracts/src/dex/FeeDecaySplitter.sol
-- contracts/src/treasury/ShitBurner.sol
+- contracts/src/treasury/SymbientBurner.sol
 """
 
 import numpy as np
@@ -34,10 +34,10 @@ class FeeRoutingParams:
     initial_treasury_bps: int = 1000  # 20% of total_fee = 1000/5000
     decay_duration_days: int = 30
 
-    # ShitBurner
+    # SymbientBurner
     burn_enabled: bool = True
-    burn_threshold_usdc: float = 10_000.0  # Burn SHIT when treasury holds > threshold
-    burn_pct_per_epoch: float = 0.05  # Burn 5% of unwanted SHIT per epoch
+    burn_threshold_usdc: float = 10_000.0  # Burn SYM when treasury holds > threshold
+    burn_pct_per_epoch: float = 0.05  # Burn 5% of unwanted SYM per epoch
 
     # Hook fees (floor hook redemption fees + swap fees)
     daily_hook_fee_usdc: float = 1_000.0
@@ -98,10 +98,10 @@ def simulate_fee_routing(params: FeeRoutingParams) -> pd.DataFrame:
         direct_treasury = hook_fees - decay_pool
         state.treasury_fee_accumulated += direct_treasury
 
-        # ─── ShitBurner ───
+        # ─── SymbientBurner ───
         shit_burned = 0.0
         if params.burn_enabled:
-            # Burn a fraction of unwanted SHIT each epoch
+            # Burn a fraction of unwanted SYM each epoch
             shit_burned = params.burn_pct_per_epoch * (params.daily_swap_fee_usdc / 10)  # Proxy
             state.shit_burned += shit_burned
 

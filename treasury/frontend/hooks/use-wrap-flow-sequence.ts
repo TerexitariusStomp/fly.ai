@@ -6,9 +6,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { erc20Abi, type Abi, type Address } from "viem";
 import { ContractName, getContractAddress } from "@/lib/contracts";
 import { TokenName, getTokenAddress } from "@/lib/tokens";
-import ShitStakingAbi from "@/abis/ShitStaking";
-import wstShitAbi from "@/abis/wstSHIT";
-import type { WrapFlow } from "@/modules/shit-wrap-flows";
+import SymbientStakingAbi from "@/abis/SymbientStaking";
+import wstSymbientAbi from "@/abis/wstSYM";
+import type { WrapFlow } from "@/modules/symbient-wrap-flows";
 
 export type SeqStepStatus = "pending" | "wallet" | "confirming" | "done" | "error";
 
@@ -28,7 +28,7 @@ type PlanStep =
       functionName: string;
       label: string;
       argsBuilder: (address: Address, amount: bigint) => readonly unknown[];
-      amount: "input" | "stShitDelta" | "wstShitDelta";
+      amount: "input" | "stSymbientDelta" | "wstSymbientDelta";
     };
 
 function buildPlan(flow: WrapFlow): PlanStep[] {
@@ -39,34 +39,34 @@ function buildPlan(flow: WrapFlow): PlanStep[] {
   const singleArg = (_addr: Address, amt: bigint) => [amt] as const;
 
   switch (flow) {
-    case "wrap-shit":
+    case "wrap-symbient":
       return [
-        { kind: "approve", token: TokenName.SHIT, spender: ContractName.STAKING, label: "Approve SHIT" },
-        { kind: "call", contract: ContractName.STAKING, abi: ShitStakingAbi, functionName: "stake", label: "Stake SHIT to stSHIT", argsBuilder: stakeArgsRebasing, amount: "input" },
+        { kind: "approve", token: TokenName.SYM, spender: ContractName.STAKING, label: "Approve SYM" },
+        { kind: "call", contract: ContractName.STAKING, abi: SymbientStakingAbi, functionName: "stake", label: "Stake SYM to stSYM", argsBuilder: stakeArgsRebasing, amount: "input" },
       ];
-    case "wrap-shit-to-wstshit":
+    case "wrap-symbient-to-wstsym":
       return [
-        { kind: "approve", token: TokenName.SHIT, spender: ContractName.STAKING, label: "Approve SHIT" },
-        { kind: "call", contract: ContractName.STAKING, abi: ShitStakingAbi, functionName: "stake", label: "Stake SHIT to wstSHIT", argsBuilder: stakeArgs, amount: "input" },
+        { kind: "approve", token: TokenName.SYM, spender: ContractName.STAKING, label: "Approve SYM" },
+        { kind: "call", contract: ContractName.STAKING, abi: SymbientStakingAbi, functionName: "stake", label: "Stake SYM to wstSYM", argsBuilder: stakeArgs, amount: "input" },
       ];
-    case "wrap-stshit":
+    case "wrap-stsym":
       return [
-        { kind: "approve", token: TokenName.STSHIT, spender: ContractName.WSTSHIT, label: "Approve stSHIT" },
-        { kind: "call", contract: ContractName.WSTSHIT, abi: wstShitAbi, functionName: "wrap", label: "Wrap stSHIT to wstSHIT", argsBuilder: singleArg, amount: "input" },
+        { kind: "approve", token: TokenName.stsym, spender: ContractName.Wstsym, label: "Approve stSYM" },
+        { kind: "call", contract: ContractName.Wstsym, abi: wstSymbientAbi, functionName: "wrap", label: "Wrap stSYM to wstSYM", argsBuilder: singleArg, amount: "input" },
       ];
-    case "unwrap-wstshit":
+    case "unwrap-wstsym":
       return [
-        { kind: "call", contract: ContractName.WSTSHIT, abi: wstShitAbi, functionName: "unwrap", label: "Unwrap wstSHIT to stSHIT", argsBuilder: singleArg, amount: "input" },
+        { kind: "call", contract: ContractName.Wstsym, abi: wstSymbientAbi, functionName: "unwrap", label: "Unwrap wstSYM to stSYM", argsBuilder: singleArg, amount: "input" },
       ];
-    case "unwrap-wstshit-to-shit":
+    case "unwrap-wstsym-to-symbient":
       return [
-        { kind: "approve", token: TokenName.WSTSHIT, spender: ContractName.STAKING, label: "Approve wstSHIT" },
-        { kind: "call", contract: ContractName.STAKING, abi: ShitStakingAbi, functionName: "unstake", label: "Unstake wstSHIT to SHIT", argsBuilder: unstakeArgs, amount: "input" },
+        { kind: "approve", token: TokenName.Wstsym, spender: ContractName.STAKING, label: "Approve wstSYM" },
+        { kind: "call", contract: ContractName.STAKING, abi: SymbientStakingAbi, functionName: "unstake", label: "Unstake wstSYM to SYM", argsBuilder: unstakeArgs, amount: "input" },
       ];
-    case "unstake-stshit":
+    case "unstake-stsym":
       return [
-        { kind: "approve", token: TokenName.STSHIT, spender: ContractName.STAKING, label: "Approve stSHIT" },
-        { kind: "call", contract: ContractName.STAKING, abi: ShitStakingAbi, functionName: "unstake", label: "Unstake stSHIT to SHIT", argsBuilder: unstakeArgsRebasing, amount: "input" },
+        { kind: "approve", token: TokenName.stsym, spender: ContractName.STAKING, label: "Approve stSYM" },
+        { kind: "call", contract: ContractName.STAKING, abi: SymbientStakingAbi, functionName: "unstake", label: "Unstake stSYM to SYM", argsBuilder: unstakeArgsRebasing, amount: "input" },
       ];
   }
 }
@@ -93,31 +93,31 @@ export function useWrapFlowSequence(flow: WrapFlow, inputAmount: bigint) {
     setError(null);
   }, [plan]);
 
-  const stShitAddress = getTokenAddress(TokenName.STSHIT, chainId);
-  const wstShitAddress = getTokenAddress(TokenName.WSTSHIT, chainId);
+  const stSymbientAddress = getTokenAddress(TokenName.stsym, chainId);
+  const wstSymbientAddress = getTokenAddress(TokenName.Wstsym, chainId);
 
   const setStep = (i: number, patch: Partial<SeqStep>) =>
     setSteps((prev) => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
 
-  const readStShitBalance = useCallback(async (): Promise<bigint> => {
-    if (!publicClient || !address || !stShitAddress) return 0n;
+  const readStSymbientBalance = useCallback(async (): Promise<bigint> => {
+    if (!publicClient || !address || !stSymbientAddress) return 0n;
     return (await publicClient.readContract({
-      address: stShitAddress,
+      address: stSymbientAddress,
       abi: erc20Abi,
       functionName: "balanceOf",
       args: [address],
     })) as bigint;
-  }, [publicClient, address, stShitAddress]);
+  }, [publicClient, address, stSymbientAddress]);
 
-  const readWstShitBalance = useCallback(async (): Promise<bigint> => {
-    if (!publicClient || !address || !wstShitAddress) return 0n;
+  const readWstSymbientBalance = useCallback(async (): Promise<bigint> => {
+    if (!publicClient || !address || !wstSymbientAddress) return 0n;
     return (await publicClient.readContract({
-      address: wstShitAddress,
+      address: wstSymbientAddress,
       abi: erc20Abi,
       functionName: "balanceOf",
       args: [address],
     })) as bigint;
-  }, [publicClient, address, wstShitAddress]);
+  }, [publicClient, address, wstSymbientAddress]);
 
   const estimateGas = useCallback(
     async (call: { address: Address; abi: Abi; functionName: string; args: readonly unknown[] }) => {
@@ -157,8 +157,8 @@ export function useWrapFlowSequence(flow: WrapFlow, inputAmount: bigint) {
     const initial: SeqStep[] = plan.map((p, i) => ({ id: `${i}`, label: p.label, status: "pending" }));
     setSteps(initial);
 
-    const preStShit = await readStShitBalance();
-    const preWstShit = await readWstShitBalance();
+    const preStSymbient = await readStSymbientBalance();
+    const preWstSymbient = await readWstSymbientBalance();
 
     try {
       for (let i = 0; i < plan.length; i++) {
@@ -199,10 +199,10 @@ export function useWrapFlowSequence(flow: WrapFlow, inputAmount: bigint) {
           if (!target) throw new Error(`Missing contract address for ${step.contract}`);
 
           const amount =
-            step.amount === "stShitDelta"
-              ? (await readStShitBalance()) - preStShit
-              : step.amount === "wstShitDelta"
-                ? (await readWstShitBalance()) - preWstShit
+            step.amount === "stSymbientDelta"
+              ? (await readStSymbientBalance()) - preStSymbient
+              : step.amount === "wstSymbientDelta"
+                ? (await readWstSymbientBalance()) - preWstSymbient
                 : inputAmount;
           if (amount <= 0n) throw new Error("Nothing to process for this step");
 
@@ -226,7 +226,7 @@ export function useWrapFlowSequence(flow: WrapFlow, inputAmount: bigint) {
     } finally {
       setRunning(false);
     }
-  }, [address, publicClient, walletClient, plan, chainId, inputAmount, readStShitBalance, estimateGas, queryClient]);
+  }, [address, publicClient, walletClient, plan, chainId, inputAmount, readStSymbientBalance, estimateGas, queryClient]);
 
   const reset = useCallback(() => {
     cancelledRef.current = true;

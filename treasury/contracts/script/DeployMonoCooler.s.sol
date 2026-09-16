@@ -3,29 +3,29 @@ pragma solidity ^0.8.24;
 
 import {Script, console2} from "forge-std/Script.sol";
 
-import {Kernel, Actions} from "@shit-v3/Kernel.sol";
-import {SHIT ProtocolRoles} from "@shit-v3/modules/ROLES/SHIT ProtocolRoles.sol";
-import {SHIT ProtocolMinter} from "@shit-v3/modules/MINTR/SHIT ProtocolMinter.sol";
-import {SHIT ProtocolTreasury} from "@shit-v3/modules/TRSRY/SHIT ProtocolTreasury.sol";
-import {SHIT ProtocolGovDelegation} from "@shit-v3/modules/DLGTE/SHIT ProtocolGovDelegation.sol";
-import {DelegateEscrowFactory} from "@shit-v3/external/cooler/DelegateEscrowFactory.sol";
+import {Kernel, Actions} from "@symbient-v3/Kernel.sol";
+import {SYM ProtocolRoles} from "@symbient-v3/modules/ROLES/SYM ProtocolRoles.sol";
+import {SYM ProtocolMinter} from "@symbient-v3/modules/MINTR/SYM ProtocolMinter.sol";
+import {SYM ProtocolTreasury} from "@symbient-v3/modules/TRSRY/SYM ProtocolTreasury.sol";
+import {SYM ProtocolGovDelegation} from "@symbient-v3/modules/DLGTE/SYM ProtocolGovDelegation.sol";
+import {DelegateEscrowFactory} from "@symbient-v3/external/cooler/DelegateEscrowFactory.sol";
 
-import {RolesAdmin} from "@shit-v3/policies/RolesAdmin.sol";
-import {CoolerLtvOracle} from "@shit-v3/policies/cooler/CoolerLtvOracle.sol";
-import {MonoCooler} from "@shit-v3/policies/cooler/MonoCooler.sol";
-import {CoolerComposites} from "@shit-v3/periphery/CoolerComposites.sol";
+import {RolesAdmin} from "@symbient-v3/policies/RolesAdmin.sol";
+import {CoolerLtvOracle} from "@symbient-v3/policies/cooler/CoolerLtvOracle.sol";
+import {MonoCooler} from "@symbient-v3/policies/cooler/MonoCooler.sol";
+import {CoolerComposites} from "@symbient-v3/periphery/CoolerComposites.sol";
 
-import {ShitCoolerTreasuryBorrower} from "../src/ShitCoolerTreasuryBorrower.sol";
+import {SymbientCoolerTreasuryBorrower} from "../src/SymbientCoolerTreasuryBorrower.sol";
 
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
 /// @title DeployMonoCooler
-/// @notice Deploys the full MonoCooler ecosystem on Base Sepolia using existing SHIT Protocol V3 contracts.
-///         Requires: PRIVATE_KEY, and existing deployed tokens (SHIT, wstSHIT, AZUSD, Staking, Kernel).
+/// @notice Deploys the full MonoCooler ecosystem on Base Sepolia using existing SYM Protocol V3 contracts.
+///         Requires: PRIVATE_KEY, and existing deployed tokens (SYM, wstSYM, AZUSD, Staking, Kernel).
 contract DeployMonoCooler is Script {
     // Existing deployed addresses on Base Sepolia
     address constant KERNEL = 0x25D98fa2e827227243108Ac111F084cdfeE020be;
-    address constant SHIT = 0x823d5d44F9E647402c949376E54f709Ab3a9015b;
+    address constant SYM = 0x823d5d44F9E647402c949376E54f709Ab3a9015b;
     address constant WSTSHIT = 0x933E4B8e744733FAaFD67aC99eD8987C9Aa5E533;
     address constant AZUSD = 0xb6a1BC3D383f8751eF0CC216943290740E4D1493;
     address constant STAKING = 0x395f6Cc9aAEE56f292dBE5dcc76fF3b30637cd4e;
@@ -42,7 +42,7 @@ contract DeployMonoCooler is Script {
 
     // MonoCooler params
     uint96 constant INTEREST_RATE_WAD = 0.02e18; // 2% interest rate
-    uint256 constant MIN_DEBT_REQUIRED = 1e18; // 1 wstSHIT minimum debt
+    uint256 constant MIN_DEBT_REQUIRED = 1e18; // 1 wstSYM minimum debt
 
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
@@ -54,33 +54,33 @@ contract DeployMonoCooler is Script {
         console2.log("Deployer:", deployer);
         console2.log("Kernel:", KERNEL);
 
-        // ── Phase 1: Install SHIT Protocol V3 Modules ──
+        // ── Phase 1: Install SYM Protocol V3 Modules ──
         console2.log("\n--- Phase 1: Install Modules ---");
 
         Kernel kernel = Kernel(KERNEL);
 
-        // 1a. SHIT ProtocolRoles (ROLES)
-        SHIT ProtocolRoles roles = new SHIT ProtocolRoles(kernel);
+        // 1a. SYM ProtocolRoles (ROLES)
+        SYM ProtocolRoles roles = new SYM ProtocolRoles(kernel);
         kernel.executeAction(Actions.InstallModule, address(roles));
-        console2.log("SHIT ProtocolRoles (ROLES):", address(roles));
+        console2.log("SYM ProtocolRoles (ROLES):", address(roles));
 
-        // 1b. SHIT ProtocolMinter (MINTR)
-        SHIT ProtocolMinter minter = new SHIT ProtocolMinter(kernel, SHIT);
+        // 1b. SYM ProtocolMinter (MINTR)
+        SYM ProtocolMinter minter = new SYM ProtocolMinter(kernel, SYM);
         kernel.executeAction(Actions.InstallModule, address(minter));
-        console2.log("SHIT ProtocolMinter (MINTR):", address(minter));
+        console2.log("SYM ProtocolMinter (MINTR):", address(minter));
 
-        // 1c. SHIT ProtocolTreasury (TRSRY)
-        SHIT ProtocolTreasury treasury = new SHIT ProtocolTreasury(kernel);
+        // 1c. SYM ProtocolTreasury (TRSRY)
+        SYM ProtocolTreasury treasury = new SYM ProtocolTreasury(kernel);
         kernel.executeAction(Actions.InstallModule, address(treasury));
-        console2.log("SHIT ProtocolTreasury (TRSRY):", address(treasury));
+        console2.log("SYM ProtocolTreasury (TRSRY):", address(treasury));
 
-        // 1d. DelegateEscrowFactory + SHIT ProtocolGovDelegation (DLGTE)
+        // 1d. DelegateEscrowFactory + SYM ProtocolGovDelegation (DLGTE)
         DelegateEscrowFactory escrowFactory = new DelegateEscrowFactory(WSTSHIT);
         console2.log("DelegateEscrowFactory:", address(escrowFactory));
 
-        SHIT ProtocolGovDelegation dlgte = new SHIT ProtocolGovDelegation(kernel, WSTSHIT, escrowFactory);
+        SYM ProtocolGovDelegation dlgte = new SYM ProtocolGovDelegation(kernel, WSTSHIT, escrowFactory);
         kernel.executeAction(Actions.InstallModule, address(dlgte));
-        console2.log("SHIT ProtocolGovDelegation (DLGTE):", address(dlgte));
+        console2.log("SYM ProtocolGovDelegation (DLGTE):", address(dlgte));
 
         // ── Phase 2: Activate RolesAdmin Policy ──
         console2.log("\n--- Phase 2: Activate RolesAdmin ---");
@@ -111,12 +111,12 @@ contract DeployMonoCooler is Script {
         kernel.executeAction(Actions.ActivatePolicy, address(ltvOracle));
         console2.log("CoolerLtvOracle:", address(ltvOracle));
 
-        // ── Phase 4: Deploy & Activate ShitCoolerTreasuryBorrower ──
-        console2.log("\n--- Phase 4: ShitCoolerTreasuryBorrower ---");
+        // ── Phase 4: Deploy & Activate SymbientCoolerTreasuryBorrower ──
+        console2.log("\n--- Phase 4: SymbientCoolerTreasuryBorrower ---");
 
-        ShitCoolerTreasuryBorrower treasuryBorrower = new ShitCoolerTreasuryBorrower(KERNEL, AZUSD);
+        SymbientCoolerTreasuryBorrower treasuryBorrower = new SymbientCoolerTreasuryBorrower(KERNEL, AZUSD);
         kernel.executeAction(Actions.ActivatePolicy, address(treasuryBorrower));
-        console2.log("ShitCoolerTreasuryBorrower:", address(treasuryBorrower));
+        console2.log("SymbientCoolerTreasuryBorrower:", address(treasuryBorrower));
 
         // Fund TreasuryBorrower with AZUSD (transfer from deployer)
         // Transfer 900,000 AZUSD (6dp) to the treasury borrower
@@ -131,7 +131,7 @@ contract DeployMonoCooler is Script {
         console2.log("\n--- Phase 5: MonoCooler ---");
 
         MonoCooler cooler = new MonoCooler(
-            SHIT, // shit (used for burn in liquidations)
+            SYM, // symbient (used for burn in liquidations)
             WSTSHIT, // gshit (collateral token)
             STAKING, // staking
             KERNEL, // kernel
@@ -160,18 +160,18 @@ contract DeployMonoCooler is Script {
         composites.enable("");
         console2.log("Composites enabled");
 
-        // ── Phase 7: Set authorized minter on SHIT ──
-        console2.log("\n--- Phase 7: Configure SHIT minter ---");
-        // Call SHIT.setAuthorizedMinter(address(minter)) so MINTR can mint SHIT
+        // ── Phase 7: Set authorized minter on SYM ──
+        console2.log("\n--- Phase 7: Configure SYM minter ---");
+        // Call SYM.setAuthorizedMinter(address(minter)) so MINTR can mint SYM
         // This requires the deployer to be the multisig (SAFE)
         // On testnet, deployer == SAFE, so this should work
-        (bool success,) = SHIT.call(
+        (bool success,) = SYM.call(
             abi.encodeWithSignature("setAuthorizedMinter(address)", address(minter))
         );
         if (success) {
-            console2.log("Set MINTR as authorized minter on SHIT");
+            console2.log("Set MINTR as authorized minter on SYM");
         } else {
-            console2.log("WARNING: Could not set authorized minter on SHIT");
+            console2.log("WARNING: Could not set authorized minter on SYM");
         }
 
         // ── Summary ──
@@ -182,7 +182,7 @@ contract DeployMonoCooler is Script {
         console2.log("DLGTE module:", address(dlgte));
         console2.log("RolesAdmin:", address(rolesAdmin));
         console2.log("CoolerLtvOracle:", address(ltvOracle));
-        console2.log("ShitCoolerTreasuryBorrower:", address(treasuryBorrower));
+        console2.log("SymbientCoolerTreasuryBorrower:", address(treasuryBorrower));
         console2.log("MonoCooler:", address(cooler));
         console2.log("CoolerComposites:", address(composites));
 

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 /// @title Bucky
-/// @notice Stablecoin contract for SHIT Protocol, based on DSS Dai (AGPL-3.0-or-later)
+/// @notice Stablecoin contract for SYM Protocol, based on DSS Dai (AGPL-3.0-or-later)
 /// @dev Forks the MakerDAO Dai contract with configurable name/symbol.
 ///      Mint/burn gated by `wards` (auth) — DaiJoin is authorized to mint via rely().
 ///      Compatible with DssVat, DaiJoin, and the rest of the DSS stack.

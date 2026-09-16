@@ -1,5 +1,5 @@
 /**
- * 5H1T Analytics Reports.
+ * SYM Analytics Reports.
  *
  * Pulls analytics from GA4, Microsoft Clarity, Cloudflare, PostHog, and Base Dashboard.
  * All credentials are loaded from environment variables (e.g. ~/.config/analytics/credentials.env).
@@ -158,7 +158,7 @@ async function cloudflareReport(daysAgo: string, groupBy: string): Promise<void>
   const key = process.env.CLOUDFLARE_API_KEY;
   if (!email || !key) { console.error("CLOUDFLARE_EMAIL and CLOUDFLARE_API_KEY not set"); process.exit(1); }
 
-  const domain = process.env.CLOUDFLARE_DOMAIN ?? "shit.finance";
+  const domain = process.env.CLOUDFLARE_DOMAIN ?? "symbient.finance";
   const days = Number(daysAgo || "7");
   const since = new Date(); since.setDate(since.getDate() - days);
   const until = new Date();
@@ -283,7 +283,7 @@ async function posthogReport(command: string, arg: string): Promise<void> {
 async function baseReport(command: string, ...args: string[]): Promise<void> {
   const apiKey = process.env.BASE_DEV_API_KEY;
   if (!apiKey) { console.error("BASE_DEV_API_KEY not set"); process.exit(1); }
-  const appUrl = process.env.BASE_APP_URL ?? "https://shit.finance";
+  const appUrl = process.env.BASE_APP_URL ?? "https://symbient.finance";
   const dashboardUrl = "https://dashboard.base.org/api/v1";
   const apiBaseUrl = "https://api.base.dev/v1";
   const headers = { "x-api-key": apiKey, "Content-Type": "application/json" };
@@ -344,7 +344,7 @@ async function main() {
     case "posthog": await posthogReport(args[0] ?? "events", args[1]); break;
     case "base": await baseReport(args[0] ?? "users", ...args.slice(1)); break;
     default:
-      console.error("5H1T Analytics Reports");
+      console.error("SYM Analytics Reports");
       console.error("");
       console.error("Usage: node scripts/analytics.ts <source> [args...]");
       console.error("");

@@ -7,16 +7,16 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IPriceFeed} from "./IPriceFeed.sol";
 import {IValuationCalculator} from "./IValuationCalculator.sol";
-import {TRSRYv1} from "@shit-v3/modules/TRSRY/TRSRY.v1.sol";
+import {TRSRYv1} from "@symbient-v3/modules/TRSRY/TRSRY.v1.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
 /// @title TreasuryValuation
 /// @notice Multi-source RFV/NAV oracle for protocol treasury
-/// @dev Reads reserve balances from SHIT ProtocolTreasury (SHIT Protocol V3 TRSRY module) and prices
+/// @dev Reads reserve balances from SYM ProtocolTreasury (SYM Protocol V3 TRSRY module) and prices
 ///      them via registered price feeds. Supports LP positions, Morpho/Yearn vaults (ERC4626),
 ///      raw ERC20 balances, and manual entries. Each asset has a haircut for RFV.
 ///      Multisig can also set valuations manually as an override.
-///      Implements ITreasuryPolicy for ShitStaking.rebase() gating.
+///      Implements ITreasuryPolicy for SymbientStaking.rebase() gating.
 ///      Minters must call canMint() before minting to enforce RFV invariant.
 contract TreasuryValuation is MultisigGuard, ITreasuryPolicy {
     error RfvInvariantFailed(uint256 requiredRfv, uint256 actualRfv);
@@ -41,7 +41,7 @@ contract TreasuryValuation is MultisigGuard, ITreasuryPolicy {
 
     uint256 public constant BPS_DENOMINATOR = 10_000;
 
-    /// @notice SHIT ProtocolTreasury address — source of reserve balances (includes debt)
+    /// @notice SYM ProtocolTreasury address — source of reserve balances (includes debt)
     /// @dev When set, computeValuations reads TRSRYv1.getReserveBalance(token) instead of balanceOf(this)
     TRSRYv1 public reserveTreasury;
 
@@ -75,8 +75,8 @@ contract TreasuryValuation is MultisigGuard, ITreasuryPolicy {
 
     // ============ Treasury Source ============
 
-    /// @notice Set the SHIT ProtocolTreasury address to read reserve balances from
-    /// @dev SHIT ProtocolTreasury.getReserveBalance(token) returns balance + totalDebt, giving
+    /// @notice Set the SYM ProtocolTreasury address to read reserve balances from
+    /// @dev SYM ProtocolTreasury.getReserveBalance(token) returns balance + totalDebt, giving
     ///      a complete picture of protocol reserves including debt claims.
     function setReserveTreasury(address _treasury) external onlyMultisig {
         if (_treasury == address(0)) revert ZeroAddress();
@@ -146,7 +146,7 @@ contract TreasuryValuation is MultisigGuard, ITreasuryPolicy {
 
     // ============ Internal Helpers ============
 
-    /// @dev Get asset balance — reads from SHIT ProtocolTreasury if set, otherwise balanceOf(this)
+    /// @dev Get asset balance — reads from SYM ProtocolTreasury if set, otherwise balanceOf(this)
     function _getAssetBalance(address token) internal view returns (uint256) {
         if (address(reserveTreasury) != address(0)) {
             return reserveTreasury.getReserveBalance(ERC20(token));
@@ -233,7 +233,7 @@ contract TreasuryValuation is MultisigGuard, ITreasuryPolicy {
 
     /// @notice Authorized keeper address that can refresh valuations automatically
     /// @dev Set to the trade worker's executor wallet for automated RFV pushes.
-    ///      Follows the same KEEPER_ROLE pattern as ShitLiquidationKeeper.
+    ///      Follows the same KEEPER_ROLE pattern as SymbientLiquidationKeeper.
     address public rfvKeeper;
 
     /// @notice Set the RFV keeper address — multisig only
@@ -278,7 +278,7 @@ contract TreasuryValuation is MultisigGuard, ITreasuryPolicy {
     }
 
     /// @inheritdoc ITreasuryPolicy
-    function navPerShit() external view returns (uint256) {
+    function navPerSymbient() external view returns (uint256) {
         return shitSupply > 0 ? (nav * 1e18) / shitSupply : 0;
     }
 

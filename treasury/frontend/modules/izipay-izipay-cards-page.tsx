@@ -32,7 +32,7 @@ export function IzipayCardsPage() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">5H1TPay Cards</h1>
+          <h1 className="text-3xl font-bold">SYMPay Cards</h1>
           <p className="text-secondary-t font-mono text-sm">{isConnected ? shortenAddress(address ?? "0x0", 6) : "Preview mode — sign in to manage your cards"}</p>
         </div>
         {isConnected && <Link to="/izipay/vaults/deposit"><Button><Plus className="h-4 w-4 mr-1" />Issue New Card</Button></Link>}

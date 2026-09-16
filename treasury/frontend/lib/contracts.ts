@@ -13,9 +13,9 @@ import {
  */
 export enum ContractName {
   // Core
-  SHIT = "SHIT",
-  STSHIT = "STSHIT",
-  WSTSHIT = "WSTSHIT",
+  SYM = "SYM",
+  stsym = "stsym",
+  Wstsym = "Wstsym",
   STAKING = "STAKING",
   BUCKY = "BUCKY",
   RIDX = "RIDX",
@@ -217,15 +217,15 @@ type ContractAddresses = {
  */
 export const CONTRACTS: ContractAddresses = {
   // ── Core ──────────────────────────────────────────────
-  [ContractName.SHIT]: {
+  [ContractName.SYM]: {
     [base.id]: "0x0000000000000000000000000000000000000000",
     [baseSepolia.id]: "0x823d5d44F9E647402c949376E54f709Ab3a9015b",
   },
-  [ContractName.STSHIT]: {
+  [ContractName.stsym]: {
     [base.id]: "0x0000000000000000000000000000000000000000",
     [baseSepolia.id]: "0xdb3D61dEE55eF664412BcEBEd144981B2Fc11a34",
   },
-  [ContractName.WSTSHIT]: {
+  [ContractName.Wstsym]: {
     [base.id]: "0x0000000000000000000000000000000000000000",
     [baseSepolia.id]: "0x933E4B8e744733FAaFD67aC99eD8987C9Aa5E533",
   },

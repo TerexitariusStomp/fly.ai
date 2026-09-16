@@ -1,4 +1,4 @@
--- SHIT Token D1 Schema
+-- SYM Token D1 Schema
 -- Cloudflare D1 (SQLite) — free tier: 5GB, 5M reads/day, 100K writes/day
 
 -- Token discovery
@@ -112,4 +112,16 @@ CREATE TABLE IF NOT EXISTS allowlist (
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT
+);
+
+-- Constitutional gate audit trail
+CREATE TABLE IF NOT EXISTS gate_evaluations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  action_type TEXT NOT NULL,
+  payload TEXT,
+  verdict TEXT NOT NULL,
+  reasoning TEXT,
+  source TEXT NOT NULL,
+  connectome_id TEXT,
+  created_at INTEGER NOT NULL
 );

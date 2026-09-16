@@ -555,7 +555,7 @@ export interface WalletImpact {
   percentile: number | null;
 }
 
-// Known impact tokens (from shit.finance)
+// Known impact tokens (from symbient.finance)
 export interface ImpactTokenInfo {
   name: string;
   symbol: string;

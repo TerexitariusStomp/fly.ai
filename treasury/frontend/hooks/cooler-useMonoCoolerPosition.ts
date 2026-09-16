@@ -152,7 +152,7 @@ export function useMonoCoolerPosition({ chainId: overrideChainId }: { chainId?: 
       maxOriginationLtv,
       liquidationLtv,
       debtAssetName: "USDC",
-      collateralAssetName: "wstSHIT",
+      collateralAssetName: "wstSYM",
       debtAddress: debtToken,
       collateralAddress: collateralToken,
       borrowsPaused,

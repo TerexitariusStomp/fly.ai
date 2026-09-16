@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { cn } from "@/lib/utils";
-import { SHITLogo } from "@/components/shit-logo";
+import { SHITLogo } from "@/components/symbient-logo";
 import {
   NAV_SECTIONS,
   scrollToSection,

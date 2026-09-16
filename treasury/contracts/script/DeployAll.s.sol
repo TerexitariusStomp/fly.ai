@@ -4,38 +4,38 @@ pragma solidity ^0.8.24;
 import {Script, console2} from "forge-std/Script.sol";
 
 // Core
-import {ShitToken} from "../src/ShitToken.sol";
-import {ShitDeployer} from "../src/ShitDeployer.sol";
+import {SymbientToken} from "../src/SymbientToken.sol";
+import {SymbientDeployer} from "../src/SymbientDeployer.sol";
 // Team vesting handled via Hedgey Finance (https://app.hedgey.finance/)
 import {TokenRegistry} from "../src/TokenRegistry.sol";
 import {TokenOnboardingManager} from "../src/TokenOnboardingManager.sol";
 import {ImpactTokens} from "../src/ImpactTokens.sol";
 
-// Kernel (SHIT Protocol V3)
-import {Kernel, Actions} from "@shit-v3/Kernel.sol";
+// Kernel (SYM Protocol V3)
+import {Kernel, Actions} from "@symbient-v3/Kernel.sol";
 import {TreasuryValuation} from "../src/TreasuryValuation.sol";
 // POL is manually handled — no custom POL contracts deployed
 
 // Staking
-import {WstSHIT} from "../src/wstSHIT.sol";
-import {ShitStaking} from "../src/ShitStaking.sol";
+import {WstSYM} from "../src/wstSYM.sol";
+import {SymbientStaking} from "../src/SymbientStaking.sol";
 import {StakingAdapter} from "../src/StakingAdapter.sol";
 
 // Integrations with Aegis, Gamma, Pendle, Steer are handled via their frontends — no custom contracts deployed
 
 // Bonding — Bond Protocol integration handled manually via Safe, no custom contracts
-import {ShitInverseBond} from "../src/ShitInverseBond.sol";
+import {SymbientInverseBond} from "../src/SymbientInverseBond.sol";
 
 // Treasury — burns handled manually via Safe
 
 // Oracle
-import {ShitPriceFeed} from "../src/ShitPriceFeed.sol";
+import {SymbientPriceFeed} from "../src/SymbientPriceFeed.sol";
 import {StablecoinPriceFeed} from "../src/StablecoinPriceFeed.sol";
 
 // System Safety
-import {ShitCircuitBreaker} from "../src/ShitCircuitBreaker.sol";
-import {ShitDefenseBudget} from "../src/ShitDefenseBudget.sol";
-import {ShitBondPricer} from "../src/ShitBondPricer.sol";
+import {SymbientCircuitBreaker} from "../src/SymbientCircuitBreaker.sol";
+import {SymbientDefenseBudget} from "../src/SymbientDefenseBudget.sol";
+import {SymbientBondPricer} from "../src/SymbientBondPricer.sol";
 
 // Stablecoin — Multi-collateral DSS-based PSM
 import {FixedRateProvider} from "../src/FixedRateProvider.sol";
@@ -45,27 +45,27 @@ import {Dog} from "@dss/dog.sol";
 import {Bucky} from "../src/Bucky.sol";
 import {DaiJoin} from "@dss/join.sol";
 import {LinearDecrease} from "@dss/abaci.sol";
-import {ShitCollateralManager} from "../src/ShitCollateralManager.sol";
+import {SymbientCollateralManager} from "../src/SymbientCollateralManager.sol";
 import {ImpactOracleAdapter} from "../src/ImpactOracleAdapter.sol";
 
 // Vaults — use Yearn V3 / Morpho V2 directly, no custom vault contracts
 
-// SHIT Protocol V3 Modules & Policies
-import {SHIT ProtocolRoles} from "@shit-v3/modules/ROLES/SHIT ProtocolRoles.sol";
-import {SHIT ProtocolMinter} from "@shit-v3/modules/MINTR/SHIT ProtocolMinter.sol";
-import {SHIT ProtocolTreasury} from "@shit-v3/modules/TRSRY/SHIT ProtocolTreasury.sol";
-import {SHIT ProtocolRange} from "@shit-v3/modules/RANGE/SHIT ProtocolRange.sol";
-import {ShitPrice} from "../src/ShitPrice.sol";
-import {ShitDistributor} from "../src/ShitDistributor.sol";
-import {SHIT ProtocolHeart} from "@shit-v3/policies/Heart.sol";
-import {BondCallback} from "@shit-v3/policies/BondCallback.sol";
-import {Operator} from "@shit-v3/policies/Operator.sol";
-import {RolesAdmin} from "@shit-v3/policies/RolesAdmin.sol";
-import {Emergency} from "@shit-v3/policies/Emergency.sol";
-import {TreasuryCustodian} from "@shit-v3/policies/TreasuryCustodian.sol";
-import {IBondSDA} from "@shit-v3/interfaces/IBondSDA.sol";
-import {IBondAggregator} from "@shit-v3/interfaces/IBondAggregator.sol";
-import {IBondCallback} from "@shit-v3/interfaces/IBondCallback.sol";
+// SYM Protocol V3 Modules & Policies
+import {SYM ProtocolRoles} from "@symbient-v3/modules/ROLES/SYM ProtocolRoles.sol";
+import {SYM ProtocolMinter} from "@symbient-v3/modules/MINTR/SYM ProtocolMinter.sol";
+import {SYM ProtocolTreasury} from "@symbient-v3/modules/TRSRY/SYM ProtocolTreasury.sol";
+import {SYM ProtocolRange} from "@symbient-v3/modules/RANGE/SYM ProtocolRange.sol";
+import {SymbientPrice} from "../src/SymbientPrice.sol";
+import {SymbientDistributor} from "../src/SymbientDistributor.sol";
+import {SYM ProtocolHeart} from "@symbient-v3/policies/Heart.sol";
+import {BondCallback} from "@symbient-v3/policies/BondCallback.sol";
+import {Operator} from "@symbient-v3/policies/Operator.sol";
+import {RolesAdmin} from "@symbient-v3/policies/RolesAdmin.sol";
+import {Emergency} from "@symbient-v3/policies/Emergency.sol";
+import {TreasuryCustodian} from "@symbient-v3/policies/TreasuryCustodian.sol";
+import {IBondSDA} from "@symbient-v3/interfaces/IBondSDA.sol";
+import {IBondAggregator} from "@symbient-v3/interfaces/IBondAggregator.sol";
+import {IBondCallback} from "@symbient-v3/interfaces/IBondCallback.sol";
 import {ERC20} from "@solmate-6.2.0/tokens/ERC20.sol";
 
 // Index — use Reserve Index DTFs / Set Protocol / Alvara directly, no custom index contracts
@@ -74,7 +74,7 @@ import {ERC20} from "@solmate-6.2.0/tokens/ERC20.sol";
 // Meta-Vaults — use Morpho Vault V2 directly, no custom meta-vault contracts
 
 /// @title DeployAll
-/// @notice Unified deployment of all SHIT Protocol contracts on Base
+/// @notice Unified deployment of all SYM Protocol contracts on Base
 /// @dev Deploys every contract in the codebase in dependency order.
 ///      External protocol addresses (Uniswap V4, Bond Aggregator, Morpho, etc.)
 ///      are read from env vars with fallback to deployer address for testnet.
@@ -114,15 +114,15 @@ contract DeployAll is Script {
 
         console2.log("=== Phase 1: Core Tokens & Registry ===");
 
-        // 1. ShitDeployer
-        ShitDeployer deployer = new ShitDeployer();
-        console2.log("ShitDeployer:", address(deployer));
+        // 1. SymbientDeployer
+        SymbientDeployer deployer = new SymbientDeployer();
+        console2.log("SymbientDeployer:", address(deployer));
 
-        // 2. ShitToken (SHIT) — multisig-gated
-        ShitToken shitToken = new ShitToken(safe);
-        console2.log("ShitToken:", address(shitToken));
+        // 2. SymbientToken (SYM) — multisig-gated
+        SymbientToken shitToken = new SymbientToken(safe);
+        console2.log("SymbientToken:", address(shitToken));
 
-        // 3. stSHIT (ShitStaking) and WstSHIT deployed in Phase 3 after priceFeed/treasuryPolicy
+        // 3. stSYM (SymbientStaking) and WstSYM deployed in Phase 3 after priceFeed/treasuryPolicy
 
         // 6. AZUSD — already deployed via azos.finance, reference via env var
         ERC20 azusdToken = ERC20(vm.envAddress("AZUSD_TOKEN"));
@@ -136,7 +136,7 @@ contract DeployAll is Script {
         FixedRateProvider rateProvider = new FixedRateProvider();
         console2.log("FixedRateProvider:", address(rateProvider));
 
-        // 10. SHIT multisig is set in constructor — no role transfers needed
+        // 10. SYM multisig is set in constructor — no role transfers needed
 
         // 11. TokenRegistry — deployer is initial admin, transfers to Safe after whitelisting
         TokenRegistry tokenRegistry = new TokenRegistry(msg.sender);
@@ -170,7 +170,7 @@ contract DeployAll is Script {
 
         console2.log("=== Phase 2: Kernel & Policies ===");
 
-        // 16. Kernel (SHIT Protocol V3) — executor stays as deployer until end of deployment
+        // 16. Kernel (SYM Protocol V3) — executor stays as deployer until end of deployment
         Kernel kernel = new Kernel();
         console2.log("Kernel:", address(kernel));
 
@@ -201,28 +201,28 @@ contract DeployAll is Script {
 
         console2.log("=== Phase 3: Oracle & Treasury ===");
 
-        // 20. ShitPriceFeed (Uniswap V3 TWAP) — implements IPriceFeed + ITwapPriceFeed
-        ShitPriceFeed priceFeed = new ShitPriceFeed(uniswapV3Pool, address(shitToken), address(treasuryPolicy), safe);
-        console2.log("ShitPriceFeed:", address(priceFeed));
+        // 20. SymbientPriceFeed (Uniswap V3 TWAP) — implements IPriceFeed + ITwapPriceFeed
+        SymbientPriceFeed priceFeed = new SymbientPriceFeed(uniswapV3Pool, address(shitToken), address(treasuryPolicy), safe);
+        console2.log("SymbientPriceFeed:", address(priceFeed));
 
-        // 20b. ShitStaking (stSHIT) — needs priceFeed and treasuryPolicy
-        ShitStaking staking = new ShitStaking(
+        // 20b. SymbientStaking (stSYM) — needs priceFeed and treasuryPolicy
+        SymbientStaking staking = new SymbientStaking(
             address(shitToken),
             address(priceFeed),
             address(treasuryPolicy),
             safe
         );
-        console2.log("ShitStaking (stSHIT):", address(staking));
+        console2.log("SymbientStaking (stSYM):", address(staking));
 
-        // 20c. WstSHIT (non-rebasing wrapper around stSHIT)
-        WstSHIT wstShit = new WstSHIT(address(staking));
-        console2.log("WstSHIT:", address(wstShit));
+        // 20c. WstSYM (non-rebasing wrapper around stSYM)
+        WstSYM wstSymbient = new WstSYM(address(staking));
+        console2.log("WstSYM:", address(wstSymbient));
 
-        // 20d. StakingAdapter — implements IStaking for SHIT Protocol Heart compatibility
+        // 20d. StakingAdapter — implements IStaking for SYM Protocol Heart compatibility
         StakingAdapter stakingAdapter = new StakingAdapter(
             address(shitToken),
             address(staking),
-            address(wstShit)
+            address(wstSymbient)
         );
         console2.log("StakingAdapter:", address(stakingAdapter));
 
@@ -230,9 +230,9 @@ contract DeployAll is Script {
 
         console2.log("=== Phase 4: Bonding ===");
 
-        // ShitInverseBond is protocol-specific (NAV-discount buyback)
-        ShitInverseBond inverseBond = new ShitInverseBond(address(shitToken), address(azusdToken), treasury, safe);
-        console2.log("ShitInverseBond:", address(inverseBond));
+        // SymbientInverseBond is protocol-specific (NAV-discount buyback)
+        SymbientInverseBond inverseBond = new SymbientInverseBond(address(shitToken), address(azusdToken), treasury, safe);
+        console2.log("SymbientInverseBond:", address(inverseBond));
 
         // Team vesting — handled via Hedgey Finance app (https://app.hedgey.finance/)
         // No on-chain deployment needed; team creates vesting plans through Hedgey's UI.
@@ -272,7 +272,7 @@ contract DeployAll is Script {
         console2.log("ImpactOracleAdapter:", address(impactOracle));
 
         // Deploy multi-collateral manager
-        ShitCollateralManager collateralManager = new ShitCollateralManager(
+        SymbientCollateralManager collateralManager = new SymbientCollateralManager(
             address(vat),
             address(spotter),
             address(dog),
@@ -282,7 +282,7 @@ contract DeployAll is Script {
             address(abacus),
             safe            // admin
         );
-        console2.log("ShitCollateralManager:", address(collateralManager));
+        console2.log("SymbientCollateralManager:", address(collateralManager));
 
         // Authorize manager in DSS
         vat.rely(address(collateralManager));
@@ -307,49 +307,49 @@ contract DeployAll is Script {
         console2.log("=== Phase 7b: System Safety ===");
 
         // Global Bucky depeg circuit breaker
-        ShitCircuitBreaker circuitBreaker = new ShitCircuitBreaker(safe);
+        SymbientCircuitBreaker circuitBreaker = new SymbientCircuitBreaker(safe);
         circuitBreaker.setBuckyToken(address(buckyToken));
         circuitBreaker.setPriceFeed(address(priceFeed));
-        console2.log("ShitCircuitBreaker:", address(circuitBreaker));
+        console2.log("SymbientCircuitBreaker:", address(circuitBreaker));
 
         // RBS wall defense budget — deployed in Phase 8 after Kernel and Operator
         // Dynamic bond pricer (ties discount to treasury growth ratio)
-        ShitBondPricer bondPricer = new ShitBondPricer(address(treasuryPolicy), safe);
-        console2.log("ShitBondPricer:", address(bondPricer));
+        SymbientBondPricer bondPricer = new SymbientBondPricer(address(treasuryPolicy), safe);
+        console2.log("SymbientBondPricer:", address(bondPricer));
 
-        console2.log("=== Phase 8: SHIT Protocol V3 Modules & Policies ===");
+        console2.log("=== Phase 8: SYM Protocol V3 Modules & Policies ===");
 
-        // 40. Install SHIT Protocol modules into Kernel
-        SHIT ProtocolRoles roles = new SHIT ProtocolRoles(kernel);
+        // 40. Install SYM Protocol modules into Kernel
+        SYM ProtocolRoles roles = new SYM ProtocolRoles(kernel);
         kernel.executeAction(Actions.InstallModule, address(roles));
-        console2.log("SHIT ProtocolRoles:", address(roles));
+        console2.log("SYM ProtocolRoles:", address(roles));
 
-        SHIT ProtocolMinter minter = new SHIT ProtocolMinter(kernel, address(shitToken));
+        SYM ProtocolMinter minter = new SYM ProtocolMinter(kernel, address(shitToken));
         kernel.executeAction(Actions.InstallModule, address(minter));
-        console2.log("SHIT ProtocolMinter:", address(minter));
+        console2.log("SYM ProtocolMinter:", address(minter));
 
-        SHIT ProtocolTreasury shitTreasury = new SHIT ProtocolTreasury(kernel);
+        SYM ProtocolTreasury shitTreasury = new SYM ProtocolTreasury(kernel);
         kernel.executeAction(Actions.InstallModule, address(shitTreasury));
-        console2.log("SHIT ProtocolTreasury:", address(shitTreasury));
+        console2.log("SYM ProtocolTreasury:", address(shitTreasury));
 
-        // Wire TreasuryValuation to read reserve balances from SHIT ProtocolTreasury
+        // Wire TreasuryValuation to read reserve balances from SYM ProtocolTreasury
         treasuryPolicy.setReserveTreasury(address(shitTreasury));
-        console2.log("TreasuryValuation wired to SHIT ProtocolTreasury");
+        console2.log("TreasuryValuation wired to SYM ProtocolTreasury");
 
-        // 40b. ShitPrice (fork of SHIT ProtocolPrice with TWAP)
-        ShitPrice shitPrice = new ShitPrice(
+        // 40b. SymbientPrice (fork of SYM ProtocolPrice with TWAP)
+        SymbientPrice shitPrice = new SymbientPrice(
             kernel,
             address(priceFeed),
             8 hours,               // observationFrequency = staking epoch length
             7 days,                // movingAverageDuration = 7 days
-            1e18,                  // minimumTargetPrice = 1.0 SHIT
+            1e18,                  // minimumTargetPrice = 1.0 SYM
             safe                   // multisig
         );
         kernel.executeAction(Actions.InstallModule, address(shitPrice));
-        console2.log("ShitPrice:", address(shitPrice));
+        console2.log("SymbientPrice:", address(shitPrice));
 
-        // 40c. SHIT ProtocolRange
-        SHIT ProtocolRange range = new SHIT ProtocolRange(
+        // 40c. SYM ProtocolRange
+        SYM ProtocolRange range = new SYM ProtocolRange(
             kernel,
             ERC20(address(shitToken)),
             azusdToken,
@@ -358,24 +358,24 @@ contract DeployAll is Script {
             [uint256(200), uint256(600)]    // highSpreads [cushion=2%, wall=6%]
         );
         kernel.executeAction(Actions.InstallModule, address(range));
-        console2.log("SHIT ProtocolRange:", address(range));
+        console2.log("SYM ProtocolRange:", address(range));
 
-        // 40d. ShitDistributor (bridges Heart → ShitStaking.rebase)
-        ShitDistributor distributor = new ShitDistributor(
-            address(staking),      // ShitStaking address (deployed in Phase 2 or separately)
+        // 40d. SymbientDistributor (bridges Heart → SymbientStaking.rebase)
+        SymbientDistributor distributor = new SymbientDistributor(
+            address(staking),      // SymbientStaking address (deployed in Phase 2 or separately)
             address(stakingAdapter) // StakingAdapter implementing IStaking
         );
-        console2.log("ShitDistributor:", address(distributor));
+        console2.log("SymbientDistributor:", address(distributor));
 
-        // 40e. SHIT ProtocolHeart
-        SHIT ProtocolHeart heart = new SHIT ProtocolHeart(
+        // 40e. SYM ProtocolHeart
+        SYM ProtocolHeart heart = new SYM ProtocolHeart(
             kernel,
             distributor,
-            1e18,                  // maxReward = 1 SHIT per beat
+            1e18,                  // maxReward = 1 SYM per beat
             4 hours                // auctionDuration
         );
         kernel.executeAction(Actions.ActivatePolicy, address(heart));
-        console2.log("SHIT ProtocolHeart:", address(heart));
+        console2.log("SYM ProtocolHeart:", address(heart));
 
         // 40f. BondCallback
         BondCallback bondCallback = new BondCallback(
@@ -392,7 +392,7 @@ contract DeployAll is Script {
             IBondSDA(bondAggregator),  // auctioneer = bond SDA
             IBondCallback(address(bondCallback)),
             [
-                address(shitToken),    // shit
+                address(shitToken),    // symbient
                 address(azusdToken),    // reserve
                 address(0),             // sReserve (no ERC4626 wrapper — use reserve directly)
                 address(0)              // oldReserve (none)
@@ -411,9 +411,9 @@ contract DeployAll is Script {
         kernel.executeAction(Actions.ActivatePolicy, address(operator));
         console2.log("Operator:", address(operator));
 
-        // 40h. ShitDefenseBudget — Kernel Policy + IPeriodicTask wrapping Operator.operate()
+        // 40h. SymbientDefenseBudget — Kernel Policy + IPeriodicTask wrapping Operator.operate()
         //      with per-epoch treasury spending limits
-        ShitDefenseBudget defenseBudget = new ShitDefenseBudget(
+        SymbientDefenseBudget defenseBudget = new SymbientDefenseBudget(
             kernel,
             address(operator),    // Operator — now available
             safe,                  // treasury
@@ -422,31 +422,31 @@ contract DeployAll is Script {
         );
         defenseBudget.updateLiquidTreasuryValue(1_000_000e18); // Initial, update post-deployment
         kernel.executeAction(Actions.ActivatePolicy, address(defenseBudget));
-        console2.log("ShitDefenseBudget:", address(defenseBudget));
+        console2.log("SymbientDefenseBudget:", address(defenseBudget));
 
         // 40i. Register DefenseBudget as periodic task on Heart and grant "heart" role
         //      The Heart calls execute() on each beat, which calls Operator.operate() with budget checks
         heart.addPeriodicTask(address(defenseBudget));
         console2.log("DefenseBudget registered as periodic task on Heart");
 
-        // 40j. Set authorized minter to SHIT ProtocolMinter (for MINTR.mintShit calls)
+        // 40j. Set authorized minter to SYM ProtocolMinter (for MINTR.mintSymbient calls)
         if (safe == msg.sender) {
             shitToken.setAuthorizedMinter(address(minter));
         } else {
             console2.log("POST-DEPLOY REQUIRED: call shitToken.setAuthorizedMinter(minter) via Safe");
         }
 
-        // 40i. RolesAdmin — standard SHIT Protocol policy for granting/revoking roles
+        // 40i. RolesAdmin — standard SYM Protocol policy for granting/revoking roles
         RolesAdmin rolesAdmin = new RolesAdmin(kernel);
         kernel.executeAction(Actions.ActivatePolicy, address(rolesAdmin));
         console2.log("RolesAdmin:", address(rolesAdmin));
 
-        // 40j. Emergency — standard SHIT Protocol emergency shutdown policy for MINTR/TRSRY
+        // 40j. Emergency — standard SYM Protocol emergency shutdown policy for MINTR/TRSRY
         Emergency emergency = new Emergency(kernel);
         kernel.executeAction(Actions.ActivatePolicy, address(emergency));
         console2.log("Emergency:", address(emergency));
 
-        // 40k. TreasuryCustodian — standard SHIT Protocol treasury management policy
+        // 40k. TreasuryCustodian — standard SYM Protocol treasury management policy
         TreasuryCustodian treasuryCustodian = new TreasuryCustodian(kernel);
         kernel.executeAction(Actions.ActivatePolicy, address(treasuryCustodian));
         console2.log("TreasuryCustodian:", address(treasuryCustodian));

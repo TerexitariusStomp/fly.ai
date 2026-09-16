@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useConnectedAddress } from "@/hooks/use-connected-address";
 import { useNavigate } from "react-router";
 import { cn } from "@/lib/utils";
-import { SHITLogo } from "@/components/shit-logo";
+import { SHITLogo } from "@/components/symbient-logo";
 import { scrollToSection } from "@/lib/navigation";
 import { FlyBrainDashboard } from "@/components/fly-brain-dashboard";
 import { BrainVisualization } from "@/components/brain-visualization";
@@ -167,7 +167,7 @@ export function ProductCard({
         <div
           className={cn(
             "size-9 rounded-full flex items-center justify-center text-lg overflow-hidden",
-            symbol === "SHIT" && "bg-green/20",
+            symbol === "SYM" && "bg-green/20",
             symbol === "BUCKY" && "bg-yellow/20",
             symbol === "RIDX" && "bg-blue/20",
           )}
@@ -261,7 +261,7 @@ export function ProtocolOverviewPage() {
             </h1>
             <div className="text-secondary-t mt-6 text-lg max-w-xl leading-relaxed space-y-3">
               <p>
-                Want to help the environment but don't know how? SHIT lets you put money into a
+                Want to help the environment but don't know how? SYM lets you put money into a
                 treasury backed by real, verified climate impact assets — solar farms, mangrove
                 restoration, soil carbon, and more. As the treasury earns from these assets, your
                 share grows automatically. It's a simple way to fund climate action while building
@@ -286,8 +286,8 @@ export function ProtocolOverviewPage() {
             </div>
           </div>
           <img
-            src="/pictures/shit/5h1t-poop.png"
-            alt="SHIT Protocol"
+            src="/pictures/symbient/sym-poop.png"
+            alt="SYM Protocol"
             className="hidden md:block w-full h-auto max-h-[420px] object-contain"
             loading="eager"
             data-reveal
@@ -330,15 +330,15 @@ export function ProtocolOverviewPage() {
           </h2>
           <div data-reveal>
             <p className="text-secondary-t text-lg max-w-xl leading-relaxed">
-              SHIT holds a shared pool of money — the treasury — and backs it with real, verified
+              SYM holds a shared pool of money — the treasury — and backs it with real, verified
               climate impact assets, not promises. The funds put in are used to buy and hold these
               assets, which earn yield from carbon credit sales, energy production, and ecosystem
               services.
             </p>
             <p className="text-secondary-t text-lg max-w-xl mt-4 leading-relaxed">
-              When you put money in, you get SHIT — your representative value of the shared
-              treasury. When the treasury earns, your piece grows automatically. Stake SHIT to
-              compound your returns; if you don't stake, your share slowly dilutes as new SHIT are
+              When you put money in, you get SYM — your representative value of the shared
+              treasury. When the treasury earns, your piece grows automatically. Stake SYM to
+              compound your returns; if you don't stake, your share slowly dilutes as new SYM are
               minted to stakers. Bonds, staking, borrowing — each is a different way to put that
               treasury to work for you.
             </p>
@@ -358,7 +358,7 @@ export function ProtocolOverviewPage() {
             {
               tag: "Bonds",
               title: "Buy bonds, fund the treasury",
-              desc: "When you buy a bond, you put assets (like USDC) into the treasury. In return, you get SHIT at a discount below the market value of SHIT. The bond vests over a fixed period, during which you gradually receive your discounted SHIT. The funds put in are used to buy and hold real climate impact assets.",
+              desc: "When you buy a bond, you put assets (like USDC) into the treasury. In return, you get SYM at a discount below the market value of SYM. The bond vests over a fixed period, during which you gradually receive your discounted SYM. The funds put in are used to buy and hold real climate impact assets.",
             },
             {
               tag: "Treasury",
@@ -368,7 +368,7 @@ export function ProtocolOverviewPage() {
             {
               tag: "Yield",
               title: "Climate impact assets earn yield",
-              desc: "These climate impact assets generate yield — from carbon credit sales, energy production, and ecosystem services. That yield flows back into the treasury, making each SHIT worth more over time.",
+              desc: "These climate impact assets generate yield — from carbon credit sales, energy production, and ecosystem services. That yield flows back into the treasury, making each SYM worth more over time.",
             },
           ].map((step, i) => (
             <div
@@ -466,7 +466,7 @@ export function ProtocolOverviewPage() {
             >
               <h3 className="font-serif text-xl mb-2">Token Registry</h3>
               <p className="text-base text-secondary-t">
-                Browse all verified impact tokens in the SHIT ecosystem.
+                Browse all verified impact tokens in the SYM ecosystem.
               </p>
             </a>
             <a
@@ -487,7 +487,7 @@ export function ProtocolOverviewPage() {
             <h3 className="font-serif text-lg mb-2">Why not just buy a climate impact asset directly?</h3>
             <p className="text-base text-secondary-t leading-relaxed">
               You can — but each asset has its own wallet, exchange, custody and verification
-              overhead. SHIT bundles many assets into one treasury, handles the vetting, and turns
+              overhead. SYM bundles many assets into one treasury, handles the vetting, and turns
               the yield into a single share.
             </p>
           </div>
@@ -502,30 +502,30 @@ export function ProtocolOverviewPage() {
           <div className="border border-a10-b rounded-2xl bg-surface-bg-l2 p-6">
             <h3 className="font-serif text-lg mb-2">Does this take from impact organizations?</h3>
             <p className="text-base text-secondary-t leading-relaxed">
-              No. SHIT is a buyer and liquidity provider. The protocol purchases tokens at market
+              No. SYM is a buyer and liquidity provider. The protocol purchases tokens at market
               price and holds them in the treasury, sending more capital to the projects, not less.
             </p>
           </div>
         </div>
       </SectionWrapper>
 
-      {/* Crypto negatives & how SHIT offsets them */}
+      {/* Crypto negatives & how SYM offsets them */}
       <SectionWrapper id="sustainability" className={cn("py-20 border-t border-a10-b", !isStepActive("sustainability") && "hidden")}>
         <SectionHead
           kicker="Honest about our footprint"
-          title="SHIT's environmental footprint — and how we offset it"
-          subtitle="Every blockchain transaction uses energy. We measure SHIT's actual footprint on Base and offset it through treasury-backed climate impact assets."
+          title="SYM's environmental footprint — and how we offset it"
+          subtitle="Every blockchain transaction uses energy. We measure SYM's actual footprint on Base and offset it through treasury-backed climate impact assets."
         />
         <div className="grid md:grid-cols-2 gap-8 mt-8" data-reveal>
           <div className="border border-a10-b rounded-2xl bg-surface-bg-l2 p-6">
-            <h3 className="font-serif text-lg mb-4 text-red">SHIT's footprint on Base</h3>
+            <h3 className="font-serif text-lg mb-4 text-red">SYM's footprint on Base</h3>
             <ul className="space-y-3 text-base text-secondary-t leading-relaxed">
               <li className="flex items-start gap-2">
                 <span className="text-red mt-0.5">●</span>
                 <span>
                   <strong className="text-primary-t">Base's energy use:</strong> Base is a Layer-2 rollup on Ethereum. It uses
                   proof-of-stake, not proof-of-work, so per-transaction energy is tiny — but not
-                  zero. Every SHIT transfer, bond purchase, and staking action consumes a small
+                  zero. Every SYM transfer, bond purchase, and staking action consumes a small
                   amount of energy on Base sequencers and Ethereum's consensus layer.
                 </span>
               </li>
@@ -533,7 +533,7 @@ export function ProtocolOverviewPage() {
                 <span className="text-red mt-0.5">●</span>
                 <span>
                   <strong className="text-primary-t">Sequencer reliance:</strong> Base currently relies on a centralized
-                  sequencer operated by Coinbase. This means SHIT's transactions depend on
+                  sequencer operated by Coinbase. This means SYM's transactions depend on
                   infrastructure that has its own energy footprint from data centers.
                 </span>
               </li>
@@ -548,14 +548,14 @@ export function ProtocolOverviewPage() {
                 <span className="text-red mt-0.5">●</span>
                 <span>
                   <strong className="text-primary-t">Net footprint:</strong> While far smaller than proof-of-work chains,
-                  SHIT's cumulative activity still has a measurable energy and carbon footprint
+                  SYM's cumulative activity still has a measurable energy and carbon footprint
                   that we take responsibility for.
                 </span>
               </li>
             </ul>
           </div>
           <div className="border border-a10-b rounded-2xl bg-surface-bg-l2 p-6">
-            <h3 className="font-serif text-lg mb-4 text-green">How SHIT offsets it</h3>
+            <h3 className="font-serif text-lg mb-4 text-green">How SYM offsets it</h3>
             <ul className="space-y-3 text-base text-secondary-t leading-relaxed">
               <li className="flex items-start gap-2">
                 <span className="text-green mt-0.5">●</span>
@@ -573,7 +573,7 @@ export function ProtocolOverviewPage() {
                 <span>
                   <strong className="text-primary-t">Net-positive by design:</strong> The carbon removed by treasury-backed
                   projects — reforestation, solar generation, soil sequestration — far exceeds the
-                  energy used by SHIT's own on-chain activity on Base.
+                  energy used by SYM's own on-chain activity on Base.
                 </span>
               </li>
               <li className="flex items-start gap-2">
@@ -589,19 +589,19 @@ export function ProtocolOverviewPage() {
         </div>
       </SectionWrapper>
 
-      {/* Products — SHIT + CTA combined */}
+      {/* Products — SYM + CTA combined */}
       <SectionWrapper id="products" className={cn("py-20 border-t border-a10-b", !isStepActive("products") && "hidden")}>
         <SectionHead
           title="The token"
-          subtitle="SHIT is the representative value of the shared treasury. Its value comes from the treasury's real reserves — not from hype or a peg. Stake it to compound your returns automatically. If you don't stake, your share slowly dilutes over time as new SHIT are minted to reward stakers."
+          subtitle="SYM is the representative value of the shared treasury. Its value comes from the treasury's real reserves — not from hype or a peg. Stake it to compound your returns automatically. If you don't stake, your share slowly dilutes over time as new SYM are minted to reward stakers."
         />
         <div className="grid md:grid-cols-2 gap-4">
           <ProductCard
-            icon="/pictures/shit/5h1t-poop.png"
-            symbol="SHIT"
-            name="SHIT"
+            icon="/pictures/symbient/sym-poop.png"
+            symbol="SYM"
+            name="SYM"
             tagline="Your share of the treasury"
-            description="Connect your wallet to see your balance, start staking, and watch your share of the treasury grow. Don't leave your SHIT unstaked — your value dilutes over time if you do."
+            description="Connect your wallet to see your balance, start staking, and watch your share of the treasury grow. Don't leave your SYM unstaked — your value dilutes over time if you do."
             details={{
               rows: [
                 { label: "Backed by", value: "Treasury reserves" },
@@ -619,9 +619,9 @@ export function ProtocolOverviewPage() {
                 "linear-gradient(135deg, rgba(72, 187, 120, 0.14), rgba(234, 179, 8, 0.10)), var(--surface-bg-l2)",
             }}
           >
-            <h3 className="font-serif text-2xl md:text-3xl font-medium">Ready to put down shit?</h3>
+            <h3 className="font-serif text-2xl md:text-3xl font-medium">Ready to put down symbient?</h3>
             <p className="text-secondary-t mt-3 text-base max-w-sm leading-relaxed">
-              Start staking your SHIT to compound your returns automatically.
+              Start staking your SYM to compound your returns automatically.
             </p>
             <div className="flex gap-3 mt-6 flex-wrap">
               <a
@@ -692,12 +692,12 @@ export function ProtocolOverviewPage() {
           <div>
             <div className="flex items-center gap-2 font-serif text-base">
               <SHITLogo className="size-6" />
-              SHIT
+              SYM
             </div>
             <p className="text-secondary-t text-sm max-w-sm mt-2.5"></p>
             <div className="flex gap-3 mt-4">
               <a
-                href="https://matrix.to/#/#shit-finance:matrix.org"
+                href="https://matrix.to/#/#symbient-finance:matrix.org"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 font-mono text-xs text-secondary-t border border-a20-b px-3 py-1.5 rounded-full hover:border-yellow hover:text-yellow transition-colors"
@@ -737,17 +737,17 @@ export function ProtocolOverviewPage() {
           </div>
         </div>
         <div className="border-t border-a10-b mt-8 pt-4 font-mono text-xs text-secondary-t">
-          SHIT Protocol — testnet preview
+          SYM Protocol — testnet preview
         </div>
         <div className="border-t border-a10-b mt-4 pt-4 text-xs text-tertiary-t max-w-3xl leading-relaxed">
           <p>
-            <strong className="text-secondary-t">Disclaimer:</strong> SHIT Protocol is a decentralized protocol. SHIT is a utility token that represents a share of the protocol treasury — it is not a security, investment contract, or financial instrument. Nothing on this site constitutes financial advice, investment recommendations, or an offer to sell or solicit securities. Token values can go up or down. Staking rewards are not guaranteed and depend on protocol revenue. Always do your own research and consult a qualified professional before participating. SHIT Protocol is not liable for any losses incurred through use of the protocol.
+            <strong className="text-secondary-t">Disclaimer:</strong> SYM Protocol is a decentralized protocol. SYM is a utility token that represents a share of the protocol treasury — it is not a security, investment contract, or financial instrument. Nothing on this site constitutes financial advice, investment recommendations, or an offer to sell or solicit securities. Token values can go up or down. Staking rewards are not guaranteed and depend on protocol revenue. Always do your own research and consult a qualified professional before participating. SYM Protocol is not liable for any losses incurred through use of the protocol.
           </p>
         </div>
         <div className="w-full flex justify-center mt-8">
           <img
-            src="/shit-banner-nobg.png"
-            alt="SHIT Protocol"
+            src="/symbient-banner-nobg.png"
+            alt="SYM Protocol"
             className="max-w-2xl w-full h-auto object-contain"
             loading="lazy"
           />

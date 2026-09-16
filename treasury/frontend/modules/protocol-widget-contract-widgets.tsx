@@ -14,7 +14,7 @@ import {
   SHIT_INVERSE_BOND_ABI,
   SHIT_TREASURY_POLICY_ABI,
   SHIT_PRICE_FEED_ABI,
-} from "@/abis/ShitContracts";
+} from "@/abis/SymbientContracts";
 
 function formatUsd(val: bigint | undefined): string {
   if (!val) return "--";
@@ -65,10 +65,10 @@ export function TreasuryMetricsWidget() {
     query: { enabled: !!treasuryPolicy },
   });
 
-  const { data: navPerShit } = useReadContract({
+  const { data: navPerSymbient } = useReadContract({
     address: treasuryPolicy,
     abi: SHIT_TREASURY_POLICY_ABI,
-    functionName: "navPerShit",
+    functionName: "navPerSymbient",
     query: { enabled: !!treasuryPolicy },
   });
 
@@ -91,8 +91,8 @@ export function TreasuryMetricsWidget() {
   const metrics = [
     { label: "Risk-Free Value (Floor backing)", value: `$${formatUsd(rfv)}` },
     { label: "Net Asset Value (Full value)", value: `$${formatUsd(nav)}` },
-    { label: "Floor price / SHIT", value: `$${formatUsd(floorPrice)}` },
-    { label: "Net Asset Value per SHIT", value: `$${formatUsd(navPerShit)}` },
+    { label: "Floor price / SYM", value: `$${formatUsd(floorPrice)}` },
+    { label: "Net Asset Value per SYM", value: `$${formatUsd(navPerSymbient)}` },
   ];
 
   return (
@@ -120,7 +120,7 @@ export function InverseBondWidget() {
   const chainId = useChainId();
   const { address } = useAccount();
   const inverseBond = getContractAddress(ContractName.SHIT_INVERSE_BOND, chainId);
-  const shitAddress = TOKENS[TokenName.SHIT].addresses[chainId] ?? "0x0";
+  const shitAddress = TOKENS[TokenName.SYM].addresses[chainId] ?? "0x0";
   const [amount, setAmount] = useState("");
   const [pending, setPending] = useState(false);
   const { writeContractAsync } = usePrivyWriteContract();
@@ -146,10 +146,10 @@ export function InverseBondWidget() {
     query: { enabled: !!inverseBond },
   });
 
-  const { data: navPerShit } = useReadContract({
+  const { data: navPerSymbient } = useReadContract({
     address: inverseBond,
     abi: SHIT_INVERSE_BOND_ABI,
-    functionName: "navPerShit",
+    functionName: "navPerSymbient",
     query: { enabled: !!inverseBond },
   });
 
@@ -157,7 +157,7 @@ export function InverseBondWidget() {
   const { allowance } = useTokenAllowance(shitAddress, address, inverseBond ?? "0x0");
   const { approve, isPending: approvePending } = useTokenApproval();
 
-  const shitDecimals = TOKENS[TokenName.SHIT].decimals;
+  const shitDecimals = TOKENS[TokenName.SYM].decimals;
   const parsedAmount = BigInt(amount || "0") * BigInt(10 ** shitDecimals);
   const needsApproval = allowance !== undefined && allowance < parsedAmount;
 
@@ -193,7 +193,7 @@ export function InverseBondWidget() {
     <Card className="p-6">
       <h3 className="font-serif text-lg mb-1">Inverse bond — sell & burn</h3>
       <p className="text-sm text-secondary-t mb-4">
-        Sell SHIT at Net Asset Value minus 1.5% spread. Received SHIT are burned forever, reducing supply.
+        Sell SYM at Net Asset Value minus 1.5% spread. Received SYM are burned forever, reducing supply.
       </p>
 
       <div className="grid grid-cols-3 gap-4 mb-4">
@@ -202,8 +202,8 @@ export function InverseBondWidget() {
           <p className="text-sm font-medium mt-1">${formatUsd(bondPrice)}</p>
         </div>
         <div>
-          <p className="text-xs text-tertiary-t uppercase tracking-wide">Net Asset Value / SHIT</p>
-          <p className="text-sm font-medium mt-1">${formatUsd(navPerShit)}</p>
+          <p className="text-xs text-tertiary-t uppercase tracking-wide">Net Asset Value / SYM</p>
+          <p className="text-sm font-medium mt-1">${formatUsd(navPerSymbient)}</p>
         </div>
         <div>
           <p className="text-xs text-tertiary-t uppercase tracking-wide">Epoch capacity left</p>
@@ -211,7 +211,7 @@ export function InverseBondWidget() {
         </div>
       </div>
 
-      <label className="block text-xs font-medium mb-1">SHIT amount</label>
+      <label className="block text-xs font-medium mb-1">SYM amount</label>
       <input
         type="number"
         value={amount}
@@ -222,7 +222,7 @@ export function InverseBondWidget() {
       />
       {balance !== undefined && (
         <p className="text-xs text-tertiary-t mb-4">
-          Balance: {formatToken(balance, shitDecimals)} SHIT
+          Balance: {formatToken(balance, shitDecimals)} SYM
         </p>
       )}
 
@@ -239,7 +239,7 @@ export function InverseBondWidget() {
             onClick={handleApprove}
             disabled={pending || approvePending}
           >
-            {pending || approvePending ? "Approving..." : "Approve SHIT"}
+            {pending || approvePending ? "Approving..." : "Approve SYM"}
           </Button>
         )}
         <Button
@@ -247,7 +247,7 @@ export function InverseBondWidget() {
           onClick={handleSell}
           disabled={pending || !amount || parseFloat(amount) <= 0}
         >
-          {pending ? "Processing..." : "Sell & Burn SHIT"}
+          {pending ? "Processing..." : "Sell & Burn SYM"}
         </Button>
       </div>
     </Card>
@@ -259,7 +259,7 @@ export function FloorHookWidget() {
   const chainId = useChainId();
   const { address } = useAccount();
   const marketFactory = getContractAddress(ContractName.MARKET_FACTORY, chainId);
-  const shitAddress = TOKENS[TokenName.SHIT].addresses[chainId] ?? "0x0";
+  const shitAddress = TOKENS[TokenName.SYM].addresses[chainId] ?? "0x0";
   const [selectedPool, setSelectedPool] = useState<`0x${string}` | undefined>();
   const [amount, setAmount] = useState("");
   const [pending, setPending] = useState(false);
@@ -336,10 +336,10 @@ export function FloorHookWidget() {
     query: { enabled: !!floorHookAddress },
   });
 
-  const { data: hookShitBalance } = useReadContract({
+  const { data: hookSymbientBalance } = useReadContract({
     address: floorHookAddress,
     abi: [] as const,
-    functionName: "hookShitBalance",
+    functionName: "hookSymbientBalance",
     query: { enabled: !!floorHookAddress },
   });
 
@@ -347,7 +347,7 @@ export function FloorHookWidget() {
   const { allowance } = useTokenAllowance(shitAddress, address, floorHookAddress ?? "0x0");
   const { approve, isPending: approvePending } = useTokenApproval();
 
-  const shitDecimals = TOKENS[TokenName.SHIT].decimals;
+  const shitDecimals = TOKENS[TokenName.SYM].decimals;
   const parsedAmount = BigInt(amount || "0") * BigInt(10 ** shitDecimals);
   const needsApproval = !allowance || allowance < parsedAmount;
 
@@ -385,7 +385,7 @@ export function FloorHookWidget() {
     <Card className="p-6">
       <h3 className="font-serif text-lg mb-1">Floor redemption</h3>
       <p className="text-sm text-secondary-t mb-4">
-        Redeem SHIT at the monotone floor price (1% fee). SHIT are burned, USDC paid from floor
+        Redeem SYM at the monotone floor price (1% fee). SYM are burned, USDC paid from floor
         reserve.
       </p>
 
@@ -427,11 +427,11 @@ export function FloorHookWidget() {
 
           <div className="mb-4">
             <p className="text-xs text-tertiary-t">
-              SHIT absorbed by hook: {formatToken(hookShitBalance, shitDecimals)}
+              SYM absorbed by hook: {formatToken(hookSymbientBalance, shitDecimals)}
             </p>
           </div>
 
-          <label className="block text-xs font-medium mb-1">SHIT to redeem</label>
+          <label className="block text-xs font-medium mb-1">SYM to redeem</label>
           <input
             type="number"
             value={amount}
@@ -442,7 +442,7 @@ export function FloorHookWidget() {
           />
           {balance !== undefined && (
             <p className="text-xs text-tertiary-t mb-4">
-              Balance: {formatToken(balance, shitDecimals)} SHIT
+              Balance: {formatToken(balance, shitDecimals)} SYM
             </p>
           )}
 
@@ -459,7 +459,7 @@ export function FloorHookWidget() {
                 onClick={handleApprove}
                 disabled={pending || approvePending}
               >
-                {pending || approvePending ? "Approving..." : "Approve SHIT"}
+                {pending || approvePending ? "Approving..." : "Approve SYM"}
               </Button>
             )}
             <Button
@@ -896,7 +896,7 @@ export function BurnerWidget() {
   const chainId = useChainId();
   const { address } = useAccount();
   const burner = getContractAddress(ContractName.SHIT_BURNER, chainId);
-  const shitAddress = TOKENS[TokenName.SHIT].addresses[chainId] ?? "0x0";
+  const shitAddress = TOKENS[TokenName.SYM].addresses[chainId] ?? "0x0";
   const [amount, setAmount] = useState("");
   const [pending, setPending] = useState(false);
   const { writeContractAsync } = usePrivyWriteContract();
@@ -912,7 +912,7 @@ export function BurnerWidget() {
   const { allowance } = useTokenAllowance(shitAddress, address, burner ?? "0x0");
   const { approve, isPending: approvePending } = useTokenApproval();
 
-  const shitDecimals = TOKENS[TokenName.SHIT].decimals;
+  const shitDecimals = TOKENS[TokenName.SYM].decimals;
   const parsedAmount = BigInt(amount || "0") * BigInt(10 ** shitDecimals);
   const needsApproval = allowance !== undefined && allowance < parsedAmount;
 
@@ -928,7 +928,7 @@ export function BurnerWidget() {
       await writeContractAsync({
         address: burner,
         abi: [] as const,
-        functionName: "burnShit",
+        functionName: "burnSymbient",
         args: [parsedAmount],
       });
       setAmount("");
@@ -941,9 +941,9 @@ export function BurnerWidget() {
 
   return (
     <Card className="p-6">
-      <h3 className="font-serif text-lg mb-1">SHIT burner</h3>
+      <h3 className="font-serif text-lg mb-1">SYM burner</h3>
       <p className="text-sm text-secondary-t mb-4">
-        Permanently burn SHIT tokens. Reduces total supply, increases floor price for all holders.
+        Permanently burn SYM tokens. Reduces total supply, increases floor price for all holders.
       </p>
 
       <div className="mb-4">
@@ -951,12 +951,12 @@ export function BurnerWidget() {
         <NumberFlow
           value={totalBurned ? Number(totalBurned) / Number(10n ** BigInt(shitDecimals)) : 0}
           format={{ maximumFractionDigits: 2 }}
-          suffix=" SHIT"
+          suffix=" SYM"
           className="text-lg font-semibold"
         />
       </div>
 
-      <label className="block text-xs font-medium mb-1">SHIT to burn</label>
+      <label className="block text-xs font-medium mb-1">SYM to burn</label>
       <input
         type="number"
         value={amount}
@@ -967,7 +967,7 @@ export function BurnerWidget() {
       />
       {balance !== undefined && (
         <p className="text-xs text-tertiary-t mb-4">
-          Balance: {formatToken(balance, shitDecimals)} SHIT
+          Balance: {formatToken(balance, shitDecimals)} SYM
         </p>
       )}
 
@@ -979,7 +979,7 @@ export function BurnerWidget() {
             onClick={handleApprove}
             disabled={pending || approvePending}
           >
-            {pending || approvePending ? "Approving..." : "Approve SHIT"}
+            {pending || approvePending ? "Approving..." : "Approve SYM"}
           </Button>
         )}
         <Button
@@ -987,7 +987,7 @@ export function BurnerWidget() {
           onClick={handleBurn}
           disabled={pending || !amount || parseFloat(amount) <= 0}
         >
-          {pending ? "Processing..." : "Burn SHIT"}
+          {pending ? "Processing..." : "Burn SYM"}
         </Button>
       </div>
     </Card>
@@ -1019,7 +1019,7 @@ export function MarketFactoryWidget() {
     <Card className="p-6">
       <h3 className="font-serif text-lg mb-1">Impact token markets</h3>
       <p className="text-sm text-secondary-t mb-4">
-        Uniswap V4 hook-based markets pairing SHIT with impact tokens.
+        Uniswap V4 hook-based markets pairing SYM with impact tokens.
       </p>
       <div className="mb-4">
         <p className="text-xs text-tertiary-t uppercase tracking-wide">Active markets</p>

@@ -140,7 +140,7 @@ export default [
   },
   {
     inputs: [],
-    name: "gSHIT",
+    name: "gSYM",
     outputs: [{ internalType: "address", name: "gSHIT_", type: "address" }],
     stateMutability: "view",
     type: "function",

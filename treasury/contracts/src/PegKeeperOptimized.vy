@@ -2,7 +2,7 @@
 """
 @title Zap for Curve Factory
 @license AGPL-3.0-only
-@author Curve.Fi, adapted by SHIT Protocol
+@author Curve.Fi, adapted by SYM Protocol
 @notice Peg Keeper for pool with equal decimals of coins
 """
 

@@ -57,7 +57,7 @@ const BondPage = lazy(() =>
 );
 
 const WrapPage = lazy(() =>
-  retryLazy(() => import("@/modules/shit-wrap-page")).then((m) => ({
+  retryLazy(() => import("@/modules/symbient-wrap-page")).then((m) => ({
     default: m.WrapPage,
   })),
 );
@@ -80,14 +80,14 @@ const UnifiedDashboardPage = lazy(() =>
   })),
 );
 
-const FiveHitOverviewPage = lazy(() =>
-  retryLazy(() => import("@/modules/5h1t-overview-page")).then((m) => ({ default: m.FiveHitOverviewPage })),
+const SymOverviewPage = lazy(() =>
+  retryLazy(() => import("@/modules/sym-overview-page")).then((m) => ({ default: m.SymOverviewPage })),
 );
-const FiveHitTradersPage = lazy(() =>
-  retryLazy(() => import("@/modules/5h1t-traders-page")).then((m) => ({ default: m.FiveHitTradersPage })),
+const SymTradersPage = lazy(() =>
+  retryLazy(() => import("@/modules/sym-traders-page")).then((m) => ({ default: m.SymTradersPage })),
 );
-const FiveHitTreasuryPage = lazy(() =>
-  retryLazy(() => import("@/modules/5h1t-treasury-page")).then((m) => ({ default: m.FiveHitTreasuryPage })),
+const SymTreasuryPage = lazy(() =>
+  retryLazy(() => import("@/modules/sym-treasury-page")).then((m) => ({ default: m.SymTreasuryPage })),
 );
 
 const withSuspense = (element: React.ReactNode) => (
@@ -100,9 +100,9 @@ export const router = createHashRouter([
     Component: AppLayout,
     errorElement: <RouteErrorElement />,
     children: [
-      { index: true, element: withSuspense(<FiveHitOverviewPage />) },
-      { path: "traders", element: withSuspense(<FiveHitTradersPage />) },
-      { path: "treasury", element: withSuspense(<FiveHitTreasuryPage />) },
+      { index: true, element: withSuspense(<SymOverviewPage />) },
+      { path: "traders", element: withSuspense(<SymTradersPage />) },
+      { path: "treasury", element: withSuspense(<SymTreasuryPage />) },
       { path: "verify", element: withSuspense(<VerifyPage />) },
       { path: "contracts", element: withSuspense(<ContractsPage />) },
       { path: "whitepaper", element: withSuspense(<WhitepaperPage />) },

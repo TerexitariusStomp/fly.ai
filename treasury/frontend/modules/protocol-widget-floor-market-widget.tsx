@@ -58,7 +58,7 @@ export function FloorMarketDashboardWidget() {
   const readChainId = isTestnetMode ? baseSepolia.id : base.id;
   const marketFactory = getContractAddress(ContractName.MARKET_FACTORY, chainId);
   const burnerAddr = getContractAddress(ContractName.SHIT_BURNER, chainId);
-  const shitAddress = (TOKENS[TokenName.SHIT].addresses[readChainId] ?? "0x0") as `0x${string}`;
+  const shitAddress = (TOKENS[TokenName.SYM].addresses[readChainId] ?? "0x0") as `0x${string}`;
 
   const { data: activeCount } = useReadContract({
     address: marketFactory,
@@ -94,7 +94,7 @@ export function FloorMarketDashboardWidget() {
           <div className="text-xs font-mono truncate">{burnerAddr ?? "Not deployed"}</div>
         </div>
         <div className="space-y-1">
-          <div className="text-xs text-muted-foreground">SHIT Pool</div>
+          <div className="text-xs text-muted-foreground">SYM Pool</div>
           <div className="text-xs font-mono truncate">{shitFloorHook ? `${shitFloorHook.slice(0, 8)}...${shitFloorHook.slice(-6)}` : "Not created"}</div>
         </div>
       </div>
@@ -107,7 +107,7 @@ export function FloorMarketDashboardWidget() {
       </div>
 
       <div className="space-y-2">
-        <div className="text-xs font-medium text-muted-foreground">Floor Prices — All Impact Tokens & SHIT</div>
+        <div className="text-xs font-medium text-muted-foreground">Floor Prices — All Impact Tokens & SYM</div>
         <div className="grid grid-cols-4 gap-2 px-3 py-2 text-xs font-medium text-tertiary-t uppercase tracking-wide">
           <div>Token</div>
           <div>Floor Price</div>
@@ -115,7 +115,7 @@ export function FloorMarketDashboardWidget() {
           <div>Band Reserve</div>
         </div>
         <div className="space-y-1">
-          <FloorRow label="SHIT" poolAddress={shitFloorHook} />
+          <FloorRow label="SYM" poolAddress={shitFloorHook} />
           {IMPACT_TOKENS.map((token) => {
             const tokenAddr = getImpactTokenAddress(token, readChainId) as `0x${string}` | undefined;
             if (!tokenAddr || !marketFactory) return null;

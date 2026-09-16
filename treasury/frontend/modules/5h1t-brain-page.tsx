@@ -1,10 +1,10 @@
 /**
- * 5H1T Brain Page — real 3D connectome visualization.
+ * SYM Brain Page — real 3D connectome visualization.
  * Shows actual neuron positions, synapses, and motor group decision tree
  * (BUY/SELL/HOLD) for each species. Fetches brain data from R2 via API.
  */
 import { useState, useEffect } from "react";
-import { useApi, type Connectome, type Signal } from "@/lib/5h1t-api";
+import { useApi, type Connectome, type Signal } from "@/lib/sym-api";
 import { ConnectomeViewer3D, type BrainData } from "@/components/connectome-viewer-3d";
 
 const API_BASE = import.meta.env.VITE_SHIT_UNITS_API_ENDPOINT ?? "https://api-worker.YOUR-SUBDOMAIN.workers.dev";
@@ -28,7 +28,7 @@ const SPECIES_NAMES: Record<string, string> = {
   rat: "R. norvegicus (Rat)",
 };
 
-export function FiveHitBrainPage() {
+export function SymBrainPage() {
   const { data: connectomes } = useApi<Connectome[]>("/api/connectomes");
   const { data: signals } = useApi<Signal[]>("/api/signals");
   const [selectedId, setSelectedId] = useState<string>("celegans");

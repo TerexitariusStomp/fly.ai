@@ -1,6 +1,6 @@
 @openzeppelin/=lib/openzeppelin/
 @createx/=lib/createx/
-@shit-v3/=lib/shit-v3/src/
+@sym-v3/=lib/sym-v3/src/
 @bond-protocol/=lib/bond-protocol/src/
 forge-std/=lib/forge-std/src/
 solmate/=lib/bond-protocol/lib/solmate/src/

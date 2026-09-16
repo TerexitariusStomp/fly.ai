@@ -20,13 +20,13 @@ import { TokenName, getTokenAddress } from "@/lib/tokens";
 import { formatTokenDisplay } from "@/lib/math";
 import type { MigrationClaim } from "@/hooks/use-migration-claim";
 
-interface MigrateShitModalProps {
+interface MigrateSymbientModalProps {
   isOpen: boolean;
   onClose: () => void;
   claim: MigrationClaim;
   /** Remaining allocation = allocated − already migrated (raw, 9 decimals). */
   remaining: bigint;
-  /** The migrator's global remaining SHIT v2 mint approval (raw, 9 decimals). The
+  /** The migrator's global remaining SYM v2 mint approval (raw, 9 decimals). The
    * contract reverts with CapExceeded when the converted output exceeds this. */
   remainingMintApproval?: bigint;
 }
@@ -37,17 +37,17 @@ function bigMin(a: bigint, b: bigint): bigint {
   return a < b ? a : b;
 }
 
-function formatShit(value: bigint): string {
+function formatSymbient(value: bigint): string {
   return formatTokenDisplay(value, SHIT_DECIMALS, { digits: 4 });
 }
 
-export function MigrateShitModal({
+export function MigrateSymbientModal({
   isOpen,
   onClose,
   claim,
   remaining,
   remainingMintApproval,
-}: MigrateShitModalProps) {
+}: MigrateSymbientModalProps) {
   const { address } = useConnectedAddress();
   const chainId = useChainId();
   const [amount, setAmount] = useState("");
@@ -57,8 +57,8 @@ export function MigrateShitModal({
   const shitV1Address = getTokenAddress(TokenName.V1_SHIT, chainId);
 
   const v1Token = useToken(TokenName.V1_SHIT, address);
-  const shitToken = useToken(TokenName.SHIT);
-  // V1 SHIT has no price feed; show value using the SHIT v2 price.
+  const shitToken = useToken(TokenName.SYM);
+  // V1 SYM has no price feed; show value using the SYM v2 price.
   const inputToken = useMemo(
     () => ({ ...v1Token, price: shitToken.price }),
     [v1Token, shitToken.price],
@@ -77,7 +77,7 @@ export function MigrateShitModal({
   }, [amount]);
 
   const { shitV2Out } = usePreviewMigrate(amountBigInt);
-  const receiveAmount = shitV2Out !== undefined ? formatShit(shitV2Out) : "0";
+  const receiveAmount = shitV2Out !== undefined ? formatSymbient(shitV2Out) : "0";
 
   const { allowance, queryKey } = useTokenAllowance(shitV1Address ?? zeroAddress, address, migrator);
   const hasSufficientAllowance = allowance !== undefined && allowance >= amountBigInt;
@@ -104,9 +104,9 @@ export function MigrateShitModal({
   const inputButton = useMemo(() => {
     if (!address) return { disabled: true, label: "Sign In" };
     if (!amount || amountBigInt === 0n) return { disabled: true, label: "Enter Amount" };
-    if (amountBigInt > balance) return { disabled: true, label: "Insufficient SHIT v1 Balance" };
+    if (amountBigInt > balance) return { disabled: true, label: "Insufficient SYM v1 Balance" };
     if (amountBigInt > remaining) return { disabled: true, label: "Exceeds Allocation" };
-    // The migrator reverts with CapExceeded when the converted SHIT v2 output exceeds
+    // The migrator reverts with CapExceeded when the converted SYM v2 output exceeds
     // its global remaining mint approval — block that here instead of on-chain.
     if (
       remainingMintApproval !== undefined &&
@@ -115,7 +115,7 @@ export function MigrateShitModal({
     ) {
       return { disabled: true, label: "Exceeds Migrator Capacity" };
     }
-    return { disabled: false, label: "Migrate to SHIT v2" };
+    return { disabled: false, label: "Migrate to SYM v2" };
   }, [address, amount, amountBigInt, balance, remaining, remainingMintApproval, shitV2Out]);
 
   const handleMax = () => setAmount(formatUnits(maxMigratable, SHIT_DECIMALS));
@@ -152,7 +152,7 @@ export function MigrateShitModal({
   const steps: TransactionStep[] = [
     {
       number: 1,
-      title: "Approve SHIT v1",
+      title: "Approve SYM v1",
       isActive: currentStep === 1,
       isCompleted: currentStep > 1,
       isLoading: currentStep === 1 && isApproving,
@@ -160,8 +160,8 @@ export function MigrateShitModal({
     },
     {
       number: 2,
-      title: "Migrate to SHIT v2",
-      badges: [{ label: `-${amount} SHIT v1` }, { label: `+${receiveAmount} SHIT v2` }],
+      title: "Migrate to SYM v2",
+      badges: [{ label: `-${amount} SYM v1` }, { label: `+${receiveAmount} SYM v2` }],
       isActive: currentStep === 2,
       isCompleted: migrateSuccess,
       isLoading: currentStep === 2 && isMigrating,
@@ -188,12 +188,12 @@ export function MigrateShitModal({
       <TransactionStepperDialog
         isOpen={isOpen}
         onClose={handleClose}
-        title="Migrate SHIT v1 → v2"
+        title="Migrate SYM v1 → v2"
         currentStep={currentStep}
         steps={steps}
         showBusyNotice={currentStep === 2 && isMigrating}
         button={{
-          label: currentStep === 2 ? "Migrate to SHIT v2" : "Approve SHIT v1",
+          label: currentStep === 2 ? "Migrate to SYM v2" : "Approve SYM v1",
           busyLabel: isApproving
             ? "Confirming Approval In Your Wallet"
             : "Confirming Migration In Your Wallet",
@@ -210,7 +210,7 @@ export function MigrateShitModal({
       <DialogContent className="w-full sm:max-w-md mx-auto p-6 gap-4">
         <DialogHeader className="text-center !gap-2">
           <DialogTitle className="text-[20px]/[24px] font-semibold text-primary-t">
-            Migrate SHIT v1 → v2
+            Migrate SYM v1 → v2
           </DialogTitle>
         </DialogHeader>
 
@@ -219,12 +219,12 @@ export function MigrateShitModal({
           <div className="flex justify-between">
             <span className="text-secondary-t">Total allocation</span>
             <span className="font-semibold text-primary-t">
-              {formatShit(claim.allocatedAmount)} SHIT v1
+              {formatSymbient(claim.allocatedAmount)} SYM v1
             </span>
           </div>
           <div className="flex justify-between">
             <span className="text-secondary-t">Remaining to migrate</span>
-            <span className="font-semibold text-primary-t">{formatShit(remaining)} SHIT v1</span>
+            <span className="font-semibold text-primary-t">{formatSymbient(remaining)} SYM v1</span>
           </div>
         </div>
 
@@ -238,7 +238,7 @@ export function MigrateShitModal({
 
         <div className="flex justify-between text-sm px-1">
           <span className="text-secondary-t">You receive</span>
-          <span className="font-semibold text-primary-t">≈ {receiveAmount} SHIT v2</span>
+          <span className="font-semibold text-primary-t">≈ {receiveAmount} SYM v2</span>
         </div>
 
         <Button

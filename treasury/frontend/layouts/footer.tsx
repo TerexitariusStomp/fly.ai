@@ -67,8 +67,8 @@ function pad(n: number) {
 export function Footer() {
   const { theme, setTheme } = useTheme();
   const { hours, minutes, seconds, progress } = useEpochTimer();
-  const WSTSHITToken = useToken(TokenName.WSTSHIT);
-  const SHITToken = useToken(TokenName.SHIT);
+  const WstsymToken = useToken(TokenName.Wstsym);
+  const SHITToken = useToken(TokenName.SYM);
 
   const beatLabel = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 
@@ -161,8 +161,8 @@ export function Footer() {
           </div>
           <Separator orientation="vertical" className="h-5 mx-4 w-px" />
           <div className="flex items-center gap-x-1">
-            <Icon name={WSTSHITToken.icon} className="size-4" />
-            <NumberFlow value={WSTSHITToken.price} className="text-sm" />
+            <Icon name={WstsymToken.icon} className="size-4" />
+            <NumberFlow value={WstsymToken.price} className="text-sm" />
           </div>
           <Separator orientation="vertical" className="h-5 mx-4 w-px" />
           <ConnectButton />

@@ -8,7 +8,7 @@ export default [
       },
       {
         internalType: "address",
-        name: "gshit_",
+        name: "gsym_",
         type: "address",
       },
       {
@@ -1254,7 +1254,7 @@ export default [
   },
   {
     inputs: [],
-    name: "shit",
+    name: "symbient",
     outputs: [
       {
         internalType: "contract IERC20",

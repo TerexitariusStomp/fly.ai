@@ -3,12 +3,12 @@ pragma solidity ^0.8.24;
 
 import {Script, console2} from "forge-std/Script.sol";
 
-import {Kernel, Actions} from "@shit-v3/Kernel.sol";
-import {RolesAdmin} from "@shit-v3/policies/RolesAdmin.sol";
-import {MonoCooler} from "@shit-v3/policies/cooler/MonoCooler.sol";
-import {CoolerComposites} from "@shit-v3/periphery/CoolerComposites.sol";
+import {Kernel, Actions} from "@symbient-v3/Kernel.sol";
+import {RolesAdmin} from "@symbient-v3/policies/RolesAdmin.sol";
+import {MonoCooler} from "@symbient-v3/policies/cooler/MonoCooler.sol";
+import {CoolerComposites} from "@symbient-v3/periphery/CoolerComposites.sol";
 
-import {ShitCoolerComposites} from "../src/ShitCoolerComposites.sol";
+import {SymbientCoolerComposites} from "../src/SymbientCoolerComposites.sol";
 
 /// @title RedeployMonoCoolerNoMinDebt
 /// @notice Deploys a new MonoCooler with minDebtRequired=0 and a new Composites,
@@ -16,7 +16,7 @@ import {ShitCoolerComposites} from "../src/ShitCoolerComposites.sol";
 contract RedeployMonoCoolerNoMinDebt is Script {
     // Existing deployed addresses on Base Sepolia
     address constant KERNEL = 0x25D98fa2e827227243108Ac111F084cdfeE020be;
-    address constant SHIT = 0x823d5d44F9E647402c949376E54f709Ab3a9015b;
+    address constant SYM = 0x823d5d44F9E647402c949376E54f709Ab3a9015b;
     address constant WSTSHIT = 0x933E4B8e744733FAaFD67aC99eD8987C9Aa5E533;
     address constant STAKING = 0x395f6Cc9aAEE56f292dBE5dcc76fF3b30637cd4e;
     address constant LTV_ORACLE = 0xccffA7541D15454a2C95f453c8957B7D6Ffb95A4;
@@ -43,7 +43,7 @@ contract RedeployMonoCoolerNoMinDebt is Script {
         console2.log("\n--- Phase 1: Deploy MonoCooler ---");
 
         MonoCooler cooler = new MonoCooler(
-            SHIT, // shit (used for burn in liquidations)
+            SYM, // symbient (used for burn in liquidations)
             WSTSHIT, // gshit (collateral token)
             STAKING, // staking
             KERNEL, // kernel
@@ -70,7 +70,7 @@ contract RedeployMonoCoolerNoMinDebt is Script {
         // ── Phase 2: Deploy new Composites ──
         console2.log("\n--- Phase 2: Deploy Composites ---");
 
-        ShitCoolerComposites composites = new ShitCoolerComposites(cooler, deployer);
+        SymbientCoolerComposites composites = new SymbientCoolerComposites(cooler, deployer);
         console2.log("New Composites:", address(composites));
 
         // Enable Composites

@@ -1222,7 +1222,7 @@ export default
         "internalType": "uint256"
       },
       {
-        "name": "stShitAmount",
+        "name": "stSymbientAmount",
         "type": "uint256",
         "indexed": true,
         "internalType": "uint256"
@@ -1292,7 +1292,7 @@ export default
         "internalType": "address"
       },
       {
-        "name": "stShitAmount",
+        "name": "stSymbientAmount",
         "type": "uint256",
         "indexed": true,
         "internalType": "uint256"

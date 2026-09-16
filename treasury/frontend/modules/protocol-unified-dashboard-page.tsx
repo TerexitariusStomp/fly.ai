@@ -8,8 +8,8 @@ import {
   SHIT_TREASURY_POLICY_ABI,
   SHIT_INVERSE_BOND_ABI,
   SHIT_PRICE_FEED_ABI,
-} from "@/abis/ShitContracts";
-import ShitStakingABI from "@/abis/ShitStaking";
+} from "@/abis/SymbientContracts";
+import SymbientStakingABI from "@/abis/SymbientStaking";
 import { cn } from "@/lib/utils";
 
 function formatUsd(val: bigint | undefined): string {
@@ -75,8 +75,8 @@ export function UnifiedDashboardPage() {
 
   const { data: rfv } = useReadContract({ address: treasuryPolicy, abi: SHIT_TREASURY_POLICY_ABI, functionName: "rfv", query: { enabled: !!treasuryPolicy } });
   const { data: nav } = useReadContract({ address: treasuryPolicy, abi: SHIT_TREASURY_POLICY_ABI, functionName: "nav", query: { enabled: !!treasuryPolicy } });
-  const { data: stakingIndex } = useReadContract({ address: staking, abi: ShitStakingABI, functionName: "index", query: { enabled: !!staking } });
-  const { data: navPerShit } = useReadContract({ address: treasuryPolicy, abi: SHIT_TREASURY_POLICY_ABI, functionName: "navPerShit", query: { enabled: !!treasuryPolicy } });
+  const { data: stakingIndex } = useReadContract({ address: staking, abi: SymbientStakingABI, functionName: "index", query: { enabled: !!staking } });
+  const { data: navPerSymbient } = useReadContract({ address: treasuryPolicy, abi: SHIT_TREASURY_POLICY_ABI, functionName: "navPerSymbient", query: { enabled: !!treasuryPolicy } });
   const { data: floorPrice } = useReadContract({ address: treasuryPolicy, abi: SHIT_TREASURY_POLICY_ABI, functionName: "floorPrice", query: { enabled: !!treasuryPolicy } });
   const { data: inverseBondCapacity } = useReadContract({ address: inverseBond, abi: SHIT_INVERSE_BOND_ABI, functionName: "epochCapacity", query: { enabled: !!inverseBond } });
   const { data: inverseBondUsed } = useReadContract({ address: inverseBond, abi: SHIT_INVERSE_BOND_ABI, functionName: "epochUsedCapacity", query: { enabled: !!inverseBond } });
@@ -91,9 +91,9 @@ export function UnifiedDashboardPage() {
 
   const polVal = nav ? Number(nav) : 0;
   const oracleFresh = twapPrice !== undefined && spotPrice !== undefined;
-  const premiumMultiple = (twapPrice ?? spotPrice) && navPerShit && navPerShit > 0n ? Number(twapPrice ?? spotPrice) / Number(navPerShit) : 0;
-  const rfvPerShit = floorPrice ? Number(floorPrice) / 1e18 : 0;
-  const navPerShitVal = navPerShit ? Number(navPerShit) / 1e18 : 0;
+  const premiumMultiple = (twapPrice ?? spotPrice) && navPerSymbient && navPerSymbient > 0n ? Number(twapPrice ?? spotPrice) / Number(navPerSymbient) : 0;
+  const rfvPerSymbient = floorPrice ? Number(floorPrice) / 1e18 : 0;
+  const navPerSymbientVal = navPerSymbient ? Number(navPerSymbient) / 1e18 : 0;
   const twapVal = twapPrice ? Number(twapPrice) / 1e18 : 0;
   const bondRemaining = inverseBondCapacity && inverseBondUsed ? inverseBondCapacity - inverseBondUsed : 0n;
 
@@ -132,7 +132,7 @@ export function UnifiedDashboardPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard label="Total Net Asset Value" value={`$${formatUsd(nav)}`} sub="Full asset value" />
             <StatCard label="Total Risk-Free Value" value={`$${formatUsd(rfv)}`} sub="Floor backing" />
-            <StatCard label="stSHIT Index" value={stakingIndex ? (Number(stakingIndex) / 1e18).toFixed(6) : "--"} sub="Rebasing index" />
+            <StatCard label="stSYM Index" value={stakingIndex ? (Number(stakingIndex) / 1e18).toFixed(6) : "--"} sub="Rebasing index" />
             <StatCard label="Premium" value={rfv && nav && rfv > 0n ? formatPct((Number(nav) / Number(rfv) - 1) * 100) : "--"} sub="Net Asset Value vs Risk-Free Value" />
           </div>
           <Card className="p-6">
@@ -179,7 +179,7 @@ export function UnifiedDashboardPage() {
             <Card className="p-6">
               <h3 className="font-serif text-lg mb-4">Buyback & Burn</h3>
               <div className="space-y-3">
-                <div className="flex justify-between"><span className="text-sm text-secondary-t">SHIT Burned (30d)</span><span className="text-sm font-mono">--</span></div>
+                <div className="flex justify-between"><span className="text-sm text-secondary-t">SYM Burned (30d)</span><span className="text-sm font-mono">--</span></div>
                 <div className="flex justify-between"><span className="text-sm text-secondary-t">USDC Spent (30d)</span><span className="text-sm font-mono">--</span></div>
                 <div className="flex justify-between"><span className="text-sm text-secondary-t">Avg Burn Price</span><span className="text-sm font-mono">--</span></div>
               </div>
@@ -191,8 +191,8 @@ export function UnifiedDashboardPage() {
       {activeTab === "safety" && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard label="Net Asset Value per SHIT" value={`$${navPerShitVal.toFixed(4)}`} />
-            <StatCard label="Risk-Free Value per SHIT" value={`$${rfvPerShit.toFixed(4)}`} sub="Floor" />
+            <StatCard label="Net Asset Value per SYM" value={`$${navPerSymbientVal.toFixed(4)}`} />
+            <StatCard label="Risk-Free Value per SYM" value={`$${rfvPerSymbient.toFixed(4)}`} sub="Floor" />
             <StatCard label="TWAP Price" value={`$${twapVal.toFixed(4)}`} />
             <StatCard label="Premium" value={`${premiumMultiple.toFixed(2)}x`} sub="P = TWAP / Net Asset Value" />
           </div>

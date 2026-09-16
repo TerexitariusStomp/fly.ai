@@ -95,8 +95,8 @@ export function ReferralFeeTracker() {
           const referrerShare = (protocolFee * BigInt(FEE_BPS)) / 10000n;
 
           if (referrerShare > 0n) {
-            // Use SHIT token address as the fee token (fees are paid in SHIT)
-            const shitAddr = getContractAddress(ContractName.SHIT, chainId);
+            // Use SYM token address as the fee token (fees are paid in SYM)
+            const shitAddr = getContractAddress(ContractName.SYM, chainId);
             if (shitAddr) {
               recordFeeToD1(
                 address.toLowerCase(),

@@ -1,5 +1,5 @@
-// Legacy SHIT Protocol v1 staking contract (0xFd31c7d00Ca47653c6Ce64Af53c1571f9C36566a).
-// Minimal ABI: only the functions the frontend calls to unstake sSHIT v1 → SHIT v1.
+// Legacy SYM Protocol v1 staking contract (0xFd31c7d00Ca47653c6Ce64Af53c1571f9C36566a).
+// Minimal ABI: only the functions the frontend calls to unstake sSHIT v1 → SYM v1.
 export default [
   {
     inputs: [

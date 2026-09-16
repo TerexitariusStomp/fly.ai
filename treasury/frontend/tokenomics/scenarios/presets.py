@@ -1,5 +1,5 @@
 """
-Predefined scenario presets for SHIT Protocol tokenomics simulation.
+Predefined scenario presets for SYM Protocol tokenomics simulation.
 
 Each scenario returns a ProtocolParams configured for a specific market condition.
 """

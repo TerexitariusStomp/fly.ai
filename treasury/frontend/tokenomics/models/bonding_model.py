@@ -1,10 +1,10 @@
 """
-Bonding & Premium Seller Model for SHIT Protocol (SHIT)
+Bonding & Premium Seller Model for SYM Protocol (SYM)
 
 Mirrors:
-- contracts/src/bonding/ShitBonding.sol (Bond Protocol integration)
-- contracts/src/bonding/ShitInverseBond.sol (buyback at NAV minus spread, burns SHIT)
-- contracts/src/bonding/ShitPremiumSeller.sol (sells SHIT when TWAP > 2x NAV)
+- contracts/src/bonding/SymbientBonding.sol (Bond Protocol integration)
+- contracts/src/bonding/SymbientInverseBond.sol (buyback at NAV minus spread, burns SYM)
+- contracts/src/bonding/SymbientPremiumSeller.sol (sells SYM when TWAP > 2x NAV)
 
 Uses conding (bonding-curves/conding) for bonding curve math where applicable.
 """
@@ -90,9 +90,9 @@ class BondingState:
 def simulate_bonding(params: BondingParams) -> pd.DataFrame:
     """
     Run bonding simulation covering:
-    1. Standard bonds (discounted SHIT for USDC)
-    2. Inverse bonds (SHIT burned for USDC at NAV minus spread)
-    3. Premium seller (mints and sells SHIT when TWAP > 2x NAV)
+    1. Standard bonds (discounted SYM for USDC)
+    2. Inverse bonds (SYM burned for USDC at NAV minus spread)
+    3. Premium seller (mints and sells SYM when TWAP > 2x NAV)
     """
     rng = np.random.default_rng(params.random_seed)
 
@@ -122,7 +122,7 @@ def simulate_bonding(params: BondingParams) -> pd.DataFrame:
         premium_ratio = state.twap_price / state.nav_per_shit if state.nav_per_shit > 0 else 1.0
         state.bond_discount = params.bond_discount_bps * max(1.0, premium_ratio)
 
-        # Bond sales: USDC in, SHIT out at discount
+        # Bond sales: USDC in, SYM out at discount
         bond_demand = params.bond_capacity_per_epoch * (
             1 + state.bond_discount / BASIS_POINTS * params.bond_demand_elasticity
         )
@@ -138,7 +138,7 @@ def simulate_bonding(params: BondingParams) -> pd.DataFrame:
         # Capacity: 1% of liquid treasury per epoch
         state.inverse_bond_capacity = state.treasury_usdc * params.max_capacity_bps / BASIS_POINTS
 
-        # Inverse bonds are attractive when price < NAV (sell SHIT at NAV premium)
+        # Inverse bonds are attractive when price < NAV (sell SYM at NAV premium)
         if state.twap_price < state.nav_per_shit:
             nav_premium = (state.nav_per_shit / state.twap_price - 1)
             # Inverse bond demand increases when NAV premium is high
@@ -164,7 +164,7 @@ def simulate_bonding(params: BondingParams) -> pd.DataFrame:
         if (state.twap_price > state.nav_per_shit * params.premium_threshold
             and epochs_since_last >= min_interval_epochs):
 
-            # Sell clip_bps % of pool SHIT reserves
+            # Sell clip_bps % of pool SYM reserves
             shit_to_sell = state.pool_shit * params.clip_bps / BASIS_POINTS
 
             # Simulate swap impact (constant product)
@@ -177,7 +177,7 @@ def simulate_bonding(params: BondingParams) -> pd.DataFrame:
             expected_usdc = shit_to_sell * state.twap_price
             slippage = (1 - usdc_received / expected_usdc) * 100 if expected_usdc > 0 else 999
             if slippage * 100 <= params.max_slippage_bps:
-                # Execute: mint SHIT, sell into pool, USDC to treasury
+                # Execute: mint SYM, sell into pool, USDC to treasury
                 state.pool_shit = new_pool_shit
                 state.pool_usdc = new_pool_usdc
                 state.shit_supply += shit_to_sell  # Minted

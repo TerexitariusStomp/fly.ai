@@ -1,6 +1,6 @@
 """
 BAMM (ERC-4626 leverage vault) + GMX V1 perp funding model.
-~80 lines. No OSS equivalent — pure SHIT design.
+~80 lines. No OSS equivalent — pure SYM design.
 """
 
 import numpy as np

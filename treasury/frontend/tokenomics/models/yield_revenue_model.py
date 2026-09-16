@@ -2,19 +2,19 @@
 Yield routing, bribe harvesting, Pendle markets, and AMO detail simulation.
 
 Models:
-- Meta-vault adapters: StSHITAdapter (Morpho), BribeHarvestAdapter, CoolerLoanAdapter,
-  ExternalLPAdapter, ShitSwapLPAdapter
+- Meta-vault adapters: stsymAdapter (Morpho), BribeHarvestAdapter, CoolerLoanAdapter,
+  ExternalLPAdapter, SymbientSwapLPAdapter
 - Vote market bribes: Aerodrome, HiddenHand, Paladin, StakeDao, Votium, YBribe
-- Pendle V2: StSHITSY yield tokenization (PT/YT markets)
-- Stablecoin AMOs: ShitLendingAMO (Morpho/Aave), ShitUniswapV4AMO (V4 liquidity)
+- Pendle V2: StSYMSY yield tokenization (PT/YT markets)
+- Stablecoin AMOs: SymbientLendingAMO (Morpho/Aave), SymbientUniswapV4AMO (V4 liquidity)
 
 Contract sources:
-- contracts/src/meta-vaults/StSHITAdapter.sol
+- contracts/src/meta-vaults/stsymAdapter.sol
 - contracts/src/meta-vaults/BribeHarvestAdapter.sol
 - contracts/src/votemarkets/*.sol
-- contracts/src/yield/StSHITSY.sol
-- contracts/src/stablecoin/ShitLendingAMO.sol
-- contracts/src/stablecoin/ShitUniswapV4AMO.sol
+- contracts/src/yield/StSYMSY.sol
+- contracts/src/stablecoin/SymbientLendingAMO.sol
+- contracts/src/stablecoin/SymbientUniswapV4AMO.sol
 """
 
 import numpy as np
@@ -26,12 +26,12 @@ EPOCHS_PER_DAY = 3
 
 @dataclass
 class YieldRevenueParams:
-    # Meta-vault adapter allocations (% of stSHIT)
-    stshit_morpho_alloc_pct: float = 0.40  # 40% to Morpho
-    stshit_cooler_alloc_pct: float = 0.20  # 20% to Cooler loans
-    stshit_external_lp_alloc_pct: float = 0.20  # 20% to external LP
-    stshit_shitswap_lp_alloc_pct: float = 0.15  # 15% to ShitSwap LP
-    stshit_idle_pct: float = 0.05  # 5% idle
+    # Meta-vault adapter allocations (% of stSYM)
+    stsym_morpho_alloc_pct: float = 0.40  # 40% to Morpho
+    stsym_cooler_alloc_pct: float = 0.20  # 20% to Cooler loans
+    stsym_external_lp_alloc_pct: float = 0.20  # 20% to external LP
+    stsym_shitswap_lp_alloc_pct: float = 0.15  # 15% to SymbientSwap LP
+    stsym_idle_pct: float = 0.05  # 5% idle
 
     # Adapter yields (APY)
     morpho_apy: float = 0.08
@@ -50,7 +50,7 @@ class YieldRevenueParams:
     # Pendle V2
     pendle_enabled: bool = True
     pendle_implied_apy_premium: float = 0.02  # PT trades at 2% below actual APY
-    pendle_yt_notional: float = 0.0  # YT notional — starts at 0, grows with stSHIT supply
+    pendle_yt_notional: float = 0.0  # YT notional — starts at 0, grows with stSYM supply
     pendle_volatility: float = 0.10
 
     # Stablecoin AMOs
@@ -64,7 +64,7 @@ class YieldRevenueParams:
     v4_amo_apy: float = 0.15
     v4_amo_il_risk: float = 0.02  # IL risk per epoch
 
-    initial_stshit_supply: float = 0.0  # Derived from staking ratio * shit supply in protocol model
+    initial_stsym_supply: float = 0.0  # Derived from staking ratio * symbient supply in protocol model
     num_epochs: int = 90
     random_seed: int = 42
 
@@ -77,7 +77,7 @@ def simulate_yield_revenue(params: YieldRevenueParams) -> pd.DataFrame:
     rng = np.random.default_rng(params.random_seed)
     records = []
 
-    stshit_supply = params.initial_stshit_supply
+    stsym_supply = params.initial_stsym_supply
     cumulative_bribes = 0.0
     cumulative_treasury_bribes = 0.0
     cumulative_staker_bribes = 0.0
@@ -89,17 +89,17 @@ def simulate_yield_revenue(params: YieldRevenueParams) -> pd.DataFrame:
 
     for epoch in range(params.num_epochs):
         # ─── Meta-vault adapter yields ───
-        morpho_yield = stshit_supply * params.stshit_morpho_alloc_pct * params.morpho_apy / 365 / EPOCHS_PER_DAY
-        cooler_yield = stshit_supply * params.stshit_cooler_alloc_pct * params.cooler_apy / 365 / EPOCHS_PER_DAY
-        ext_lp_yield = stshit_supply * params.stshit_external_lp_alloc_pct * params.external_lp_apy / 365 / EPOCHS_PER_DAY
-        rswap_lp_yield = stshit_supply * params.stshit_shitswap_lp_alloc_pct * params.shitswap_lp_apy / 365 / EPOCHS_PER_DAY
-        idle_yield = stshit_supply * params.stshit_idle_pct * params.idle_apy / 365 / EPOCHS_PER_DAY
+        morpho_yield = stsym_supply * params.stsym_morpho_alloc_pct * params.morpho_apy / 365 / EPOCHS_PER_DAY
+        cooler_yield = stsym_supply * params.stsym_cooler_alloc_pct * params.cooler_apy / 365 / EPOCHS_PER_DAY
+        ext_lp_yield = stsym_supply * params.stsym_external_lp_alloc_pct * params.external_lp_apy / 365 / EPOCHS_PER_DAY
+        rswap_lp_yield = stsym_supply * params.stsym_shitswap_lp_alloc_pct * params.shitswap_lp_apy / 365 / EPOCHS_PER_DAY
+        idle_yield = stsym_supply * params.stsym_idle_pct * params.idle_apy / 365 / EPOCHS_PER_DAY
 
         total_adapter_yield = morpho_yield + cooler_yield + ext_lp_yield + rswap_lp_yield + idle_yield
         cumulative_adapter_yield += total_adapter_yield
 
-        # stSHIT supply grows from yield reinvestment
-        stshit_supply += total_adapter_yield * 0.5  # 50% reinvested
+        # stSYM supply grows from yield reinvestment
+        stsym_supply += total_adapter_yield * 0.5  # 50% reinvested
 
         # ─── Bribe harvesting ───
         bribe_rate = params.base_bribe_apy * (1 + rng.normal(0, params.bribe_volatility) * 0.1)
@@ -150,7 +150,7 @@ def simulate_yield_revenue(params: YieldRevenueParams) -> pd.DataFrame:
         records.append({
             'epoch': epoch,
             'day': epoch / EPOCHS_PER_DAY,
-            'stshit_supply': stshit_supply,
+            'stsym_supply': stsym_supply,
             'morpho_yield': morpho_yield,
             'cooler_yield': cooler_yield,
             'ext_lp_yield': ext_lp_yield,
@@ -179,7 +179,7 @@ def simulate_yield_revenue(params: YieldRevenueParams) -> pd.DataFrame:
 
 def yield_revenue_summary(df: pd.DataFrame) -> dict:
     return {
-        'final_stshit': df['stshit_supply'].iloc[-1],
+        'final_stsym': df['stsym_supply'].iloc[-1],
         'total_adapter_yield': df['cum_adapter_yield'].iloc[-1],
         'total_bribes': df['cum_bribes'].iloc[-1],
         'total_staker_bribes': df['cum_staker_bribes'].iloc[-1],

@@ -13,9 +13,9 @@ export type TokenInfo = {
 export enum TokenName {
   USDC = "USDC",
   USDS = "USDS",
-  SHIT = "SHIT",
-  STSHIT = "STSHIT",
-  WSTSHIT = "WSTSHIT",
+  SYM = "SYM",
+  stsym = "stsym",
+  Wstsym = "Wstsym",
   BUCKY = "BUCKY",
   RIDX = "RIDX",
   V1_SHIT = "V1_SHIT",
@@ -34,32 +34,32 @@ export const TOKENS: Record<TokenName, TokenInfo> = {
     decimals: 6,
     icon: "USDCTokenIcon",
   },
-  SHIT: {
+  SYM: {
     addresses: {
       [base.id]: "0x0000000000000000000000000000000000000000",
       [baseSepolia.id]: "0x823d5d44F9E647402c949376E54f709Ab3a9015b",
     },
-    symbol: "SHIT",
+    symbol: "SYM",
     decimals: 18,
     icon: "SHITTokenIcon",
   },
-  STSHIT: {
+  stsym: {
     addresses: {
       [base.id]: "0x0000000000000000000000000000000000000000",
       [baseSepolia.id]: "0xdb3D61dEE55eF664412BcEBEd144981B2Fc11a34",
     },
-    symbol: "stSHIT",
+    symbol: "stSYM",
     decimals: 18,
-    icon: "STSHITTokenIcon",
+    icon: "stsymTokenIcon",
   },
-  WSTSHIT: {
+  Wstsym: {
     addresses: {
       [base.id]: "0x0000000000000000000000000000000000000000",
       [baseSepolia.id]: "0x933E4B8e744733FAaFD67aC99eD8987C9Aa5E533",
     },
-    symbol: "wstSHIT",
+    symbol: "wstSYM",
     decimals: 18,
-    icon: "WSTSHITTokenIcon",
+    icon: "WstsymTokenIcon",
   },
   BUCKY: {
     addresses: {
@@ -77,7 +77,7 @@ export const TOKENS: Record<TokenName, TokenInfo> = {
     },
     symbol: "RIDX",
     decimals: 18,
-    icon: "WSTSHITTokenIcon",
+    icon: "WstsymTokenIcon",
   },
   USDS: {
     addresses: {
@@ -92,7 +92,7 @@ export const TOKENS: Record<TokenName, TokenInfo> = {
     addresses: {
       [base.id]: "0x0000000000000000000000000000000000000000",
     },
-    symbol: "SHIT v1",
+    symbol: "SYM v1",
     decimals: 9,
     icon: "SHITTokenIcon",
   },
@@ -100,7 +100,7 @@ export const TOKENS: Record<TokenName, TokenInfo> = {
     addresses: {
       [base.id]: "0x0000000000000000000000000000000000000000",
     },
-    symbol: "stSHIT v1",
+    symbol: "stSYM v1",
     decimals: 9,
     icon: "SHITTokenIcon",
   },
@@ -110,7 +110,7 @@ export const TOKENS: Record<TokenName, TokenInfo> = {
     },
     symbol: "wsSHIT",
     decimals: 18,
-    icon: "WSTSHITTokenIcon",
+    icon: "WstsymTokenIcon",
   },
   STATA_USDC: {
     addresses: {

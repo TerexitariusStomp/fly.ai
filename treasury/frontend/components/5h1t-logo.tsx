@@ -1,5 +1,5 @@
-/** 5H1T logo — SVG neural network motif. ~15 lines custom. */
-export function FiveHitLogo({ size = 40 }: { size?: number }) {
+/** SYM logo — SVG neural network motif. ~15 lines custom. */
+export function SymLogo({ size = 40 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle cx="20" cy="30" r="4" fill="#6cf08a" />
@@ -15,7 +15,7 @@ export function FiveHitLogo({ size = 40 }: { size?: number }) {
       <line x1="35" y1="60" x2="50" y2="85" stroke="#6cf08a" strokeWidth="1" opacity="0.5" />
       <line x1="65" y1="65" x2="50" y2="85" stroke="#3ed8ff" strokeWidth="1" opacity="0.5" />
       <line x1="35" y1="60" x2="65" y2="65" stroke="#ff5ad2" strokeWidth="1" opacity="0.5" />
-      <text x="50" y="55" textAnchor="middle" fill="#e7ecf1" fontSize="14" fontWeight="bold" fontFamily="monospace">5H1T</text>
+      <text x="50" y="55" textAnchor="middle" fill="#e7ecf1" fontSize="14" fontWeight="bold" fontFamily="monospace">SYM</text>
     </svg>
   );
 }

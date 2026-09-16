@@ -1,7 +1,7 @@
 """
 Scenario presets — dict of param overrides for simulation runs.
-Maps SHIT scenarios to actual SHIT Protocol/cadCAD ModelParams.
-SHIT has strong defenses: circuit breaker, floor hook, defense budget, RBS.
+Maps SYM scenarios to actual SYM Protocol/cadCAD ModelParams.
+SYM has strong defenses: circuit breaker, floor hook, defense budget, RBS.
 Even in bad scenarios, price should decline but stabilize, not crash to zero.
 Key: bid/ask factors are % of reserves deployed per epoch.
 With 150M reserves and 100M supply at $1, 0.01 = 1.5M USD = 1.5M tokens (1.5% supply).
@@ -9,12 +9,12 @@ With 150M reserves and 100M supply at $1, 0.01 = 1.5M USD = 1.5M tokens (1.5% su
 
 BEAR_MARKET = {
     'T': 365,
-    # SHIT Protocol demand/supply factors — bear = net selling pressure
+    # SYM Protocol demand/supply factors — bear = net selling pressure
     'demand_factor': 0.03,          # Lower buy demand
     'supply_factor': -0.05,         # Moderate sell pressure (reduced from -0.08)
     'panic_sell_on': False,
     'panic_param': 0.4,
-    # RBS — SHIT defends with treasury, but controlled outflow
+    # RBS — SYM defends with treasury, but controlled outflow
     'lower_wall': 0.15,
     'upper_wall': 0.15,
     'lower_cushion': 0.075,
@@ -25,7 +25,7 @@ BEAR_MARKET = {
     'cushion_factor': 0.30,
     'liq_stables_safety_ratio': 0.8,
     'max_liq_ratio': 0.55,          # 55% of treasury in AMM (prevents weekly rebalance dump)
-    # SHIT params
+    # SYM params
     'rMax': 55,
     'kBps': 14000,
     'rebaseRateCapBps': 45,  # Protocol hard cap: 0.45% max rebase per epoch
@@ -36,7 +36,7 @@ BEAR_MARKET = {
 
 BULL_MARKET = {
     'T': 365,
-    # SHIT Protocol demand/supply factors — bull = moderate buying, stable growth
+    # SYM Protocol demand/supply factors — bull = moderate buying, stable growth
     'demand_factor': 0.05,          # Moderate buy demand (not too high to avoid spike)
     'supply_factor': -0.02,         # Very low sell pressure
     'panic_sell_on': False,
@@ -51,7 +51,7 @@ BULL_MARKET = {
     'max_outflow_rate': 0.02,       # 2% max outflow
     'cushion_factor': 0.30,
     'max_liq_ratio': 0.55,          # 55% of treasury in AMM (prevents weekly rebalance dump)
-    # SHIT params — conservative emissions for sustainable growth
+    # SYM params — conservative emissions for sustainable growth
     # kBps must be >= 10000 (1.0x NAV) since it represents the price/NAV ratio
     # at which supplemental emissions reach maximum (r_max). A value below
     # 10000 would make premium_bps >= k_bps always true whenever price > NAV,
@@ -66,12 +66,12 @@ BULL_MARKET = {
 
 STRESS_TEST = {
     'T': 90,
-    # SHIT Protocol — extreme sell pressure + panic
+    # SYM Protocol — extreme sell pressure + panic
     'demand_factor': 0.02,          # Very low demand
     'supply_factor': -0.07,         # Heavy selling (reduced from -0.10)
     'panic_sell_on': True,          # Panic sell triggered
     'panic_param': 0.4,             # Moderate panic (reduced from 0.5)
-    # RBS — SHIT deploys strong defense but controlled
+    # RBS — SYM deploys strong defense but controlled
     'lower_wall': 0.20,
     'upper_wall': 0.20,
     'lower_cushion': 0.10,
@@ -82,7 +82,7 @@ STRESS_TEST = {
     'cushion_factor': 0.35,         # Larger cushions
     'liq_stables_safety_ratio': 0.9,
     'max_liq_ratio': 0.55,          # 55% of treasury in AMM
-    # SHIT params — tight circuit breaker
+    # SYM params — tight circuit breaker
     'rMax': 55,
     'kBps': 14000,
     'rebaseRateCapBps': 45,  # Protocol hard cap: 0.45% max rebase per epoch
@@ -99,7 +99,7 @@ STRESS_TEST = {
 
 DEPEG_SCENARIO = {
     'T': 30,
-    # SHIT Protocol — moderate pressure but short timeframe
+    # SYM Protocol — moderate pressure but short timeframe
     'demand_factor': 0.05,
     'supply_factor': -0.06,
     'panic_sell_on': False,
@@ -110,7 +110,7 @@ DEPEG_SCENARIO = {
     'ask_factor': 0.008,
     'max_outflow_rate': 0.03,
     'max_liq_ratio': 0.55,
-    # SHIT params — stablecoin focus
+    # SYM params — stablecoin focus
     'depegThreshold': 0.02,
     'circuitBreakerThreshold': 15,
     'defenseBudgetPct': 0.05,
@@ -121,7 +121,7 @@ DEPEG_SCENARIO = {
 
 GOVERNANCE_ATTACK = {
     'T': 60,
-    # SHIT Protocol — moderate market conditions, attack is governance-level
+    # SYM Protocol — moderate market conditions, attack is governance-level
     'demand_factor': 0.05,
     'supply_factor': -0.05,
     'panic_sell_on': False,
@@ -132,7 +132,7 @@ GOVERNANCE_ATTACK = {
     'ask_factor': 0.008,
     'max_outflow_rate': 0.025,
     'max_liq_ratio': 0.55,
-    # SHIT params — governance vulnerability
+    # SYM params — governance vulnerability
     'onboardingMinLiquidity': 1000e18,
     'defenseBudgetPct': 0.001,
     'suppRateLimitCapBps': 1000,

@@ -1,6 +1,6 @@
 """
-Protocol orchestrator — thin wrapper over SHIT Protocol psub.py.
-~50 lines. Configures cadCAD Experiment with SHIT-specific PSUB additions.
+Protocol orchestrator — thin wrapper over SYM Protocol psub.py.
+~50 lines. Configures cadCAD Experiment with SYM-specific PSUB additions.
 """
 
 import sys
@@ -14,7 +14,7 @@ yield_glue = importlib.import_module('glue.yield')
 
 
 def staking_dynamics_policy(params, substep, state_history, previous_state):
-    """Compute dynamic staking metrics matching ShitStaking.sol contract."""
+    """Compute dynamic staking metrics matching SymbientStaking.sol contract."""
     price = previous_state.get('price', 1.0) or 1.0
     supply = max(previous_state.get('supply', 100e6), 1)
     reserves_stables = previous_state.get('reserves_stables', 0) or 0
@@ -81,7 +81,7 @@ def staking_dynamics_policy(params, substep, state_history, previous_state):
     base_yield = (pol_v * 0.001 + yield_c * 0.001) / max(st_shit, 1)
     base_yield = max(0.00001, min(0.001, base_yield))
 
-    # --- Circuit breaker (ShitStaking.sol:314-355) ---
+    # --- Circuit breaker (SymbientStaking.sol:314-355) ---
     prev_cb_tripped = previous_state.get('circuit_breaker_tripped', False)
     prev_cb_count = previous_state.get('circuit_breaker_count', 0)
     prev_cb_trip_epoch = previous_state.get('circuit_breaker_trip_epoch', 0)
@@ -124,7 +124,7 @@ def staking_dynamics_policy(params, substep, state_history, previous_state):
     elif not in_grace:
         new_cb_count = 0
 
-    # --- Supplemental emissions (ShitStaking.sol:357-431) ---
+    # --- Supplemental emissions (SymbientStaking.sol:357-431) ---
     smoothing_buffer = previous_state.get('smoothing_buffer', 0) or 0
     supp_window_minted = previous_state.get('supp_window_minted', 0) or 0
     supp_window_start = previous_state.get('supp_window_start', 0) or 0
@@ -153,7 +153,7 @@ def staking_dynamics_policy(params, substep, state_history, previous_state):
         # Apply warmup ramp to prevent sudden APY spike when treasury first grows
         supplemental *= nav_warmup_factor
 
-        # RFV invariant check (ShitStaking.sol:374-395)
+        # RFV invariant check (SymbientStaking.sol:374-395)
         if supplemental > 0 and floor_price > 0:
             new_supply = supply + supplemental
             required_rfv = new_supply * floor_price
@@ -164,7 +164,7 @@ def staking_dynamics_policy(params, substep, state_history, previous_state):
                 else:
                     supplemental = 0
 
-        # Rate limiter (ShitStaking.sol:397-409)
+        # Rate limiter (SymbientStaking.sol:397-409)
         if current_epoch >= supp_warmup_epochs and supplemental > 0:
             if current_epoch - supp_window_start >= supp_rate_limit_window:
                 supp_window_start = current_epoch
@@ -173,7 +173,7 @@ def staking_dynamics_policy(params, substep, state_history, previous_state):
             remaining_cap = max(0, window_cap - supp_window_minted)
             supplemental = min(supplemental, remaining_cap)
 
-        # Reward smoothing: divert to buffer (ShitStaking.sol:412-422)
+        # Reward smoothing: divert to buffer (SymbientStaking.sol:412-422)
         if supplemental > 0:
             to_buffer = supplemental * smoothing_divert_bps / 10000.0
             buffer_cap = supply * smoothing_buffer_cap_bps / 10000.0
@@ -183,7 +183,7 @@ def staking_dynamics_policy(params, substep, state_history, previous_state):
                 supplemental -= to_buffer
                 smoothing_buffer += to_buffer
 
-    # Reward smoothing: draw from buffer (ShitStaking.sol:434-449)
+    # Reward smoothing: draw from buffer (SymbientStaking.sol:434-449)
     if supplemental == 0 and smoothing_buffer > 0:
         from_buffer = supply * smoothing_floor_bps / 10000.0
         from_buffer = min(from_buffer, smoothing_buffer)
@@ -197,7 +197,7 @@ def staking_dynamics_policy(params, substep, state_history, previous_state):
 
     # --- Total rebase rate = base yield + supplemental per staker ---
     raw_rebase = base_yield + (supplemental / max(st_shit, 1) if st_shit > 0 else 0)
-    # Rebase rate cap (ShitStaking.sol:451-462)
+    # Rebase rate cap (SymbientStaking.sol:451-462)
     rebase_cap = rebase_cap_bps / 10000.0
     raw_rebase = min(raw_rebase, rebase_cap)
 
@@ -233,15 +233,15 @@ def staking_dynamics_policy(params, substep, state_history, previous_state):
 
 
 def build_partial_state_updates(params):
-    """Build PSUB list: SHIT Protocol base + SHIT extensions."""
-    # SHIT Protocol base PSUBs (imported from oss.shit-protocol.psub)
+    """Build PSUB list: SYM Protocol base + SYM extensions."""
+    # SYM Protocol base PSUBs (imported from oss.symbient-protocol.psub)
     try:
-        from oss.shit-protocol.psub import psub_blocks as shit-protocol_psubs
-        psubs = list(shit-protocol_psubs)
+        from oss.symbient-protocol.psub import psub_blocks as symbient-protocol_psubs
+        psubs = list(symbient-protocol_psubs)
     except Exception:
         psubs = []
 
-    # SHIT-specific PSUBs appended after SHIT Protocol base
+    # SYM-specific PSUBs appended after SYM Protocol base
     # cadCAD SUF signature: (params, substep, state_history, state, _input)
     shit_psubs = [
         # Staking dynamics — must run first so other PSUBs see updated values
@@ -366,7 +366,7 @@ def build_partial_state_updates(params):
 
 
 def simulate(params_override=None, n_runs=1):
-    """Run the full SHIT Finance simulation."""
+    """Run the full SYM Finance simulation."""
     params = get_shit_params()
     if params_override:
         params.update(params_override)
@@ -378,21 +378,21 @@ def simulate(params_override=None, n_runs=1):
         from cadCAD.configuration import Experiment
         from cadCAD.configuration.utils import config_sim
         from cadCAD.engine import ExecutionContext, Executor
-        from oss.shit-protocol.utility.default_parameters import default_params1
-        from oss.shit-protocol.utility.default_initial_state import default_initial_state1
-        from oss.shit-protocol.utility.initial_state_functions import fill_in_initial_state
+        from oss.symbient-protocol.utility.default_parameters import default_params1
+        from oss.symbient-protocol.utility.default_initial_state import default_initial_state1
+        from oss.symbient-protocol.utility.initial_state_functions import fill_in_initial_state
 
-        # Start with SHIT Protocol defaults, override with SHIT params
+        # Start with SYM Protocol defaults, override with SYM params
         # Keep params as lists for cadCAD M (it expects sweep format)
-        shit-protocol_params = dict(default_params1)
-        # Unwrap single-element lists for SHIT overrides
+        symbient-protocol_params = dict(default_params1)
+        # Unwrap single-element lists for SYM overrides
         for k, v in params.items():
-            shit-protocol_params[k] = [v] if not isinstance(v, list) else v
+            symbient-protocol_params[k] = [v] if not isinstance(v, list) else v
 
         initial_state = dict(default_initial_state1)
         initial_state.update({
             'price': 1.0, 'supply': 100e6,
-            'ma_target': 1.0,  # Match initial price (SHIT Protocol default was 9.5)
+            'ma_target': 1.0,  # Match initial price (SYM Protocol default was 9.5)
             'liq_stables': 5e6,  # Seed AMM liquidity for price discovery
             'reserves_stables': 0,  # Start at 0, grows from fee revenue
             'shit_supply': 100e6, 'st_shit_supply': 5e6,  # 5% initial staking
@@ -407,7 +407,7 @@ def simulate(params_override=None, n_runs=1):
             'circuit_breaker_trip_epoch': 0, 'circuit_breaker_recovery_count': 0,
             'supplemental_mint': 0, 'nav_per_shit': 0,
             'smoothing_buffer': 0, 'supp_window_minted': 0, 'supp_window_start': 0,
-            # SHIT-specific state variables
+            # SYM-specific state variables
             'floor_hook_state': {'accumulated_fees': 0, 'floor_price': 1.0},
             'bamm_perp_state': {'vault_assets': 0, 'vault_shares': 1e18,
                                 'vault_liabilities': 0, 'open_interest': 0,
@@ -428,12 +428,12 @@ def simulate(params_override=None, n_runs=1):
             'pendle_implied_apy': 0, 'pendle_pt_price': 1.0,
         })
         # Compute derived state variables (treasury_stables, amm_k, liq_shit, etc.)
-        initial_state = fill_in_initial_state(initial_state, shit-protocol_params)
+        initial_state = fill_in_initial_state(initial_state, symbient-protocol_params)
 
         sim_config = config_sim({
             'N': n_runs,
             'T': list(range(params['T'])),
-            'M': shit-protocol_params,
+            'M': symbient-protocol_params,
         })
 
         exp = Experiment()

@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>SHIT Protocol Tokenomics Lab</title>
+    <title>SYM Protocol Tokenomics Lab</title>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <style>
         :root {
@@ -235,7 +235,7 @@
 
     <div id="app" style="display:none;">
         <div class="header">
-            <h1>SHIT Protocol Tokenomics Lab</h1>
+            <h1>SYM Protocol Tokenomics Lab</h1>
             <span class="badge live">Pyodide</span>
             <span class="badge" id="py-version"></span>
         </div>
@@ -260,13 +260,13 @@
                     <option value="depeg">Stablecoin Depeg — Bucky loses peg from $1</option>
                     <option value="governance_attack">Governance Attack — Adversarial proposal attempts</option>
                 </select>
-                <div class="scenario-desc">Choose a market scenario to simulate different economic conditions for the SHIT protocol.</div>
+                <div class="scenario-desc">Choose a market scenario to simulate different economic conditions for the SYM protocol.</div>
 
                 <h3>Staking Parameters</h3>
                 <div class="param-group">
                     <label>Max Supplemental Rate (R_MAX) <span class="val" id="r_max-val">55</span></label>
                     <input type="range" id="r_max" min="10" max="100" value="55">
-                    <div class="param-desc">Maximum supplemental emission rate in basis points. Higher = more SHIT minted to stakers when price is above NAV.</div>
+                    <div class="param-desc">Maximum supplemental emission rate in basis points. Higher = more SYM minted to stakers when price is above NAV.</div>
                 </div>
                 <div class="param-group">
                     <label>Premium Threshold (K_BPS) <span class="val" id="k_bps-val">14000</span></label>
@@ -305,12 +305,12 @@
                 <div class="param-group">
                     <label>Redemption Probability <span class="val" id="redemption_prob-val">10%</span></label>
                     <input type="range" id="redemption_prob" min="0" max="80" value="10" step="5">
-                    <div class="param-desc">Chance per epoch that a holder redeems SHIT for treasury assets. Higher = more sell pressure and floor reserve depletion.</div>
+                    <div class="param-desc">Chance per epoch that a holder redeems SYM for treasury assets. Higher = more sell pressure and floor reserve depletion.</div>
                 </div>
                 <div class="param-group">
                     <label>Redemption Size (% of supply) <span class="val" id="redemption_size-val">5%</span></label>
                     <input type="range" id="redemption_size" min="1" max="30" value="5" step="1">
-                    <div class="param-desc">How much of total SHIT supply is redeemed when a redemption event occurs. Larger = bigger impact on floor reserve.</div>
+                    <div class="param-desc">How much of total SYM supply is redeemed when a redemption event occurs. Larger = bigger impact on floor reserve.</div>
                 </div>
 
                 <button class="btn btn-primary" id="run-btn" onclick="runSimulation()">Run Simulation</button>
@@ -330,18 +330,18 @@
                     <div id="overview-alerts"></div>
                     <div class="chart-grid">
                         <div class="chart-card full">
-                            <h3>SHIT Price vs Floor vs NAV</h3>
-                            <div class="chart-desc">Market price of SHIT compared to the Floor Price (intrinsic backing from treasury) and NAV per SHIT (total treasury value per token). Price above NAV = protocol is healthy.</div>
+                            <h3>SYM Price vs Floor vs NAV</h3>
+                            <div class="chart-desc">Market price of SYM compared to the Floor Price (intrinsic backing from treasury) and NAV per SYM (total treasury value per token). Price above NAV = protocol is healthy.</div>
                             <div class="chart" id="chart-price"></div>
                         </div>
                         <div class="chart-card">
-                            <h3>SHIT Supply Growth</h3>
-                            <div class="chart-desc">Total SHIT token supply and staked SHIT (stSHIT) supply over time. Supply grows from supplemental emissions; staking ratio increases as more holders stake.</div>
+                            <h3>SYM Supply Growth</h3>
+                            <div class="chart-desc">Total SYM token supply and staked SYM (stSYM) supply over time. Supply grows from supplemental emissions; staking ratio increases as more holders stake.</div>
                             <div class="chart" id="chart-supply"></div>
                         </div>
                         <div class="chart-card">
                             <h3>Staking Ratio & APY</h3>
-                            <div class="chart-desc">Percentage of SHIT that are staked (left axis) and the annualized staking APY yield (right axis). APY is driven by supplemental emissions which scale with price premium to NAV.</div>
+                            <div class="chart-desc">Percentage of SYM that are staked (left axis) and the annualized staking APY yield (right axis). APY is driven by supplemental emissions which scale with price premium to NAV.</div>
                             <div class="chart" id="chart-staking"></div>
                         </div>
                     </div>
@@ -351,17 +351,17 @@
                     <div class="chart-grid">
                         <div class="chart-card full">
                             <h3>Staking Ratio & APY (Inverse Relationship)</h3>
-                            <div class="chart-desc">Staking ratio (left axis) and APY (right axis) over time. As more holders stake, supplemental emissions are spread across more stSHIT, reducing per-token APY.</div>
+                            <div class="chart-desc">Staking ratio (left axis) and APY (right axis) over time. As more holders stake, supplemental emissions are spread across more stSYM, reducing per-token APY.</div>
                             <div class="chart" id="chart-staking-detail"></div>
                         </div>
                         <div class="chart-card">
                             <h3>Staking Index (Rebase Accumulation)</h3>
-                            <div class="chart-desc">Growth of 1 stSHIT over time via rebase rewards. A staking index of 2.0 means 1 stSHIT has grown to 2 SHIT worth of value through emissions.</div>
+                            <div class="chart-desc">Growth of 1 stSYM over time via rebase rewards. A staking index of 2.0 means 1 stSYM has grown to 2 SYM worth of value through emissions.</div>
                             <div class="chart" id="chart-staking-index"></div>
                         </div>
                         <div class="chart-card">
                             <h3>Staked Supply Growth</h3>
-                            <div class="chart-desc">stSHIT supply (staked tokens) compared to total SHIT supply. The gap between the lines shows the unstaked (floating) supply.</div>
+                            <div class="chart-desc">stSYM supply (staked tokens) compared to total SYM supply. The gap between the lines shows the unstaked (floating) supply.</div>
                             <div class="chart" id="chart-staked-supply"></div>
                         </div>
                         <div class="chart-card full">
@@ -375,8 +375,8 @@
                 <div id="tab-treasury" class="tab-content">
                     <div class="chart-grid">
                         <div class="chart-card full">
-                            <h3>Price vs Floor vs NAV (Per SHIT)</h3>
-                            <div class="chart-desc">Same data as the Overview tab: Market Price, Floor Price (RFV per SHIT), and NAV per SHIT. Floor Price is the intrinsic backing value; NAV is the full treasury value per token.</div>
+                            <h3>Price vs Floor vs NAV (Per SYM)</h3>
+                            <div class="chart-desc">Same data as the Overview tab: Market Price, Floor Price (RFV per SYM), and NAV per SYM. Floor Price is the intrinsic backing value; NAV is the full treasury value per token.</div>
                             <div class="chart" id="chart-rfv-nav"></div>
                         </div>
                         <div class="chart-card">
@@ -386,12 +386,12 @@
                         </div>
                         <div class="chart-card">
                             <h3>Floor Reserve & Redeemable Supply</h3>
-                            <div class="chart-desc">Floor Reserve (treasury assets backing the floor price, left axis) and Redeemable Supply (SHIT eligible for redemption, right axis). Floor reserve should grow faster than redeemable supply for a healthy floor.</div>
+                            <div class="chart-desc">Floor Reserve (treasury assets backing the floor price, left axis) and Redeemable Supply (SYM eligible for redemption, right axis). Floor reserve should grow faster than redeemable supply for a healthy floor.</div>
                             <div class="chart" id="chart-floor-reserve"></div>
                         </div>
                         <div class="chart-card full">
                             <h3>Market Price vs Floor Price (Premium/Discount)</h3>
-                            <div class="chart-desc">Market price compared to the floor price. When market price is above floor, SHIT trades at a premium. When below, it trades at a discount to intrinsic value.</div>
+                            <div class="chart-desc">Market price compared to the floor price. When market price is above floor, SYM trades at a premium. When below, it trades at a discount to intrinsic value.</div>
                             <div class="chart" id="chart-premium-floor"></div>
                         </div>
                     </div>
@@ -401,17 +401,17 @@
                     <div class="chart-grid">
                         <div class="chart-card full">
                             <h3>Price vs NAV (Premium Seller Zone)</h3>
-                            <div class="chart-desc">Market Price, Floor Price, NAV per SHIT, and 2x NAV threshold. When price exceeds 2x NAV, the Premium Seller activates and mints SHIT (in small clips) to capture the premium and pull price back toward NAV.</div>
+                            <div class="chart-desc">Market Price, Floor Price, NAV per SYM, and 2x NAV threshold. When price exceeds 2x NAV, the Premium Seller activates and mints SYM (in small clips) to capture the premium and pull price back toward NAV.</div>
                             <div class="chart" id="chart-bond-price"></div>
                         </div>
                         <div class="chart-card">
-                            <h3>SHIT Burned (Inverse Bonds)</h3>
-                            <div class="chart-desc">Cumulative SHIT burned through inverse bonds. Holders burn SHIT in exchange for treasury assets, reducing supply. Burn rate increases when price is weak (near or below floor).</div>
+                            <h3>SYM Burned (Inverse Bonds)</h3>
+                            <div class="chart-desc">Cumulative SYM burned through inverse bonds. Holders burn SYM in exchange for treasury assets, reducing supply. Burn rate increases when price is weak (near or below floor).</div>
                             <div class="chart" id="chart-inverse-burn"></div>
                         </div>
                         <div class="chart-card">
-                            <h3>SHIT Sold (Premium Seller)</h3>
-                            <div class="chart-desc">Cumulative SHIT minted and sold by the Premium Seller when price exceeds 2x NAV. This dilutes supply to pull price back down, capturing value for the treasury.</div>
+                            <h3>SYM Sold (Premium Seller)</h3>
+                            <div class="chart-desc">Cumulative SYM minted and sold by the Premium Seller when price exceeds 2x NAV. This dilutes supply to pull price back down, capturing value for the treasury.</div>
                             <div class="chart" id="chart-premium-sold"></div>
                         </div>
                     </div>

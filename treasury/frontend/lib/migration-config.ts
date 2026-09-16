@@ -1,6 +1,6 @@
 import type { Hex } from "viem";
 
-const PRODUCTION_MIGRATION_CLAIMS_BASE_URL = "https://shit-v1-balances-api.shit.finance";
+const PRODUCTION_MIGRATION_CLAIMS_BASE_URL = "https://symbient-v1-balances-api.symbient.finance";
 
 function getOptionalEnv(value: string | undefined): string | undefined {
   const trimmed = value?.trim();

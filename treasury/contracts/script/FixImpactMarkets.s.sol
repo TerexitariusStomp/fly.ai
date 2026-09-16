@@ -15,16 +15,16 @@ interface IMintable {
 }
 
 /// @notice Close the mispriced impact-token bond markets and recreate them with a
-///         correct ~1:1 SHIT payout rate, plus mint SHIT to the owner so payouts
+///         correct ~1:1 SYM payout rate, plus mint SYM to the owner so payouts
 ///         can actually be covered.
 ///
 /// Root cause of TRANSFER_FROM_FAILED: the impact markets were created with
 /// formattedInitialPrice ~4e29 while scale = 1e36, so payout = amount * scale/price
-/// was ~2.5e6x too large and the owner could never cover the SHIT payout.
+/// was ~2.5e6x too large and the owner could never cover the SYM payout.
 /// For 18-dec quote + 18-dec payout, scaleAdjustment = 0 -> scale = 1e36, and a
 /// price of 1e36 gives a 1:1 rate (decaying to 5e35 -> up to 2:1 discount).
 contract FixImpactMarkets is Script {
-    address constant SHIT = 0x823d5d44F9E647402c949376E54f709Ab3a9015b;
+    address constant SYM = 0x823d5d44F9E647402c949376E54f709Ab3a9015b;
     address constant TELLER = 0xf4816c51221Cb49BdF24a30e69a1fa26B0cE0703;
     address constant AUCTIONEER = 0x2baa439C3d29B6B7fE6df60Fdf0840AdEf77fF0a;
     address constant DEPLOYER = 0x47bB7d3048c0aB38aEb4075FB5116307d39f68F1;
@@ -33,14 +33,14 @@ contract FixImpactMarkets is Script {
         uint256 pk = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(pk);
 
-        // 1. Mint SHIT to the deployer (market owner) so it can cover payouts.
-        //    Deployer is the SHIT multisig, so mint() is authorized.
-        IMintable(SHIT).mint(DEPLOYER, 5_000_000e18); // 5,000,000 SHIT
-        console2.log("Minted 5,000,000 SHIT to deployer");
+        // 1. Mint SYM to the deployer (market owner) so it can cover payouts.
+        //    Deployer is the SYM multisig, so mint() is authorized.
+        IMintable(SYM).mint(DEPLOYER, 5_000_000e18); // 5,000,000 SYM
+        console2.log("Minted 5,000,000 SYM to deployer");
 
-        // 2. Ensure the teller can pull SHIT payouts from the owner.
-        IERC20(SHIT).approve(TELLER, type(uint256).max);
-        console2.log("Approved SHIT to teller");
+        // 2. Ensure the teller can pull SYM payouts from the owner.
+        IERC20(SYM).approve(TELLER, type(uint256).max);
+        console2.log("Approved SYM to teller");
 
         // 3. Close the broken impact markets (deployer is the owner of each).
         uint256[7] memory oldMarkets = [uint256(2), 3, 4, 5, 6, 7, 8];
@@ -64,7 +64,7 @@ contract FixImpactMarkets is Script {
 
         for (uint256 i = 0; i < impactTokens.length; i++) {
             bytes memory params = abi.encode(
-                SHIT,                                          // payoutToken
+                SYM,                                          // payoutToken
                 impactTokens[i],                                // quoteToken
                 address(0),                                     // callbackAddr
                 true,                                           // capacityInQuote

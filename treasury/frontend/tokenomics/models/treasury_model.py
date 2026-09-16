@@ -1,7 +1,7 @@
 """
-Treasury Policy Model for SHIT Protocol (SHIT)
+Treasury Policy Model for SYM Protocol (SYM)
 
-Mirrors the logic in contracts/src/kernel/ShitTreasuryPolicy.sol:
+Mirrors the logic in contracts/src/kernel/SymbientTreasuryPolicy.sol:
 - RFV calculation with haircuts (Morpho 2%, Impact 50%, POL 50%)
 - NAV calculation (full value, no haircuts)
 - Idle asset caps enforcement
@@ -15,7 +15,7 @@ import pandas as pd
 from dataclasses import dataclass, field
 from typing import Optional
 
-# ─── Contract Constants (from ShitTreasuryPolicy.sol) ───
+# ─── Contract Constants (from SymbientTreasuryPolicy.sol) ───
 MORPHO_CAP_BPS = 7000          # 70% max to Morpho
 MORPHO_HAIRCUT_BPS = 200       # 2% RFV haircut
 IMPACT_HAIRCUT_BPS = 5000      # 50% RFV haircut
@@ -221,7 +221,7 @@ def simulate_treasury(params: TreasuryParams) -> pd.DataFrame:
             params
         )
 
-        # ─── 5. Compute floor price and NAV per SHIT ───
+        # ─── 5. Compute floor price and NAV per SYM ───
         state.floor_price = (state.rfv / state.shit_supply) if state.shit_supply > 0 else 0
         state.nav_per_shit = (state.nav / state.shit_supply) if state.shit_supply > 0 else 0
         state.total_treasury_usdc = state.usdc_balance
@@ -270,6 +270,6 @@ def simulate_dissolution(
         'total_redemption_value': rfv,
         'per_token_payout': redemption_rate,
         'timelock_days': 7,
-        'notes': 'All SHIT holders can redeem at floor price (RFV/supply). '
+        'notes': 'All SYM holders can redeem at floor price (RFV/supply). '
                  'Team comp capped at 2%/yr. Dissolution requires multisig + 7-day timelock.',
     }

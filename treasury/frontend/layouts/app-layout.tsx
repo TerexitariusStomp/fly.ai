@@ -51,7 +51,7 @@ function ScrollDepthTracker() {
 function useIsSocialsSubdomain() {
   return useMemo(() => {
     if (typeof window === "undefined") return false;
-    return window.location.hostname === "socials.shit.finance";
+    return window.location.hostname === "socials.symbient.finance";
   }, []);
 }
 

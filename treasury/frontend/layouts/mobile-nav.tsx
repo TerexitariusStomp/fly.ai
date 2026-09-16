@@ -4,7 +4,7 @@ import { Menu, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui-button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui-sheet";
-import { SHITLogo } from "@/components/shit-logo";
+import { SHITLogo } from "@/components/symbient-logo";
 import { NAV_SECTIONS, scrollToSection, renderNavIcon, type NavSection } from "@/lib/navigation";
 
 const SECTION_IDS = NAV_SECTIONS.map((s) => s.section);

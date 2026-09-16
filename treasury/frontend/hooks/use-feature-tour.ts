@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 
-const STORAGE_KEY = "shit-feature-tour";
+const STORAGE_KEY = "symbient-feature-tour";
 
 type TourState = number | "completed" | "skipped";
 

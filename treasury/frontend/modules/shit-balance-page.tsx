@@ -16,9 +16,9 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useMockData } from "@/lib/mock-provider";
 import { useMigrationClaim } from "@/hooks/use-migration-claim";
 import { useV1MigrationInfo, useV1MigratorMerkleRoot } from "@/hooks/use-v1-migration-info";
-import { MigrateShitModal } from "@/components/migrate-shit-modal";
-import { UnstakeStShitModal } from "@/components/unstake-stshit-modal";
-import { UnwrapWstShitModal } from "@/components/unwrap-wstshit-modal";
+import { MigrateSymbientModal } from "@/components/migrate-symbient-modal";
+import { UnstakeStSymbientModal } from "@/components/unstake-stsym-modal";
+import { UnwrapWstSymbientModal } from "@/components/unwrap-wstsym-modal";
 import { Icon, type IconName } from "@/components/icon";
 import { ChainIcon } from "@/components/chain-icon";
 import { useToken } from "@/hooks/use-token";
@@ -76,23 +76,23 @@ function getTokenAction(
   chainName: string,
   migration?: MigrationAction,
   onUnstakeV1?: () => void,
-  onUnwrapWstShit?: () => void,
+  onUnwrapWstSymbient?: () => void,
 ): TokenAction {
   const isHomeChain = chainName === "Ethereum" || chainName === "Sepolia";
   switch (symbol) {
-    case "SHIT":
+    case "SYM":
       return isHomeChain
-        ? { label: "Wrap", to: "/shit/wrap" }
-        : { label: "Bridge", to: "/shit/bridge" };
-    case "stSHIT":
-      return { label: "Wrap", to: `/shit/wrap?token=${symbol}` };
-    case "wstSHIT":
+        ? { label: "Wrap", to: "/symbient/wrap" }
+        : { label: "Bridge", to: "/symbient/bridge" };
+    case "stSYM":
+      return { label: "Wrap", to: `/symbient/wrap?token=${symbol}` };
+    case "wstSYM":
       return isHomeChain
-        ? { label: "Unwrap", to: "/shit/wrap?mode=unwrap" }
-        : { label: "Bridge", to: "/shit/bridge" };
-    case "SHIT v1":
+        ? { label: "Unwrap", to: "/symbient/wrap?mode=unwrap" }
+        : { label: "Bridge", to: "/symbient/bridge" };
+    case "SYM v1":
       return getMigrateAction(migration);
-    case "stSHIT v1":
+    case "stSYM v1":
       return isHomeChain && onUnstakeV1
         ? { label: "Unstake", onClick: onUnstakeV1 }
         : {
@@ -101,8 +101,8 @@ function getTokenAction(
             tooltip: isHomeChain ? undefined : LEGACY_ACTION_TOOLTIP,
           };
     case "wsSHIT":
-      return isHomeChain && onUnwrapWstShit
-        ? { label: "Unwrap", onClick: onUnwrapWstShit }
+      return isHomeChain && onUnwrapWstSymbient
+        ? { label: "Unwrap", onClick: onUnwrapWstSymbient }
         : {
             label: "Unwrap",
             disabled: true,
@@ -246,7 +246,7 @@ type BalanceTableProps = {
   tokens: TokenEntry[];
   migration?: MigrationAction;
   onUnstakeV1?: () => void;
-  onUnwrapWstShit?: () => void;
+  onUnwrapWstSymbient?: () => void;
 };
 
 type Row = {
@@ -325,7 +325,7 @@ const columns = [
   }),
 ];
 
-function BalanceTable({ tokens, migration, onUnstakeV1, onUnwrapWstShit }: BalanceTableProps) {
+function BalanceTable({ tokens, migration, onUnstakeV1, onUnwrapWstSymbient }: BalanceTableProps) {
   const data = useMemo<Row[]>(() => {
     const rows: Row[] = [];
     for (const token of tokens) {
@@ -342,7 +342,7 @@ function BalanceTable({ tokens, migration, onUnstakeV1, onUnwrapWstShit }: Balan
               chain.chainName,
               migration,
               onUnstakeV1,
-              onUnwrapWstShit,
+              onUnwrapWstSymbient,
             ),
             usdValue,
           });
@@ -350,7 +350,7 @@ function BalanceTable({ tokens, migration, onUnstakeV1, onUnwrapWstShit }: Balan
       }
     }
     return rows;
-  }, [tokens, migration, onUnstakeV1, onUnwrapWstShit]);
+  }, [tokens, migration, onUnstakeV1, onUnwrapWstSymbient]);
 
   const table = useReactTable({
     data,
@@ -398,10 +398,10 @@ type BalanceCardsProps = {
   tokens: TokenEntry[];
   migration?: MigrationAction;
   onUnstakeV1?: () => void;
-  onUnwrapWstShit?: () => void;
+  onUnwrapWstSymbient?: () => void;
 };
 
-function BalanceCards({ tokens, migration, onUnstakeV1, onUnwrapWstShit }: BalanceCardsProps) {
+function BalanceCards({ tokens, migration, onUnstakeV1, onUnwrapWstSymbient }: BalanceCardsProps) {
   const rows: {
     key: string;
     token: TokenEntry;
@@ -433,7 +433,7 @@ function BalanceCards({ tokens, migration, onUnstakeV1, onUnwrapWstShit }: Balan
           row.chain.chainName,
           migration,
           onUnstakeV1,
-          onUnwrapWstShit,
+          onUnwrapWstSymbient,
         );
         const usdValue = parseFloat(row.chain.formattedBalance) * row.token.price;
 
@@ -486,10 +486,10 @@ function BalanceEmptyState({ isLoading }: { isLoading: boolean }) {
     <Card className="flex flex-col items-center justify-center py-16 px-6 text-center min-h-[240px]">
       <Icon name="SHITTokenIcon" size={40} className="text-tertiary-t mb-4" />
       <h3 className="text-sm/5 font-semibold text-secondary-t mb-1">
-        No SHIT tokens found in your wallet.
+        No SYM tokens found in your wallet.
       </h3>
       <p className="text-xs/4 font-normal text-secondary-t max-w-sm">
-        SHIT cannot be minted from the faucet. To get SHIT, claim USDC from the faucet, then buy bonds with USDC to receive SHIT at a discount.
+        SYM cannot be minted from the faucet. To get SYM, claim USDC from the faucet, then buy bonds with USDC to receive SYM at a discount.
       </p>
       {isTestnetMode && (
         <a
@@ -588,67 +588,67 @@ export function BalancesPage() {
     [migrationStatus],
   );
 
-  const WstShitToken = useToken(TokenName.WSTSHIT);
-  const ShitToken = useToken(TokenName.SHIT);
+  const WstSymbientToken = useToken(TokenName.Wstsym);
+  const SymbientToken = useToken(TokenName.SYM);
 
-  const shitPriceNum = ShitToken.price;
-  const wstshitPriceNum = WstShitToken.price;
+  const shitPriceNum = SymbientToken.price;
+  const wstsymPriceNum = WstSymbientToken.price;
 
   const tokenList = useMemo(
-    () => [TOKENS.SHIT, TOKENS.STSHIT, TOKENS.WSTSHIT],
+    () => [TOKENS.SYM, TOKENS.stsym, TOKENS.Wstsym],
     [],
   );
   const { balances: tokenBalances, isLoading: balancesLoading } = useAllTokenBalances(tokenList);
 
-  const shitBalances = tokenBalances.SHIT;
-  const stshitBalances = tokenBalances.stSHIT;
-  const wstshitBalances = tokenBalances.wstSHIT;
+  const shitBalances = tokenBalances.SYM;
+  const stsymBalances = tokenBalances.stSYM;
+  const wstsymBalances = tokenBalances.wstSYM;
 
   const isLoading = balancesLoading;
 
   const totalUsd =
     parseFloat(shitBalances.formattedTotalBalance) * shitPriceNum +
-    parseFloat(stshitBalances.formattedTotalBalance) * shitPriceNum +
-    parseFloat(wstshitBalances.formattedTotalBalance) * wstshitPriceNum;
+    parseFloat(stsymBalances.formattedTotalBalance) * shitPriceNum +
+    parseFloat(wstsymBalances.formattedTotalBalance) * wstsymPriceNum;
 
   const hasBalances =
     totalUsd >= 0.01 ||
-    [shitBalances, stshitBalances, wstshitBalances].some(
+    [shitBalances, stsymBalances, wstsymBalances].some(
       (b) => b.totalBalance > 0n,
     );
 
   const tokens = useMemo(
     () => [
       {
-        symbol: "SHIT",
-        label: "SHIT",
+        symbol: "SYM",
+        label: "SYM",
         icon: "SHITTokenIcon" as IconName,
         balances: shitBalances,
         price: shitPriceNum,
       },
       {
-        symbol: "stSHIT",
-        label: "stSHIT",
-        sublabel: "Staked SHIT",
-        icon: "STSHITTokenIcon" as IconName,
-        balances: stshitBalances,
+        symbol: "stSYM",
+        label: "stSYM",
+        sublabel: "Staked SYM",
+        icon: "stsymTokenIcon" as IconName,
+        balances: stsymBalances,
         price: shitPriceNum,
       },
       {
-        symbol: "wstSHIT",
-        label: "wstSHIT",
-        sublabel: "Wrapped staked SHIT",
-        icon: "WSTSHITTokenIcon" as IconName,
-        balances: wstshitBalances,
-        price: wstshitPriceNum,
+        symbol: "wstSYM",
+        label: "wstSYM",
+        sublabel: "Wrapped staked SYM",
+        icon: "WstsymTokenIcon" as IconName,
+        balances: wstsymBalances,
+        price: wstsymPriceNum,
       },
     ],
     [
       shitBalances,
-      stshitBalances,
-      wstshitBalances,
+      stsymBalances,
+      wstsymBalances,
       shitPriceNum,
-      wstshitPriceNum,
+      wstsymPriceNum,
     ],
   );
 
@@ -668,14 +668,14 @@ export function BalancesPage() {
                   tokens={tokens}
                   migration={migration}
                   onUnstakeV1={mock ? undefined : () => setIsUnstakeV1Open(true)}
-                  onUnwrapWstShit={mock ? undefined : () => setIsUnwrapWsshitOpen(true)}
+                  onUnwrapWstSymbient={mock ? undefined : () => setIsUnwrapWsshitOpen(true)}
                 />
               ) : (
                 <BalanceTable
                   tokens={tokens}
                   migration={migration}
                   onUnstakeV1={mock ? undefined : () => setIsUnstakeV1Open(true)}
-                  onUnwrapWstShit={mock ? undefined : () => setIsUnwrapWsshitOpen(true)}
+                  onUnwrapWstSymbient={mock ? undefined : () => setIsUnwrapWsshitOpen(true)}
                 />
               )
             ) : (
@@ -686,7 +686,7 @@ export function BalancesPage() {
       </div>
 
       {claim && remaining !== undefined && (
-        <MigrateShitModal
+        <MigrateSymbientModal
           isOpen={isMigrateOpen}
           onClose={() => setIsMigrateOpen(false)}
           claim={claim}
@@ -695,9 +695,9 @@ export function BalancesPage() {
         />
       )}
 
-      <UnstakeStShitModal isOpen={isUnstakeV1Open} onClose={() => setIsUnstakeV1Open(false)} />
+      <UnstakeStSymbientModal isOpen={isUnstakeV1Open} onClose={() => setIsUnstakeV1Open(false)} />
 
-      <UnwrapWstShitModal isOpen={isUnwrapWsshitOpen} onClose={() => setIsUnwrapWsshitOpen(false)} />
+      <UnwrapWstSymbientModal isOpen={isUnwrapWsshitOpen} onClose={() => setIsUnwrapWsshitOpen(false)} />
     </div>
   );
 }

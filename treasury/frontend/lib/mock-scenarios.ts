@@ -10,7 +10,7 @@ import {
 export const SCENARIOS: Record<string, MockScenario> = {
   whale: {
     name: "whale",
-    description: "Large SHIT + wstSHIT balances across multiple chains",
+    description: "Large SYM + wstSYM balances across multiple chains",
     isConnected: true,
     prices: DEFAULT_PRICES,
     balances: WHALE_BALANCES,
@@ -24,14 +24,14 @@ export const SCENARIOS: Record<string, MockScenario> = {
   },
   legacy: {
     name: "legacy",
-    description: "Wallet with v1 SHIT, v1 sSHIT, wsSHIT needing migration",
+    description: "Wallet with v1 SYM, v1 sSHIT, wsSHIT needing migration",
     isConnected: true,
     prices: DEFAULT_PRICES,
     balances: LEGACY_BALANCES,
   },
   "multi-chain": {
     name: "multi-chain",
-    description: "wstSHIT spread across 6 chains",
+    description: "wstSYM spread across 6 chains",
     isConnected: true,
     prices: DEFAULT_PRICES,
     balances: MULTI_CHAIN_BALANCES,

@@ -37,7 +37,7 @@ export function IzipayCreateVaultPage() {
         <CardHeader>
           <CardTitle>Deploy Your Card Vault</CardTitle>
           <CardDescription>
-            A per-user upgradeable vault contract on Base. Deposits trigger the 5H1TPay card pipeline.
+            A per-user upgradeable vault contract on Base. Deposits trigger the SYMPay card pipeline.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

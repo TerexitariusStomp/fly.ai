@@ -4,7 +4,7 @@ export default
     "type": "constructor",
     "inputs": [
       {
-        "name": "_stShit",
+        "name": "_stSymbient",
         "type": "address",
         "internalType": "address"
       }
@@ -224,7 +224,7 @@ export default
   },
   {
     "type": "function",
-    "name": "stSHIT",
+    "name": "stSYM",
     "inputs": [],
     "outputs": [
       {
@@ -237,7 +237,7 @@ export default
   },
   {
     "type": "function",
-    "name": "stShitPerToken",
+    "name": "stSymbientPerToken",
     "inputs": [],
     "outputs": [
       {
@@ -250,10 +250,10 @@ export default
   },
   {
     "type": "function",
-    "name": "stShitToWstShit",
+    "name": "stSymbientToWstSymbient",
     "inputs": [
       {
-        "name": "_stShitAmount",
+        "name": "_stSymbientAmount",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -351,7 +351,7 @@ export default
     "name": "unwrap",
     "inputs": [
       {
-        "name": "_wstShitAmount",
+        "name": "_wstSymbientAmount",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -370,7 +370,7 @@ export default
     "name": "wrap",
     "inputs": [
       {
-        "name": "_stShitAmount",
+        "name": "_stSymbientAmount",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -386,10 +386,10 @@ export default
   },
   {
     "type": "function",
-    "name": "wstShitToStShit",
+    "name": "wstSymbientToStSymbient",
     "inputs": [
       {
-        "name": "_wstShitAmount",
+        "name": "_wstSymbientAmount",
         "type": "uint256",
         "internalType": "uint256"
       }

@@ -1,11 +1,11 @@
 /**
- * 5H1T Overview Page — replaces 5H1T overview.
+ * SYM Overview Page — replaces SYM overview.
  * Composes vendored OSS components with live API data. No stubs.
  */
 import { useState, useEffect } from "react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { FiveHitLogo } from "@/components/5h1t-logo";
-import { useApi, toTraderSummaries, type Connectome, type Governance, type FlyaiPoint, type Treasury } from "@/lib/5h1t-api";
+import { SymLogo } from "@/components/sym-logo";
+import { useApi, toTraderSummaries, type Connectome, type Governance, type FlyaiPoint, type Treasury } from "@/lib/sym-api";
 import { ConnectomeViewer3D, type BrainData } from "@/components/connectome-viewer-3d";
 import LeaderboardTable from "@/vendor/nofyai/components/competition/LeaderboardTable";
 
@@ -16,7 +16,7 @@ const SPECIES_EMOJI: Record<string, string> = {
   mouse: "🐭", rat: "🐀", malecns: "🪰", hemibrain: "🪰",
 };
 
-export function FiveHitOverviewPage() {
+export function SymOverviewPage() {
   const [selectedId, setSelectedId] = useState<string>("celegans");
   const [brainData, setBrainData] = useState<BrainData | null>(null);
   const { data: connectomes } = useApi<Connectome[]>("/api/connectomes");
@@ -55,9 +55,9 @@ export function FiveHitOverviewPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Hero */}
         <div className="flex items-center gap-4 mb-8">
-          <FiveHitLogo size={56} />
+          <SymLogo size={56} />
           <div>
-            <h1 className="font-mono text-3xl md:text-5xl font-bold tracking-tight">5H1T</h1>
+            <h1 className="font-mono text-3xl md:text-5xl font-bold tracking-tight">SYM</h1>
             <p className="text-gray-400 mt-1">16 real biological connectomes trading a shared treasury</p>
           </div>
         </div>
