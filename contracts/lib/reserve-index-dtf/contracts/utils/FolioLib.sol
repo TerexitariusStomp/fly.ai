@@ -1,0 +1,259 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.24;
+
+import { IFolio } from "@interfaces/IFolio.sol";
+import { IFolioDAOFeeRegistry } from "@interfaces/IFolioDAOFeeRegistry.sol";
+
+import { D18, MAX_FEE_RECIPIENTS, MAX_TVL_FEE, MIN_MINT_FEE, ONE_OVER_YEAR } from "@utils/Constants.sol";
+import { MathLib } from "@utils/MathLib.sol";
+
+/**
+ * @title FolioLib
+ * @notice Library for Folio governance operations
+ * @author akshatmittal, julianmrodri, pmckelvy1, tbrent
+ */
+library FolioLib {
+    /// @dev Warning: Empty fee recipient tables send all non-self fees to DAO
+    function setFeeRecipients(
+        IFolio.FeeRecipient[] storage feeRecipients,
+        IFolio.FeeRecipient[] storage immutableFeeRecipients,
+        IFolio.FeeRecipient[] calldata _feeRecipients,
+        IFolio.FeeRecipient[] calldata _immutableFeeRecipients
+    ) external {
+        // Validate recipient table ordering and entries before combined checks.
+        _validateFeeRecipientList(_feeRecipients);
+        _validateFeeRecipientList(_immutableFeeRecipients);
+
+        _validateFeeRecipients(_feeRecipients, _immutableFeeRecipients);
+
+        _requireImmutableFeeRecipientsPreserved(immutableFeeRecipients, _immutableFeeRecipients);
+
+        // Replace mutable and immutable recipient storage.
+        _setFeeRecipients(feeRecipients, _feeRecipients);
+        emit IFolio.FeeRecipientsSet(_feeRecipients);
+
+        _setFeeRecipients(immutableFeeRecipients, _immutableFeeRecipients);
+        emit IFolio.ImmutableFeeRecipientsSet(_immutableFeeRecipients);
+    }
+
+    function _setFeeRecipients(
+        IFolio.FeeRecipient[] storage feeRecipients,
+        IFolio.FeeRecipient[] calldata _feeRecipients
+    ) private {
+        // Clear existing fee table
+        uint256 len = feeRecipients.length;
+        for (uint256 i; i < len; i++) {
+            feeRecipients.pop();
+        }
+
+        // Add new items to the fee table
+        len = _feeRecipients.length;
+        for (uint256 i; i < len; i++) {
+            feeRecipients.push(_feeRecipients[i]);
+        }
+    }
+
+    function _validateFeeRecipientList(IFolio.FeeRecipient[] calldata recipients) private view {
+        uint256 len = recipients.length;
+
+        address previousRecipient;
+        for (uint256 i; i < len; i++) {
+            if (!(recipients[i].recipient != address(this))) revert IFolio.Folio__FeeRecipientInvalidAddress();
+            if (!(recipients[i].recipient > previousRecipient)) revert IFolio.Folio__FeeRecipientInvalidAddress();
+            if (!(recipients[i].portion != 0)) revert IFolio.Folio__FeeRecipientInvalidFeeShare();
+
+            previousRecipient = recipients[i].recipient;
+        }
+    }
+
+    function _validateFeeRecipients(
+        IFolio.FeeRecipient[] calldata feeRecipients,
+        IFolio.FeeRecipient[] calldata immutableFeeRecipients
+    ) private pure {
+        uint256 mutableLen = feeRecipients.length;
+        uint256 immutableLen = immutableFeeRecipients.length;
+        uint256 len = mutableLen + immutableLen;
+
+        if (len == 0) {
+            return;
+        }
+
+        if (!(len <= MAX_FEE_RECIPIENTS)) revert IFolio.Folio__TooManyFeeRecipients();
+
+        uint256 total;
+        for (uint256 i; i < mutableLen; i++) {
+            total += feeRecipients[i].portion;
+        }
+        for (uint256 i; i < immutableLen; i++) {
+            total += immutableFeeRecipients[i].portion;
+        }
+
+        // ensure tables add up to 100%
+        if (!(total == D18)) revert IFolio.Folio__BadFeeTotal();
+    }
+
+    function _requireImmutableFeeRecipientsPreserved(
+        IFolio.FeeRecipient[] storage immutableFeeRecipients,
+        IFolio.FeeRecipient[] calldata _immutableFeeRecipients
+    ) private view {
+        uint256 oldImmutableLen = immutableFeeRecipients.length;
+        uint256 newImmutableLen = _immutableFeeRecipients.length;
+        uint256 oldIndex;
+
+        for (uint256 newIndex; newIndex < newImmutableLen && oldIndex < oldImmutableLen; newIndex++) {
+            IFolio.FeeRecipient storage oldRecipient = immutableFeeRecipients[oldIndex];
+            IFolio.FeeRecipient calldata newRecipient = _immutableFeeRecipients[newIndex];
+
+            if (newRecipient.recipient < oldRecipient.recipient) {
+                continue;
+            }
+
+            if (!(newRecipient.recipient == oldRecipient.recipient)) revert IFolio.Folio__ImmutableFeeRecipientRemoved();
+            if (!(newRecipient.portion >= oldRecipient.portion)) revert IFolio.Folio__ImmutableFeeRecipientRemoved();
+
+            oldIndex++;
+        }
+
+        if (!(oldIndex == oldImmutableLen)) revert IFolio.Folio__ImmutableFeeRecipientRemoved();
+    }
+
+    function mergeFeeRecipients(
+        IFolio.FeeRecipient[] storage feeRecipients,
+        IFolio.FeeRecipient[] storage immutableFeeRecipients
+    ) internal view returns (IFolio.FeeRecipient[] memory recipients) {
+        uint256 mutableLen = feeRecipients.length;
+        uint256 immutableLen = immutableFeeRecipients.length;
+        recipients = new IFolio.FeeRecipient[](mutableLen + immutableLen);
+
+        for (uint256 i; i < mutableLen; i++) {
+            recipients[i] = feeRecipients[i];
+        }
+
+        for (uint256 i; i < immutableLen; i++) {
+            recipients[mutableLen + i] = immutableFeeRecipients[i];
+        }
+    }
+
+    /// @dev stack-too-deep
+    struct FeeSharesParams {
+        uint256 currentDaoPending; // {share}
+        uint256 currentFeeRecipientsPending; // {share}
+        uint256 tvlFee; // D18{1/s}
+        uint256 folioFeeForSelf; // D18{1} fraction of fee-recipient shares to burn
+        uint256 supply; // {share}
+        uint256 elapsed; // {s}
+    }
+
+    /// Compute TVL fee shares owed to the DAO, fee recipients, and the Folio itself
+    /// @return _daoPendingFeeShares {share}
+    /// @return _feeRecipientsPendingFeeShares {share}
+    /// @return _folioSelfFeeShares {share}
+    function computeFeeShares(
+        FeeSharesParams calldata params,
+        IFolioDAOFeeRegistry daoFeeRegistry
+    )
+        external
+        view
+        returns (uint256 _daoPendingFeeShares, uint256 _feeRecipientsPendingFeeShares, uint256 _folioSelfFeeShares)
+    {
+        (, uint256 daoFeeNumerator, uint256 daoFeeDenominator, uint256 daoFeeFloor) = daoFeeRegistry.getFeeDetails(
+            address(this)
+        );
+
+        // convert annual percentage to per-second for comparison with stored tvlFee
+        // = 1 - (1 - feeFloor) ^ (1 / 31536000)
+        // D18{1/s} = D18{1} - D18{1} * D18{1} ^ D18{1/s}
+        uint256 feeFloor = D18 - MathLib.pow(D18 - daoFeeFloor, ONE_OVER_YEAR);
+
+        // D18{1/s}
+        uint256 _tvlFee = feeFloor > params.tvlFee ? feeFloor : params.tvlFee;
+
+        if (_tvlFee == 0) {
+            return (params.currentDaoPending, params.currentFeeRecipientsPending, 0);
+        }
+
+        // {share} += {share} * D18 / D18{1/s} ^ {s} - {share}
+        uint256 feeShares = (params.supply * D18) / MathLib.powu(D18 - _tvlFee, params.elapsed) - params.supply;
+
+        // D18{1} = D18{1/s} * D18 / D18{1/s}
+        uint256 correction = (feeFloor * D18 + _tvlFee - 1) / _tvlFee;
+
+        // {share} = {share} * D18{1} / D18
+        uint256 daoShares = (correction > (daoFeeNumerator * D18 + daoFeeDenominator - 1) / daoFeeDenominator)
+            ? (feeShares * correction + D18 - 1) / D18
+            : (feeShares * daoFeeNumerator + daoFeeDenominator - 1) / daoFeeDenominator;
+
+        _daoPendingFeeShares = params.currentDaoPending + daoShares;
+
+        uint256 rawRecipientShares = feeShares - daoShares;
+        _folioSelfFeeShares = (rawRecipientShares * params.folioFeeForSelf) / D18;
+        _feeRecipientsPendingFeeShares = params.currentFeeRecipientsPending + rawRecipientShares - _folioSelfFeeShares;
+    }
+
+    /// Set TVL fee by annual percentage. Different from how it is stored!
+    /// @param _newFeeAnnually D18{1/year}
+    /// @return _tvlFee D18{1/s} The computed per-second fee
+    function setTVLFee(uint256 _newFeeAnnually) external returns (uint256 _tvlFee) {
+        if (!(_newFeeAnnually <= MAX_TVL_FEE)) revert IFolio.Folio__TVLFeeTooHigh();
+
+        // convert annual percentage to per-second
+        // = 1 - (1 - _newFeeAnnually) ^ (1 / 31536000)
+        // D18{1/s} = D18{1} - D18{1} ^ {s}
+        _tvlFee = D18 - MathLib.pow(D18 - _newFeeAnnually, ONE_OVER_YEAR);
+
+        if (!(_newFeeAnnually == 0 || _tvlFee != 0)) revert IFolio.Folio__TVLFeeTooLow();
+
+        emit IFolio.TVLFeeSet(_tvlFee, _newFeeAnnually);
+    }
+
+    /// @dev stack-too-deep
+    struct MintFeeParams {
+        uint256 shares; // {share}
+        uint256 mintFee; // D18{1}
+        uint256 folioFeeForSelf; // D18{1}
+        uint256 minSharesOut; // {share}
+    }
+
+    /// Compute mint fee shares for DAO and fee recipients
+    /// @dev Semantically view; non-view only because it emits FolioFeePaid
+    /// @param params Mint fee parameters
+    /// @param daoFeeRegistry The DAO fee registry to query fee details from
+    /// @return sharesOut {share} Shares to mint for the receiver
+    /// @return daoFeeShares {share} Shares owed to the DAO
+    /// @return feeRecipientFeeShares {share} Shares owed to fee recipients (excludes self-fee shares)
+    function computeMintFees(
+        MintFeeParams calldata params,
+        IFolioDAOFeeRegistry daoFeeRegistry
+    ) external returns (uint256 sharesOut, uint256 daoFeeShares, uint256 feeRecipientFeeShares) {
+        (, uint256 daoFeeNumerator, uint256 daoFeeDenominator, uint256 daoFeeFloor) = daoFeeRegistry.getFeeDetails(
+            address(this)
+        );
+
+        // ensure DAO fee floor is at least 3 bps (set just above daily MAX_TVL_FEE)
+        daoFeeFloor = daoFeeFloor > MIN_MINT_FEE ? daoFeeFloor : MIN_MINT_FEE;
+
+        // {share} = {share} * D18{1} / D18
+        uint256 totalFeeShares = (params.shares * params.mintFee + D18 - 1) / D18;
+        daoFeeShares = (totalFeeShares * daoFeeNumerator + daoFeeDenominator - 1) / daoFeeDenominator;
+
+        // ensure DAO's portion of fees is at least the DAO feeFloor
+        uint256 minDaoShares = (params.shares * daoFeeFloor + D18 - 1) / D18;
+        daoFeeShares = daoFeeShares < minDaoShares ? minDaoShares : daoFeeShares;
+
+        // 100% to DAO, if necessary
+        totalFeeShares = totalFeeShares < daoFeeShares ? daoFeeShares : totalFeeShares;
+
+        // apply folioFeeForSelf to recipient portion
+        feeRecipientFeeShares = totalFeeShares - daoFeeShares;
+        uint256 folioSelfShares = (feeRecipientFeeShares * params.folioFeeForSelf) / D18;
+        feeRecipientFeeShares -= folioSelfShares;
+
+        // {share} minter pays the full fee (including self-fee shares that are burned)
+        sharesOut = params.shares - totalFeeShares;
+        if (!(sharesOut != 0 && sharesOut >= params.minSharesOut)) revert IFolio.Folio__InsufficientSharesOut();
+
+        if (folioSelfShares != 0) {
+            emit IFolio.FolioFeePaid(address(this), folioSelfShares);
+        }
+    }
+}

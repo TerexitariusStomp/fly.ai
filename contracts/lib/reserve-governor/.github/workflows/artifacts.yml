@@ -1,0 +1,69 @@
+name: Artifacts
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          repository: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
+
+      - run: corepack enable pnpm
+
+      - name: Install Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Install Dependencies
+        run: |
+          pnpm install --frozen-lockfile
+
+      - name: Generate Artifacts
+        run: |
+          ./scripts/generate-artifacts.sh
+
+      - name: Commit Updated Artifacts
+        run: |
+          ARTIFACT_CHANGES="$(git status --porcelain --untracked-files=all -- contracts/artifacts/)"
+          if [ -z "$ARTIFACT_CHANGES" ]; then
+            echo "Artifact files are up to date."
+            exit 0
+          fi
+
+          echo "Artifact files are out of date."
+          printf '%s\n' "$ARTIFACT_CHANGES"
+
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]; then
+            echo "::error:: Artifact files are outdated, but this workflow cannot push to forked pull request branches. Run ./scripts/generate-artifacts.sh and commit the changes."
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add contracts/artifacts/
+          git commit -m "chore: update generated artifacts"
+          git push origin "HEAD:${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"

@@ -1,0 +1,22 @@
+{
+  "lexicon": 1,
+  "id": "symbient.connectome.evolution",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "Evolution log as public record — auditable self-improvement",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["changeType", "oldHash", "newHash", "createdAt"],
+        "properties": {
+          "changeType": { "type": "string" },
+          "oldHash": { "type": "string" },
+          "newHash": { "type": "string" },
+          "abTestResult": { "type": "string" },
+          "createdAt": { "type": "string", "format": "datetime" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,15 @@
+name = "enrichment-worker"
+main = "src/worker.py"
+compatibility_date = "2026-09-12"
+compatibility_flags = ["python_workers"]
+
+# D1 database
+[[d1_databases]]
+binding = "DB"
+database_name = "rooted"
+database_id = "a494ae7e-4efd-49c6-8058-603179e3fd23"
+
+# Cron trigger — every 2 minutes
+[triggers]
+crons = ["*/2 * * * *"]
+account_id = "6c0140469651854b2e358517371a03d3"

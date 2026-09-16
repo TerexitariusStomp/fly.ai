@@ -1,0 +1,43 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+
+# Foundry
+contracts/out/
+contracts/cache/
+contracts/broadcast/*/31337/
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Build outputs
+dist/
+build/
+.next/
+.wrangler/
+.dev.vars
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# D1 local state
+*.sqlite
+*.sqlite3
+
+# Misc
+*.log
+coverage/

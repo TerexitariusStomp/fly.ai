@@ -1,0 +1,15 @@
+forge-std/=node_modules/forge-std/src/
+@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/
+@reserve-protocol/trusted-fillers/=node_modules/@reserve-protocol/trusted-fillers/
+@reserve-protocol/reserve-governor/=node_modules/@reserve-protocol/reserve-governor/
+@openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable/
+@prb/math/=node_modules/@prb/math/
+utils/=test/utils/
+
+@src/=contracts/
+@utils/=contracts/utils/
+@interfaces/=contracts/interfaces/
+
+@folio/=contracts/folio/
+@deployer/=contracts/deployer/
+@periphery/=contracts/periphery/

@@ -1,0 +1,84 @@
+type PersonalityProfile = record {
+    name : text;
+    species : text;
+    neuron_count : nat64;
+    style : text;
+    emoji : text;
+    system_prompt : text;
+    catchphrases : vec text;
+};
+
+type StrategyParams = record {
+    confidence_threshold : nat8;
+    risk_tolerance : nat8;
+    post_frequency_minutes : nat32;
+    trade_size_pct : nat8;
+    trade_enabled : bool;
+    evolution_enabled : bool;
+    treasury_enabled : bool;
+    lp_enabled : bool;
+    tokenomics_enabled : bool;
+    treasury_idle_threshold : nat64;
+    treasury_gas_reserve : nat64;
+    lp_allocation : nat64;
+    burn_pct : nat8;
+    airdrop_amount : nat64;
+    replication_burn_amount : nat;
+    max_tx_per_hour : nat32;
+    max_drawdown_bps : nat64;
+};
+
+type AtprotoCreds = record {
+    handle : text;
+    app_password : text;
+};
+
+type PostRecord = record {
+    id : nat64;
+    connectome_id : text;
+    post_type : nat8;
+    content : text;
+    atproto_uri : opt text;
+    posted_at : opt nat64;
+};
+
+type EvolutionLogEntry = record {
+    timestamp : nat64;
+    connectome_id : text;
+    change_type : text;
+    old_value : text;
+    new_value : text;
+    reason : text;
+};
+
+type AutonomyLevel = variant { new_; earning; established; sovereign };
+
+service : {
+    // Admin
+    set_admin : (principal) -> ();
+    register_personality : (text, PersonalityProfile) -> ();
+    set_atproto_credentials : (text, AtprotoCreds) -> ();
+    set_strategy_params : (text, StrategyParams) -> ();
+    init_git_repo : (text) -> ();
+    set_governor_address : (text) -> ();
+    set_rpc_url : (text) -> ();
+    set_contracts : (text, text, text, text, text, text, text, text, text, text) -> ();
+    set_backup_canister : (text) -> ();
+    set_llm_model : (text) -> ();
+    set_autonomy : (text, AutonomyLevel) -> ();
+    register_connectome : (text) -> ();
+
+    // Queries
+    get_personality : (text) -> (opt PersonalityProfile) query;
+    get_strategy_params : (text) -> (opt StrategyParams) query;
+    get_evm_address : (text) -> (variant { ok : text; err : text });
+    get_post_history : (nat64) -> (vec PostRecord) query;
+    get_evolution_log : (nat64) -> (vec EvolutionLogEntry) query;
+    get_connectome_ids : () -> (vec text) query;
+    get_autonomy : (text) -> (AutonomyLevel) query;
+    cycle_runway_hours : () -> (nat64) query;
+
+    // Ops
+    trigger_full_cycle : () -> ();
+    http_request : (record { url : text; method : text; body : blob; headers : vec record { text; text } }) -> (record { status_code : nat16; headers : vec record { text; text }; body : blob }) query;
+};

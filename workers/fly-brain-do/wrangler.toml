@@ -1,0 +1,38 @@
+name = "fly-brain-do"
+main = "src/worker.py"
+compatibility_date = "2026-09-12"
+compatibility_flags = ["python_workers"]
+account_id = "6c0140469651854b2e358517371a03d3"
+
+# D1 database
+[[d1_databases]]
+binding = "DB"
+database_name = "rooted"
+database_id = "a494ae7e-4efd-49c6-8058-603179e3fd23"
+
+# Weights live in D1 (`weights` / `weight_chunks` tables) — R2 not enabled
+# on this account.
+
+# Durable Object for connectome brains (supports 7 connectomes)
+[[durable_objects.bindings]]
+name = "FLY_BRAIN"
+class_name = "ConnectomeDO"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["FlyBrainDO"]
+
+[[migrations]]
+tag = "v2"
+renamed_classes = [{ from = "FlyBrainDO", to = "ConnectomeDO" }]
+
+[vars]
+BUY_THRESHOLD_HZ = "5.0"
+SELL_THRESHOLD_HZ = "3.0"
+# API worker URL — DOs fetch token candidates through the edge-cached
+# endpoint instead of scanning D1 directly (16 DOs × 1min scans would
+# exhaust the free-tier daily row-read limit).
+API_BASE_URL = "https://api-worker.terexmaps.workers.dev"
+
+# No cron — DO alarms self-reschedule after first kick (see /kick endpoint).
+# Free tier limit is 5 crons/account; DOs don't consume one.

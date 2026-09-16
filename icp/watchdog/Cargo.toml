@@ -1,0 +1,15 @@
+[package]
+name = "connectome-watchdog"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ic-cdk = "0.18"
+ic-cdk-timers = "0.12"
+ic-stable-structures = { path = "../../vendor/stable-structures" }
+candid = "0.10"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

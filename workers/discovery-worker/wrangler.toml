@@ -1,0 +1,21 @@
+name = "discovery-worker"
+main = "src/index.ts"
+compatibility_date = "2026-09-12"
+
+# D1 database
+[[d1_databases]]
+binding = "DB"
+database_name = "rooted"
+database_id = "a494ae7e-4efd-49c6-8058-603179e3fd23"
+
+# KV for caching
+[[kv_namespaces]]
+binding = "CACHE"
+id = "10656e3d29ec4697acb0d7d6c811f660"
+
+# Cron trigger — every 1 minute (free: 3/Worker)
+# no cron — driven by fly-brain-do alarm chain
+
+[vars]
+ARC_RPC = "https://rpc.testnet.arc.io"
+account_id = "6c0140469651854b2e358517371a03d3"

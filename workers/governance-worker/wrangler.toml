@@ -1,0 +1,19 @@
+name = "governance-worker"
+main = "src/index.ts"
+compatibility_date = "2026-09-12"
+
+# D1 database
+[[d1_databases]]
+binding = "DB"
+database_name = "rooted"
+database_id = "a494ae7e-4efd-49c6-8058-603179e3fd23"
+
+# Durable Object binding to fly-brain-do (cross-worker reference)
+[[durable_objects.bindings]]
+name = "FLY_BRAIN"
+class_name = "ConnectomeDO"
+script_name = "fly-brain-do"
+
+# Triggers every 2 minutes
+# no cron — driven by fly-brain-do alarm chain
+account_id = "6c0140469651854b2e358517371a03d3"

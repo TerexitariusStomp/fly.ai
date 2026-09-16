@@ -1,0 +1,42 @@
+{
+  "name": "@reserve-protocol/trusted-fillers",
+  "version": "0.1.0",
+  "description": "Reserve Trusted Fillers",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@cowprotocol/app-data": "^3.3.1",
+    "@cowprotocol/cow-sdk": "^8.0.4",
+    "@cowprotocol/sdk-viem-adapter": "^0.3.14",
+    "@openzeppelin/contracts": "5.1.0",
+    "@openzeppelin/contracts-upgradeable": "5.1.0",
+    "@prb/math": "4.1.0",
+    "@reserve-protocol/trusted-fillers-sdk": "0.5.0",
+    "@reserve-protocol/universal-deployer": "^1.2.0",
+    "@walletconnect/sign-client": "2.23.9",
+    "ethers": "^5.8.0",
+    "multiformats": "^9.9.0",
+    "viem": "^2.47.6"
+  },
+  "devDependencies": {
+    "forge-std": "github:foundry-rs/forge-std#v1.15.0",
+    "@types/node": "^25.9.1",
+    "decimal.js": "^10.6.0",
+    "prettier": "^3.8.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "scripts": {
+    "format": "prettier --write \"./**/*.{js,ts,json,md,yaml,yml}\" && forge fmt",
+    "format:check": "prettier --check \"./**/*.{js,ts,json,md,yaml,yml}\" && forge fmt --check",
+    "compile": "forge compile",
+    "test": "forge test",
+    "size": "forge compile --sizes",
+    "coverage": "forge coverage --report lcov --no-match-coverage '(script|test)'",
+    "coverage:summary": "forge coverage --report summary --no-match-coverage '(script|test)'",
+    "deploy:jar": "forge script script/DeployGenericTokenJar.s.sol --slow",
+    "deploy:filler": "forge script script/DeployCowSwapFiller.s.sol --slow",
+    "anvil": "anvil --fork-url https://mainnet.gateway.tenderly.co --chain-id 31337 --prune-history"
+  },
+  "packageManager": "pnpm@11.9.0+sha512.bd682d5d03fe525ef7c9fd6780c6884d1e756ac4c9c9fe00c538782824310dcf90e3ddc4f53835f06dfaebd5085e41855e0bcbb3b60de2ac5bbab89e5036f03b"
+}

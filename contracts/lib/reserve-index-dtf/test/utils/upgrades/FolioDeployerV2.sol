@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.24;
+
+import { FolioDeployer } from "@deployer/FolioDeployer.sol";
+import { FolioV2 } from "./FolioV2.sol";
+
+contract FolioDeployerV2 is FolioDeployer {
+    constructor(
+        address _daoFeeRegistry,
+        address _versionRegistry,
+        address _trustedFillerRegistry,
+        address _governorDeployer
+    ) FolioDeployer(_daoFeeRegistry, _versionRegistry, _trustedFillerRegistry, _governorDeployer) {
+        folioImplementation = address(new FolioV2());
+    }
+
+    function version() public pure override returns (string memory) {
+        return "10.0.0";
+    }
+}

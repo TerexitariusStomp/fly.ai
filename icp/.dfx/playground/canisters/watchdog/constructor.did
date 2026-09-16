@@ -1,0 +1,13 @@
+type SnapshotRecord = record {
+    version : nat64;
+    payload : text;
+    signature : vec nat8;
+};
+
+service : {
+    store_snapshot : (text, SnapshotRecord) -> ();
+    watchdog_heartbeat : (text, nat64, vec nat8) -> ();
+    latest_snapshot : (text) -> (opt SnapshotRecord) query;
+    last_heartbeat : (text) -> (opt nat64) query;
+    hours_since_heartbeat : (text) -> (opt nat64) query;
+};

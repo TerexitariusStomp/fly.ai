@@ -1,0 +1,15 @@
+name = "api-worker"
+main = "src/index.ts"
+compatibility_date = "2026-09-12"
+
+# D1 database
+[[d1_databases]]
+binding = "DB"
+database_name = "rooted"
+database_id = "a494ae7e-4efd-49c6-8058-603179e3fd23"
+
+# R2 not enabled on this account — brain endpoints return 404
+
+[vars]
+TREASURY_VALUATION = ""
+# Secret: npx wrangler secret put ARC_RPC_URL

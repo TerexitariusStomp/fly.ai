@@ -1,0 +1,5 @@
+minimumReleaseAgeExclude:
+  - "@reserve-protocol/universal-deployer"
+allowBuilds:
+  esbuild: false
+  protobufjs: false

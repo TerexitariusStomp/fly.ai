@@ -1,0 +1,86 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - run: corepack enable pnpm
+
+      - name: Install Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Install Dependencies
+        run: |
+          pnpm install --frozen-lockfile
+
+      - name: Compile Contracts
+        run: |
+          forge compile
+
+      - name: Generate Artifacts
+        run: |
+          pnpm export
+
+      - name: Save Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: typescript-artifacts
+          path: |
+            artifacts/
+
+      - name: Upload Selectors
+        run: |
+          pnpm selectors:upload
+
+  size:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - run: corepack enable pnpm
+
+      - name: Install Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Install Dependencies
+        run: |
+          pnpm install --frozen-lockfile
+
+      - name: Contract Size Check
+        run: |
+          pnpm size

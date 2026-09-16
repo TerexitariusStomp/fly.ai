@@ -1,0 +1,147 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.24;
+
+import { IFolio } from "@interfaces/IFolio.sol";
+import { IFolioDAOFeeRegistry } from "@interfaces/IFolioDAOFeeRegistry.sol";
+import { IRoleRegistry } from "@interfaces/IRoleRegistry.sol";
+
+/**
+ * @title FolioDAOFeeRegistry
+ * @author akshatmittal, julianmrodri, pmckelvy1, tbrent
+ * @notice FolioDAOFeeRegistry tracks the DAO fees that should be applied to each Folio
+ *         The DAO fee is the percentage of Folio fees that should go to the DAO.
+ *         The fee floor is a lower bound on what can be charged to Folio users, in case
+ *         the Folio has set its own top-level fees too low.
+ *
+ *         For example, if the DAO fee is 33.33%, and the fee floor is 0.10%, then any TVL fee
+ *         that is less than 0.30% will result in the DAO receiving 0.10%. The Folio beneficiaries receive
+ *         (TVL fee - 0.10%) * (1 - folioFeeForSelf). At <=0.10% TVL fee, the DAO receives 0.10% and
+ *         Folio beneficiaries receive 0%.
+ */
+contract FolioDAOFeeRegistry is IFolioDAOFeeRegistry {
+    uint256 public constant FEE_DENOMINATOR = 1e18;
+
+    uint256 private immutable MAX_DAO_FEE;
+    uint256 private immutable MAX_FEE_FLOOR;
+
+    IRoleRegistry public immutable roleRegistry;
+
+    address private feeRecipient;
+    uint256 private defaultFeeNumerator; // D18{1} starts at max, set in constructor
+
+    mapping(address => uint256) private fTokenFeeNumerator; // D18{1}
+    mapping(address => bool) private fTokenFeeSet;
+
+    uint256 public defaultFeeFloor; // D18{1} starts at max, set in constructor
+    mapping(address => uint256) private fTokenFeeFloor; // D18{1}
+    mapping(address => bool) private fTokenFeeFloorSet;
+
+    modifier onlyOwner() {
+        if (!(roleRegistry.isOwner(msg.sender))) revert FolioDAOFeeRegistry__InvalidCaller();
+        _;
+    }
+
+    constructor(IRoleRegistry _roleRegistry, address _feeRecipient) {
+        if (!(address(_roleRegistry) != address(0))) revert FolioDAOFeeRegistry__InvalidRoleRegistry();
+        if (!(address(_feeRecipient) != address(0))) revert FolioDAOFeeRegistry__InvalidFeeRecipient();
+
+        roleRegistry = _roleRegistry;
+        feeRecipient = _feeRecipient;
+
+        (MAX_DAO_FEE, MAX_FEE_FLOOR) = _getMaxFee();
+
+        defaultFeeNumerator = MAX_DAO_FEE;
+        defaultFeeFloor = MAX_FEE_FLOOR;
+    }
+
+    // === External ===
+
+    function setFeeRecipient(address feeRecipient_) external onlyOwner {
+        if (!(feeRecipient_ != address(0))) revert FolioDAOFeeRegistry__InvalidFeeRecipient();
+        if (!(feeRecipient_ != feeRecipient)) revert FolioDAOFeeRegistry__FeeRecipientAlreadySet();
+
+        feeRecipient = feeRecipient_;
+        emit FeeRecipientSet(feeRecipient_);
+    }
+
+    /// @param feeNumerator_ D18{1} New default DAO fee share
+    function setDefaultFeeNumerator(uint256 feeNumerator_) external onlyOwner {
+        if (!(feeNumerator_ <= MAX_DAO_FEE)) revert FolioDAOFeeRegistry__InvalidFeeNumerator();
+
+        defaultFeeNumerator = feeNumerator_;
+        emit DefaultFeeNumeratorSet(feeNumerator_);
+    }
+
+    /// @param fToken Folio token to configure
+    /// @param feeNumerator_ D18{1} DAO fee share for this Folio
+    function setTokenFeeNumerator(address fToken, uint256 feeNumerator_) external onlyOwner {
+        if (!(feeNumerator_ <= MAX_DAO_FEE)) revert FolioDAOFeeRegistry__InvalidFeeNumerator();
+
+        _setTokenFee(fToken, feeNumerator_, true);
+    }
+
+    /// @param _defaultFeeFloor D18{1} New default fee floor
+    function setDefaultFeeFloor(uint256 _defaultFeeFloor) external onlyOwner {
+        if (!(_defaultFeeFloor <= MAX_FEE_FLOOR)) revert FolioDAOFeeRegistry__InvalidFeeFloor();
+
+        defaultFeeFloor = _defaultFeeFloor;
+        emit DefaultFeeFloorSet(defaultFeeFloor);
+    }
+
+    /// @param fToken Folio token to configure
+    /// @param _feeFloor D18{1} Fee floor for this Folio; cannot exceed the default fee floor
+    function setTokenFeeFloor(address fToken, uint256 _feeFloor) external onlyOwner {
+        if (!(_feeFloor <= defaultFeeFloor)) revert FolioDAOFeeRegistry__InvalidFeeFloor();
+
+        _setTokenFeeFloor(fToken, _feeFloor, true);
+    }
+
+    /// @param fToken Folio token whose fee overrides should be cleared
+    function resetTokenFees(address fToken) external onlyOwner {
+        _setTokenFee(fToken, 0, false);
+        _setTokenFeeFloor(fToken, 0, false);
+    }
+
+    /// @param fToken Folio token to query
+    /// @return recipient DAO fee recipient
+    /// @return feeNumerator D18{1} DAO fee share
+    /// @return feeDenominator D18{1}
+    /// @return feeFloor D18{1}
+    function getFeeDetails(
+        address fToken
+    ) external view returns (address recipient, uint256 feeNumerator, uint256 feeDenominator, uint256 feeFloor) {
+        recipient = feeRecipient;
+        feeNumerator = fTokenFeeSet[fToken] ? fTokenFeeNumerator[fToken] : defaultFeeNumerator;
+        feeDenominator = FEE_DENOMINATOR;
+        feeFloor = fTokenFeeFloorSet[fToken]
+            ? (defaultFeeFloor < fTokenFeeFloor[fToken] ? defaultFeeFloor : fTokenFeeFloor[fToken])
+            : defaultFeeFloor;
+    }
+
+    // ==== Internal ====
+
+    function _setTokenFee(address fToken, uint256 feeNumerator_, bool isActive) internal {
+        IFolio(fToken).distributeFees();
+
+        fTokenFeeNumerator[fToken] = feeNumerator_;
+        fTokenFeeSet[fToken] = isActive;
+
+        emit TokenFeeNumeratorSet(fToken, feeNumerator_, isActive);
+    }
+
+    function _setTokenFeeFloor(address fToken, uint256 feeFloor, bool isActive) internal {
+        IFolio(fToken).distributeFees();
+
+        fTokenFeeFloor[fToken] = feeFloor;
+        fTokenFeeFloorSet[fToken] = isActive;
+
+        emit TokenFeeFloorSet(fToken, feeFloor, isActive);
+    }
+
+    /// Maximum fees
+    /// @return daoFee D18{1} Maximum DAO fee (platform fee)
+    /// @return feeFloor D18{1} Maximum fee floor
+    function _getMaxFee() internal pure returns (uint256 daoFee, uint256 feeFloor) {
+        return (1e18 / uint256(3), 0.001e18);
+    }
+}

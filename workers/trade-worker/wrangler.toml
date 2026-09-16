@@ -1,0 +1,37 @@
+name = "trade-worker"
+main = "src/index.ts"
+compatibility_date = "2026-09-12"
+
+# D1 database
+[[d1_databases]]
+binding = "DB"
+database_name = "rooted"
+database_id = "a494ae7e-4efd-49c6-8058-603179e3fd23"
+
+# KV for caching
+[[kv_namespaces]]
+binding = "CACHE"
+id = "10656e3d29ec4697acb0d7d6c811f660"
+
+# Cron trigger — every 1 minute
+# no cron — driven by fly-brain-do alarm chain
+
+[vars]
+WETH = "0x0Bd7D308f3E1639FAb988df18A8011f41EAcAD73"
+MAX_ETH_PER_TRADE = "0.01"
+COOLDOWN_SECONDS = "60"
+# Real trading mode (set to "true" to enable real swaps)
+REAL_TRADING = "false"
+# SYM token and TreasuryValuation contract addresses (set after deployment)
+SYM_TOKEN = ""
+TREASURY_VALUATION = ""
+# Tolly fee loop: SymbientFeeRouter address + optional fee-locker claim calldata
+FEE_ROUTER = ""
+TOLLY_CLAIM_CALLDATA = ""
+
+# Secrets:
+# npx wrangler secret put ARC_RPC_URL
+# npx wrangler secret put EXECUTOR_PRIVATE_KEY
+# npx wrangler secret put DISCORD_WEBHOOK_URL
+# npx wrangler secret put EMERGENCY_STOP  (set to "1" to halt real trading)
+account_id = "6c0140469651854b2e358517371a03d3"

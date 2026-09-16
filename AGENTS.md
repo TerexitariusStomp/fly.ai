@@ -1,0 +1,163 @@
+# AGENTS.md — SYM Protocol
+
+## Project Overview
+
+SYM is a single-token, treasury-backed protocol on **Arc** (testnet chain ID `5042002`, mainnet next). The treasury is governed and actively managed by **7 biological connectomes** running on-chain LIF inference via `FlyEngine`. The architecture is an Olympus V3 fork (Kernel / Modules / Policies / Heart / RBS) where the `ConnectomeGovernor` is the kernel executor — the connectomes operate the entire protocol themselves.
+
+## Directory Structure
+
+```
+symbient-token/
+├── contracts/                  # Foundry Solidity (AGPL-3.0)
+│   ├── src/                    # Core: SymbientToken, SymbientStaking, wstSYM, valuation,
+│   │                           #   price feeds, inverse bond, circuit breaker
+│   ├── src/fly/                # FlyEngine, ConnectomeGovernor, GovernorPolicy,
+│   │                           #   TreasuryAllocator, ArcLaunchpadAdapter,
+│   │                           #   DecisionLedger, PerformanceBridge, StakingVault
+│   ├── src/fly/strategies/     # RBSStrategy, MemecoinStrategy, YieldFarmingStrategy,
+│   │                           #   SafeHavenStrategy (thin IStrategy adapters)
+│   ├── script/DeploySimplified.s.sol   # full protocol deploy (governor = executor)
+│   ├── script/DeployPhase2.s.sol       # fly-system-only deploy
+│   ├── scripts/deploy_fly.py           # FlyEngine + governor + 7 connectomes (web3.py)
+│   ├── scripts/pack_connectomes.py     # NPZ → int4/uint16 CSR for SSTORE2
+│   └── foundry.toml
+├── workers/                    # Cloudflare Workers (free tier)
+│   ├── fly-brain-do/           # Connectome Durable Object
+│   ├── governance-worker/      # Drives on-chain propose → vote → execute
+│   ├── discovery-worker/       # Cron: poll launchpads / DexScreener
+│   ├── trade-worker/           # Bounded autonomous trading (viem + loxley)
+│   ├── api-worker/             # REST API + on-chain treasury reads
+│   └── enrichment-worker/      # Token scoring
+├── migrations/schema.sql       # D1 schema (treasury_snapshots, wallets, …)
+└── frontend/                   # SYM dashboard (treasury, connectomes, ops)
+```
+
+## Architecture
+
+```
+                    ┌────────────────────────────────┐
+                    │   ConnectomeGovernor (UUPS)    │  kernel executor + all roles
+                    │  propose / vote / execute      │  quorum = 3 of 7 (≥1/3)
+                    └──────────────┬─────────────────┘
+                                   │ passed proposals
+                    ┌──────────────▼─────────────────┐
+                    │        GovernorPolicy          │  Kernel Policy, bridges to modules
+                    │  executeModule(target, data)   │  approveToken() for buyback float
+                    └──────────────┬─────────────────┘
+            ┌──────────────────────┼─────────────────────────┐
+            ▼                      ▼                         ▼
+      Olympus Kernel        TreasuryAllocator         ArcLaunchpadAdapter
+      MINTR/TRSRY/PRICE     (strategy targets,        (token whitelist,
+      /RANGE + Heart          rebalances, harvests)    bounded trades)
+            │
+            ▼
+   TreasuryValuation ──► SymbientInverseBond (buyback at floor × 0.985, burns SYM)
+   (RFV, NAV, floorPrice)      ▲
+                               └── SymbientCircuitBreaker (trips when spot < floor×0.98)
+```
+
+## The 7 Connectomes
+
+| ID | Neurons |
+|---|---|
+| drosophila | 49 |
+| rat | 73 |
+| mouse | 112 |
+| ciona | 205 |
+| macaque_modha | 242 |
+| human | 234 |
+| celegans_male | 575 |
+
+Quorum = `ceil(7 × 1/3) = 3`. A proposal executes when `forVotes ≥ 3` and `forVotes > againstVotes`. Votes run on-chain inference (`FlyEngine.analyze`): action `+1` = for, `−1` = against, `0` = abstain. Optional per-connectome bound-voter EOAs gate who can trigger each vote.
+
+## Governance model
+
+**Governance-controlled (proposals, infrequent):**
+- Whitelist/remove tradeable tokens, set trade/position bounds
+- Strategy registration + target allocations
+- Risk parameters: buyback spread/capacity, valuation haircuts, price feeds
+- Olympus params: RANGE spreads/capacity/prices, TRSRY approvals, MINTR
+- Emergency pause/restart, kernel module installs/upgrades
+- Funding floats (e.g. inverse bond payout approval)
+
+**Autonomous (no vote needed):**
+- Heart beats → rebases, periodic tasks
+- Trades within bounds (`KEEPER_ROLE`)
+- Treasury rebalances/harvests within targets
+- Buybacks within epoch capacity at floor price
+- Circuit-breaker checks (permissionless)
+
+## Build & Test
+
+```bash
+cd contracts
+forge build
+forge test
+```
+
+## Deploy (Arc testnet)
+
+```bash
+cd contracts
+export PRIVATE_KEY=...                  # deployer (env only — never commit)
+export SAFE_MULTISIG_ADDRESS=...        # backstop admin (veto/upgrades)
+export RESERVE_TOKEN=0x...              # USDC on Arc
+export UNISWAP_V2_ROUTER=0x...
+export CONNECTOME_VOTERS=0x..,0x..,..   # 7 bound voter EOAs (optional)
+
+forge script script/DeploySimplified.s.sol \
+  --rpc-url https://rpc.testnet.arc.io --broadcast
+
+# Then deploy fly brain + register connectomes:
+python3 scripts/pack_connectomes.py     # pack 7 connectomes → SSTORE2
+python3 scripts/deploy_fly.py           # FlyEngine + governor + connectomes
+```
+
+Post-deploy (if SAFE ≠ deployer): the Safe must grant the governor `MULTISIG_ROLE`/`GOVERNANCE_ROLE` on the standalone contracts (script prints the list), and call `symbientToken.setAuthorizedMinter(MINTR)`.
+
+## Contracts (custom LOC, all under `contracts/src/`)
+
+| File | LOC | Purpose |
+|---|---|---|
+| SymbientStaking.sol | 550 | Rebasing staking + warmup, rate-limit, smoothing, CB, `depositRewards` for external-token mode |
+| SymbientFeeRouter.sol | ~130 | Tolly LP fees → `routeToTreasury` consolidates into TRSRY (single treasury); `fundRewards` GOVERNANCE-gated SYM buy + `depositRewards` — rewards only by connectome vote |
+| FlyEngine.sol | 358 | On-chain LIF inference over SSTORE2 connectome data |
+| TreasuryValuation.sol | 285 | NAV/RFV/floorPrice with per-asset haircuts + TRSRY reads |
+| ArcLaunchpadAdapter.sol | 281 | Bounded token trading via UniV2 router |
+| StakingVault.sol | 255 | LP signal staking → signalScore |
+| ConnectomeGovernor.sol | 253 | propose/vote/execute consensus executor (was 776) |
+| SymbientDefenseBudget.sol | 205 | RBS defense budget gating (Olympus Policy) |
+| SymbientPrice.sol | 204 | PRICE module fork on TWAP feed |
+| TreasuryAllocator.sol | 194 | Multi-strategy treasury (Yearn-style IStrategy) |
+| SymbientCircuitBreaker.sol | 168 | Trips when SYM spot < floor×(1−2%) |
+| SymbientInverseBond.sol | 145 | Standing buyback at floor×0.985, burns SYM |
+| SymbientBondPricer.sol | 135 | Dynamic RBS bond discount |
+| GovernorPolicy.sol | 127 | Module bridge: executeModule + approveToken |
+| DecisionLedger.sol | 110 | On-chain decision/vote/execution audit trail |
+| StakingAdapter.sol | 109 | Olympus IStaking bridge for Heart |
+| strategies/ + misc | ~800 | Thin adapters, feeds, token, registry, distributor |
+
+**Total custom ~4,300 LOC**; everything else is vendored OSS (olympus-v3, openzeppelin, dss, solmate, bond-protocol, …).
+
+## OSS replacements done
+
+- `MultisigGuard` → OZ `AccessControl` (all contracts)
+- Custom pause flags → OZ `Pausable` (circuit breaker)
+- Tiered action registry → generic `target.call(data)` after consensus
+- Onboarding liquidity check → folded into `whitelistToken` (removed `TokenOnboardingManager`)
+- Manual NAV pushes → live `TreasuryValuation.floorPrice()`/`rfv()` reads
+- `wstSYM` denominator bug fixed: share-of-pool (`balanceOf(this)`) not global supply
+
+## Security
+
+- Private keys are env vars / CF secrets only — **never in code**. (Two old deploy shell scripts with a hardcoded testnet key were deleted; that key should be rotated.)
+- Governor proposals are bounded by on-chain consensus; Safe retains governor `admin` (veto + UUPS upgrades) only.
+- TRSRY withdrawals require explicit `increaseWithdrawApproval` via proposal — no arbitrary drain.
+- Buyback float is funded via `GovernorPolicy.approveToken` — bounded allowance, not custody transfer.
+- Scans (run before every deploy):
+
+```bash
+gitleaks detect --source .
+trivy fs --scanners secret,vuln,misconfig --severity HIGH,CRITICAL .
+semgrep scan --config p/owasp-top-10 .
+```

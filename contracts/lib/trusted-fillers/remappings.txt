@@ -1,0 +1,12 @@
+forge-std/=node_modules/forge-std/src/
+@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/
+@openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable/
+@prb/math/=node_modules/@prb/math/
+@reserve-protocol/universal-deployer/=node_modules/@reserve-protocol/universal-deployer/
+utils/=test/utils/
+
+@src/=contracts/
+@script/=script/
+@interfaces/=contracts/interfaces/
+@test/=test/
+@mock/=test/mock/
