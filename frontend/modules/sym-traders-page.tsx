@@ -1,5 +1,5 @@
 /**
- * SYM Traders Page — connectome leaderboard + equity curves + betting.
+ * FLYAI Traders Page — connectome leaderboard + equity curves + betting.
  * Combined traders + betting into one page.
  */
 import { useState } from "react";

@@ -58,6 +58,10 @@ contract ConnectomeGovernor is Initializable, UUPSUpgradeable {
     /// @notice On-chain log the ICP canister follows; each execution emits a
     ///         SocialPost event the connectomes turn into social content.
     address public socialPostLog;
+    /// @notice Off-chain colony vote executor. The 7 connectomes vote off-chain
+    ///         (D1 ledger); once quorum is reached the colonyExecutor relays the
+    ///         enacted action in a single transaction — votes stay free.
+    address public colonyExecutor;
 
     bytes32[] public connectomeIds;
     mapping(bytes32 => bool) public isConnectome;
@@ -80,6 +84,8 @@ contract ConnectomeGovernor is Initializable, UUPSUpgradeable {
     event VoteCast(bytes32 indexed proposalId, bytes32 indexed connectomeId, int8 direction, uint8 confidence);
     event ProposalExecuted(bytes32 indexed proposalId, address indexed target);
     event ProposalVetoed(bytes32 indexed proposalId, address indexed admin);
+    event ColonyActionExecuted(bytes32 indexed decisionRef, address indexed target);
+    event ColonyExecutorSet(address indexed executor);
     event ConnectomeAdded(bytes32 indexed connectomeId);
     event ConnectomeRemoved(bytes32 indexed connectomeId);
     event VoterBound(bytes32 indexed connectomeId, address indexed voter);
@@ -181,6 +187,49 @@ contract ConnectomeGovernor is Initializable, UUPSUpgradeable {
         if (p.forVotes < q || p.forVotes <= p.againstVotes) return false;
         if (confidenceWeightedVoting && weightThreshold > 0 && p.forWeight < weightThreshold) return false;
         return true;
+    }
+
+    /// @notice Execute a colony-approved action in ONE tx. The 7 connectomes'
+    ///         decisions are tallied off-chain (D1 vote ledger); this function is
+    ///         called by the colonyExecutor only after off-chain quorum. The
+    ///         decisionRef hashes the off-chain proposal+vote record so the
+    ///         on-chain event links to the auditable D1 tally. If decisionRef
+    ///         matches an on-chain proposal it is marked executed; admin veto
+    ///         via vetoed[decisionRef] still applies.
+    function colonyExecute(bytes32 decisionRef, address target, bytes calldata data)
+        external
+        returns (bytes memory result)
+    {
+        require(msg.sender == colonyExecutor, "not colony executor");
+        require(target != address(0), "no target");
+        require(!vetoed[decisionRef], "vetoed");
+        Proposal storage p = proposals[decisionRef];
+        if (p.target != address(0)) {
+            require(!p.executed, "already executed");
+            p.executed = true;
+        }
+        (bool ok, bytes memory res) = target.call(data);
+        if (decisionLedger != address(0)) {
+            IDecisionLedger(decisionLedger).recordExecution(decisionRef, bytes32(0), msg.sender, ok);
+        }
+        require(ok, "call failed");
+        emit ColonyActionExecuted(decisionRef, target);
+        if (socialPostLog != address(0)) {
+            try ISocialPostLog(socialPostLog).post(
+                decisionRef, 2, "connectome-governance-action-executed"
+            ) {} catch {}
+        }
+        return res;
+    }
+
+    function setColonyExecutor(address e) external onlyAdmin {
+        colonyExecutor = e;
+        emit ColonyExecutorSet(e);
+    }
+
+    function setAdmin(address a) external onlyAdmin {
+        require(a != address(0), "zero admin");
+        admin = a;
     }
 
     function _quorum() internal view returns (uint256) {

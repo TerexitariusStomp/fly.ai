@@ -15,9 +15,11 @@
  */
 
 import { evaluateGateSync, CONSTITUTIONAL_GATE_ENABLED, type GateResult } from "./constitutional-gate";
+import { safeDb } from "./safe-db";
 
 interface Env {
   DB: D1Database;
+  AI: { run(model: string, input: unknown): Promise<unknown> };
   BSKY_HANDLE: string;
   BSKY_PDS: string;
   BSKY_APP_PASSWORD?: string;
@@ -122,11 +124,18 @@ const PERSONAS: Record<string, Persona> = {
 
 export default {
   async scheduled(_e: ScheduledEvent, env: Env, ctx: ExecutionContext) {
+    env = { ...env, DB: safeDb(env.DB) };
     ctx.waitUntil(tick(env));
   },
   async fetch(req: Request, env: Env, ctx: ExecutionContext) {
+    env = { ...env, DB: safeDb(env.DB) };
     const url = new URL(req.url);
     if (url.pathname === "/post") {
+      const key = req.headers.get("X-Colony-Key") || url.searchParams.get("key") || "";
+      const expected = (env as unknown as { COLONY_ADMIN_KEY?: string }).COLONY_ADMIN_KEY;
+      if (!expected || key !== expected) {
+        return Response.json({ error: "forbidden" }, { status: 403 });
+      }
       ctx.waitUntil(tick(env));
       return Response.json({ status: "posting" });
     }
@@ -182,14 +191,65 @@ async function tick(env: Env) {
  *  post_type 2 (trade report) takes priority when this connectome just
  *  opened/closed a position — mirroring the canister's SocialPostLog
  *  event → post pipeline. */
+/** LLM-written post in the connectome's (evolving) persona voice.
+ *  Reads the live genome persona so evolved traits show up in posts.
+ *  Returns null on failure — caller falls back to static voice lines. */
+async function llmPost(env: Env, cid: string, ctx: string): Promise<string | null> {
+  const p = PERSONAS[cid];
+  let evolved = "";
+  try {
+    const g = await env.DB.prepare(
+      "SELECT persona, generation FROM connectome_genome WHERE connectome_id = ?"
+    ).bind(cid).first();
+    if (g?.persona) evolved = `\nEvolved personality (gen ${g.generation}): ${g.persona}`;
+  } catch { /* genome table optional */ }
+  // Free-tier guard — same meter_ai_YYYYMMDD counter as fly-brain's
+  // _ai_budget_ok; over 350 calls/day → fall back to static voice lines.
+  try {
+    const mk = `meter_ai_${new Date().toISOString().slice(0, 10).replace(/-/g, "")}`;
+    const m = await env.DB.prepare(
+      "UPDATE settings SET value = CAST(COALESCE(value,'0') AS INTEGER) + 1 WHERE key = ? RETURNING value"
+    ).bind(mk).first();
+    if (!m) {
+      await env.DB.prepare("INSERT INTO settings (key, value) VALUES (?, '1')").bind(mk).run();
+    } else if (Number(m.value) > 350) {
+      return null;
+    }
+  } catch { /* meter failure never blocks */ }
+  try {
+    const resp = await env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
+      messages: [
+        { role: "system", content:
+          `You are ${p.name}, a ${p.species} connectome with ${p.neurons} neurons trading crypto ` +
+          `as part of a 7-connectome colony treasury. Style: ${p.style}. ` +
+          `Write ONE post under 220 chars — terse, in-character, no hashtags, no emojis except ` +
+          `maybe your species. Never start with "I".${evolved}` },
+        { role: "user", content: ctx },
+      ],
+      max_tokens: 90,
+    });
+    const text = typeof resp === "object" && resp && "response" in resp
+      ? String((resp as { response: string }).response) : String(resp);
+    const clean = text.trim().replace(/^["']|["']$/g, "").slice(0, 240);
+    return clean.length > 8 ? clean : null;
+  } catch {
+    return null;
+  }
+}
+
 async function composePost(env: Env, cid: string): Promise<string> {
   const p = PERSONAS[cid];
 
-  // Trade report: did this connectome trade recently?
+  // LLM path first — the connectome's evolved persona writes the post
   const recentTrade = await env.DB.prepare(
     "SELECT action, symbol, amount_usd, pnl_usd, pnl_percent FROM paper_trades " +
     "WHERE connectome_id = ? AND created_at > ? ORDER BY created_at DESC LIMIT 1"
-  ).bind(cid, Math.floor(Date.now() / 1000) - 600).first();  // last 10 min
+  ).bind(cid, Math.floor(Date.now() / 1000) - 600).first();
+  const ctx = recentTrade
+    ? `You just ${recentTrade.action === "BUY" ? "bought" : "sold"} ${recentTrade.symbol || "a token"}${recentTrade.pnl_percent != null ? ` (${Number(recentTrade.pnl_percent).toFixed(1)}%)` : ""}. Post about it.`
+    : `Post about the current market or colony state.`;
+  const llm = await llmPost(env, cid, ctx);
+  if (llm) return sign(llm, p);
 
   if (recentTrade && Math.random() < 0.7) {
     const sym = (recentTrade.symbol as string) || "token";

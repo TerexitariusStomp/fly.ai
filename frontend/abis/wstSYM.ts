@@ -224,7 +224,7 @@ export default
   },
   {
     "type": "function",
-    "name": "stSYM",
+    "name": "stFLYAI",
     "inputs": [],
     "outputs": [
       {

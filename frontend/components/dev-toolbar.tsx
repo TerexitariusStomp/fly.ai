@@ -46,7 +46,7 @@ export function DevToolbar() {
           <div className="flex items-center justify-between border-b border-zinc-700 px-3 py-2">
             <div className="flex items-center gap-1.5">
               <FlaskConical className="size-3.5" />
-              <span className="font-semibold">SYM Dev Tools</span>
+              <span className="font-semibold">FLYAI Dev Tools</span>
             </div>
             <button
               type="button"
@@ -117,14 +117,14 @@ export function DevToolbar() {
                 <span className="text-zinc-400">Faucet</span>
                 <div className="flex gap-1.5">
                   <MintTestnetSymbientModal
-                    token={TokenName.SYM}
+                    token={TokenName.FLYAI}
                     trigger={
                       <button
                         type="button"
                         className="flex-1 flex items-center justify-center gap-1 rounded bg-zinc-800 border border-zinc-600 px-2 py-1.5 text-zinc-200 hover:bg-zinc-700"
                       >
                         <Coins className="size-3" />
-                        SYM
+                        FLYAI
                       </button>
                     }
                   />

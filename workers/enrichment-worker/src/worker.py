@@ -89,7 +89,7 @@ class Default(WorkerEntrypoint):
             "address": token["address"],
             "symbol": token.get("symbol") or pair.get("baseToken", {}).get("symbol", ""),
             "name": pair.get("baseToken", {}).get("name", ""),
-            "chain": "arc",
+            "chain": "robinhood",
             "price_usd": float(pair.get("priceUsd", 0) or 0),
             "liquidity_usd": float(pair.get("liquidity", {}).get("usd", 0) or 0),
             "volume_24h": float(pair.get("volume", {}).get("h24", 0) or 0),
@@ -206,4 +206,4 @@ class Default(WorkerEntrypoint):
         ).bind(score_data["score"], score_data["reasons"], now, address).run()
         await self.env.DB.prepare(
             "INSERT OR REPLACE INTO enrichment (chain, address, data, enriched_at) VALUES (?, ?, ?, ?)"
-        ).bind("arc", address, score_data["enrichment"], str(now)).run()
+        ).bind("robinhood", address, score_data["enrichment"], str(now)).run()

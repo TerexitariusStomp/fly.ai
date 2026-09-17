@@ -1,5 +1,5 @@
 /**
- * SYM Betting Page — prediction market for connectome performance.
+ * FLYAI Betting Page — prediction market for connectome performance.
  * Uses live POST endpoints to place bets, stakes, and copy trades. No stubs.
  */
 import { useState } from "react";
@@ -43,7 +43,7 @@ export function SymBettingPage() {
     <div className="min-h-screen bg-[#07090c] text-white">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <h1 className="font-mono text-2xl font-bold mb-2">Bet on Connectomes</h1>
-        <p className="text-gray-400 mb-6">Prediction markets on connectome trader performance. Stake SYM on which brain trades best next epoch. No fees. Settled on-chain.</p>
+        <p className="text-gray-400 mb-6">Prediction markets on connectome trader performance. Stake FLYAI on which brain trades best next epoch. No fees. Settled on-chain.</p>
 
         {/* User controls */}
         <div className="flex flex-wrap gap-3 mb-6">

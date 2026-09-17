@@ -41,3 +41,4 @@ build/
 # Misc
 *.log
 coverage/
+.env.arc.mainnet

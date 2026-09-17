@@ -4,6 +4,8 @@
  * Reads from D1, returns JSON. Also handles POST for betting actions.
  */
 
+import { safeDb } from "./safe-db";
+
 interface Env {
   DB: D1Database;
   BRAIN_BUCKET?: R2Bucket;
@@ -20,7 +22,7 @@ async function fetchTokenPrice(tokenAddress: string): Promise<number> {
   // Try GeckoTerminal first (more frequent updates)
   let basePrice = 0;
   try {
-    const resp = await fetch(`https://api.geckoterminal.com/api/v2/networks/arc/tokens/${tokenAddress}`);
+    const resp = await fetch(`https://api.geckoterminal.com/api/v2/networks/robinhood/tokens/${tokenAddress}`);
     if (resp.ok) {
       const data = await resp.json() as any;
       basePrice = parseFloat(data?.data?.attributes?.price_usd || "0");
@@ -63,6 +65,7 @@ async function fetchTokenPrices(tokenAddresses: string[]): Promise<Record<string
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
+    env = { ...env, DB: safeDb(env.DB) };
     const url = new URL(request.url);
 
     // CORS headers for frontend
@@ -199,7 +202,7 @@ async function getTreasury(env: Env) {
 // Read on-chain RFV and floor price from TreasuryValuation contract (single-token system)
 async function getOnchainTreasury(env: Env) {
   const treasuryAddr = env.TREASURY_VALUATION;
-  const rpcUrl = env.ARC_RPC_URL || "https://rpc.testnet.arc.io";
+  const rpcUrl = env.ARC_RPC_URL || "https://rpc.mainnet.chain.robinhood.com";
 
   if (!treasuryAddr) {
     return { error: "TREASURY_VALUATION not configured", mode: "paper" };

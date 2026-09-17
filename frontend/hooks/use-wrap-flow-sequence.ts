@@ -7,7 +7,7 @@ import { erc20Abi, type Abi, type Address } from "viem";
 import { ContractName, getContractAddress } from "@/lib/contracts";
 import { TokenName, getTokenAddress } from "@/lib/tokens";
 import SymbientStakingAbi from "@/abis/SymbientStaking";
-import wstSymbientAbi from "@/abis/wstSYM";
+import wstSymbientAbi from "@/abis/wstFLYAI";
 import type { WrapFlow } from "@/modules/symbient-wrap-flows";
 
 export type SeqStepStatus = "pending" | "wallet" | "confirming" | "done" | "error";
@@ -41,32 +41,32 @@ function buildPlan(flow: WrapFlow): PlanStep[] {
   switch (flow) {
     case "wrap-symbient":
       return [
-        { kind: "approve", token: TokenName.SYM, spender: ContractName.STAKING, label: "Approve SYM" },
-        { kind: "call", contract: ContractName.STAKING, abi: SymbientStakingAbi, functionName: "stake", label: "Stake SYM to stSYM", argsBuilder: stakeArgsRebasing, amount: "input" },
+        { kind: "approve", token: TokenName.FLYAI, spender: ContractName.STAKING, label: "Approve FLYAI" },
+        { kind: "call", contract: ContractName.STAKING, abi: SymbientStakingAbi, functionName: "stake", label: "Stake FLYAI to stFLYAI", argsBuilder: stakeArgsRebasing, amount: "input" },
       ];
     case "wrap-symbient-to-wstsymbient":
       return [
-        { kind: "approve", token: TokenName.SYM, spender: ContractName.STAKING, label: "Approve SYM" },
-        { kind: "call", contract: ContractName.STAKING, abi: SymbientStakingAbi, functionName: "stake", label: "Stake SYM to wstSYM", argsBuilder: stakeArgs, amount: "input" },
+        { kind: "approve", token: TokenName.FLYAI, spender: ContractName.STAKING, label: "Approve FLYAI" },
+        { kind: "call", contract: ContractName.STAKING, abi: SymbientStakingAbi, functionName: "stake", label: "Stake FLYAI to wstFLYAI", argsBuilder: stakeArgs, amount: "input" },
       ];
     case "wrap-stsymbient":
       return [
-        { kind: "approve", token: TokenName.STSYM, spender: ContractName.WSTSYM, label: "Approve stSYM" },
-        { kind: "call", contract: ContractName.WSTSYM, abi: wstSymbientAbi, functionName: "wrap", label: "Wrap stSYM to wstSYM", argsBuilder: singleArg, amount: "input" },
+        { kind: "approve", token: TokenName.STFLYAI, spender: ContractName.WSTFLYAI, label: "Approve stFLYAI" },
+        { kind: "call", contract: ContractName.WSTFLYAI, abi: wstSymbientAbi, functionName: "wrap", label: "Wrap stFLYAI to wstFLYAI", argsBuilder: singleArg, amount: "input" },
       ];
     case "unwrap-wstsymbient":
       return [
-        { kind: "call", contract: ContractName.WSTSYM, abi: wstSymbientAbi, functionName: "unwrap", label: "Unwrap wstSYM to stSYM", argsBuilder: singleArg, amount: "input" },
+        { kind: "call", contract: ContractName.WSTFLYAI, abi: wstSymbientAbi, functionName: "unwrap", label: "Unwrap wstFLYAI to stFLYAI", argsBuilder: singleArg, amount: "input" },
       ];
     case "unwrap-wstsymbient-to-symbient":
       return [
-        { kind: "approve", token: TokenName.WSTSYM, spender: ContractName.STAKING, label: "Approve wstSYM" },
-        { kind: "call", contract: ContractName.STAKING, abi: SymbientStakingAbi, functionName: "unstake", label: "Unstake wstSYM to SYM", argsBuilder: unstakeArgs, amount: "input" },
+        { kind: "approve", token: TokenName.WSTFLYAI, spender: ContractName.STAKING, label: "Approve wstFLYAI" },
+        { kind: "call", contract: ContractName.STAKING, abi: SymbientStakingAbi, functionName: "unstake", label: "Unstake wstFLYAI to FLYAI", argsBuilder: unstakeArgs, amount: "input" },
       ];
     case "unstake-stsymbient":
       return [
-        { kind: "approve", token: TokenName.STSYM, spender: ContractName.STAKING, label: "Approve stSYM" },
-        { kind: "call", contract: ContractName.STAKING, abi: SymbientStakingAbi, functionName: "unstake", label: "Unstake stSYM to SYM", argsBuilder: unstakeArgsRebasing, amount: "input" },
+        { kind: "approve", token: TokenName.STFLYAI, spender: ContractName.STAKING, label: "Approve stFLYAI" },
+        { kind: "call", contract: ContractName.STAKING, abi: SymbientStakingAbi, functionName: "unstake", label: "Unstake stFLYAI to FLYAI", argsBuilder: unstakeArgsRebasing, amount: "input" },
       ];
   }
 }
@@ -93,8 +93,8 @@ export function useWrapFlowSequence(flow: WrapFlow, inputAmount: bigint) {
     setError(null);
   }, [plan]);
 
-  const stSymbientAddress = getTokenAddress(TokenName.STSYM, chainId);
-  const wstSymbientAddress = getTokenAddress(TokenName.WSTSYM, chainId);
+  const stSymbientAddress = getTokenAddress(TokenName.STFLYAI, chainId);
+  const wstSymbientAddress = getTokenAddress(TokenName.WSTFLYAI, chainId);
 
   const setStep = (i: number, patch: Partial<SeqStep>) =>
     setSteps((prev) => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));

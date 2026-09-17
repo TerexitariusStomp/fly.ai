@@ -613,7 +613,7 @@ contract ConnectomeGovernorTest is Test {
     MockGovernanceTarget target;
     address admin = address(this);
 
-    bytes32 constant C0 = bytes32("rosophila");
+    bytes32 constant C0 = bytes32("drosophila");
     bytes32 constant C1 = bytes32("rat");
     bytes32 constant C2 = bytes32("mouse");
     bytes32 constant C3 = bytes32("ciona");

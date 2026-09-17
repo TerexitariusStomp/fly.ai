@@ -43,26 +43,26 @@ import { DashboardActions } from "@/components/dashboard-actions";
 
 const WRAP_EXPLANATION = [
   {
-    title: "SYM — Protocol Token",
-    body: "SYM is the main token of SYM. It is backed by real money in the treasury. You can buy it at a lower price through bonds, then stake it to earn more over time. If you don't stake your SYM, your share slowly dilutes over time as new SYM are minted to reward stakers.",
+    title: "FLYAI — Protocol Token",
+    body: "FLYAI is the main token of FLYAI. It is backed by real money in the treasury. You can buy it at a lower price through bonds, then stake it to earn more over time. If you don't stake your FLYAI, your share slowly dilutes over time as new FLYAI are minted to reward stakers.",
   },
   {
-    title: "stSYM — Staked SYM (Rebasing)",
-    body: "When you stake SYM, you get stSYM. Your stSYM balance grows on its own as the protocol earns money. You do not need to claim anything — it just grows.",
+    title: "stFLYAI — Staked FLYAI (Rebasing)",
+    body: "When you stake FLYAI, you get stFLYAI. Your stFLYAI balance grows on its own as the protocol earns money. You do not need to claim anything — it just grows.",
   },
   {
-    title: "wstSYM — Wrapped stSYM (Non-Rebasing)",
-    body: "wstSYM is a wrapped version of stSYM. Instead of your balance growing, the exchange rate goes up over time. This works better in places where a changing balance causes problems, like Liquidity Pool pools and lending markets.",
+    title: "wstFLYAI — Wrapped stFLYAI (Non-Rebasing)",
+    body: "wstFLYAI is a wrapped version of stFLYAI. Instead of your balance growing, the exchange rate goes up over time. This works better in places where a changing balance causes problems, like Liquidity Pool pools and lending markets.",
   },
   {
     title: "How Staking Works — and Why You Should",
-    body: "Stake SYM to get stSYM (grows on its own). Wrap stSYM to get wstSYM (exchange rate goes up). Unwrap wstSYM to get stSYM back. Unstake stSYM to get SYM back at 1:1. If you don't stake, your SYM slowly dilute over time as new SYM are minted to stakers — so staking is how you protect and grow your value.",
+    body: "Stake FLYAI to get stFLYAI (grows on its own). Wrap stFLYAI to get wstFLYAI (exchange rate goes up). Unwrap wstFLYAI to get stFLYAI back. Unstake stFLYAI to get FLYAI back at 1:1. If you don't stake, your FLYAI slowly dilute over time as new FLYAI are minted to stakers — so staking is how you protect and grow your value.",
   },
 ];
 
 function WrapInfoCards() {
-  const GSymbientToken = useToken(TokenName.WSTSYM);
-  const SymbientToken = useToken(TokenName.SYM);
+  const GSymbientToken = useToken(TokenName.WSTFLYAI);
+  const SymbientToken = useToken(TokenName.FLYAI);
   const { symbientPerGsymbient: symbientPerWstSymbient, gsymbientPerSymbient: wstSymbientPerSymbient, isLoading: indexLoading } = useWstSymbientConversionRate();
   const { apy, isLoading: apyLoading } = useStakingAPY();
   const { data: symbientPriceHistory } = useSymbientPriceHistory();
@@ -81,8 +81,8 @@ function WrapInfoCards() {
 
   const [inverted, setInverted] = useState(false);
 
-  const fromLabel = inverted ? "SYM" : "wstSYM";
-  const toLabel = inverted ? "wstSYM" : "SYM";
+  const fromLabel = inverted ? "FLYAI" : "wstFLYAI";
+  const toLabel = inverted ? "wstFLYAI" : "FLYAI";
   const toValue = Number(inverted ? wstSymbientPerSymbient : symbientPerWstSymbient);
 
   return (
@@ -98,7 +98,7 @@ function WrapInfoCards() {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
       <Card className="flex flex-col gap-1 p-6">
-        <p className="text-[14px]/[20px] font-normal text-secondary-t">SYM Price</p>
+        <p className="text-[14px]/[20px] font-normal text-secondary-t">FLYAI Price</p>
         <div className="flex items-center gap-x-2">
           {!SymbientToken.price ? (
             <Skeleton className="h-6 w-24" />
@@ -110,7 +110,7 @@ function WrapInfoCards() {
       </Card>
 
       <Card className="flex flex-col gap-1 p-6">
-        <p className="text-[14px]/[20px] font-normal text-secondary-t">wstSYM Price</p>
+        <p className="text-[14px]/[20px] font-normal text-secondary-t">wstFLYAI Price</p>
         <div className="flex items-center gap-x-2">
           {!GSymbientToken.price ? (
             <Skeleton className="h-6 w-24" />
@@ -182,7 +182,7 @@ function WrapInfoCards() {
 
 // ─── Wrap form ───
 
-type WrapPageToken = TokenName.SYM | TokenName.STSYM | TokenName.WSTSYM;
+type WrapPageToken = TokenName.FLYAI | TokenName.STFLYAI | TokenName.WSTFLYAI;
 
 interface WrapFormProps {
   mode: WrapMode;
@@ -211,18 +211,18 @@ function WrapForm({
   const flow = getWrapFlow(mode, sourceToken, outputToken);
   const { copy } = WRAP_FLOWS[flow];
 
-  const SymbientToken = useToken(TokenName.SYM);
-  const GSymbientToken = useToken(TokenName.WSTSYM);
+  const SymbientToken = useToken(TokenName.FLYAI);
+  const GSymbientToken = useToken(TokenName.WSTFLYAI);
 
-  const symbientBase = useToken(TokenName.SYM, address);
-  const ssymbientBase = useToken(TokenName.STSYM, address);
-  const gsymbientBase = useToken(TokenName.WSTSYM, address);
+  const symbientBase = useToken(TokenName.FLYAI, address);
+  const ssymbientBase = useToken(TokenName.STFLYAI, address);
+  const gsymbientBase = useToken(TokenName.WSTFLYAI, address);
 
   const tokensByName = useMemo<Record<WrapPageToken, TokenWithBalance>>(
     () => ({
-      [TokenName.SYM]: { ...symbientBase, price: SymbientToken.price },
-      [TokenName.STSYM]: { ...ssymbientBase, price: SymbientToken.price },
-      [TokenName.WSTSYM]: { ...gsymbientBase, price: GSymbientToken.price },
+      [TokenName.FLYAI]: { ...symbientBase, price: SymbientToken.price },
+      [TokenName.STFLYAI]: { ...ssymbientBase, price: SymbientToken.price },
+      [TokenName.WSTFLYAI]: { ...gsymbientBase, price: GSymbientToken.price },
     }),
     [symbientBase, ssymbientBase, gsymbientBase, SymbientToken.price, GSymbientToken.price],
   );
@@ -334,8 +334,8 @@ function WrapForm({
 
 // ─── Wrap balance panel ───
 
-type PanelToken = TokenName.SYM | TokenName.WSTSYM | TokenName.STSYM;
-const PANEL_TOKENS: readonly PanelToken[] = [TokenName.SYM, TokenName.WSTSYM, TokenName.STSYM];
+type PanelToken = TokenName.FLYAI | TokenName.WSTFLYAI | TokenName.STFLYAI;
+const PANEL_TOKENS: readonly PanelToken[] = [TokenName.FLYAI, TokenName.WSTFLYAI, TokenName.STFLYAI];
 
 function BalanceRow({
   icon,
@@ -381,21 +381,21 @@ function BalanceRow({
 function WrapBalancePanel({ flow, inputAmount, outputAmount }: { flow: WrapFlow; inputAmount: string; outputAmount: string }) {
   const { address, chainId } = useConnectedAddress();
 
-  const symbientAddress = getTokenAddress(TokenName.SYM, chainId ?? 0);
-  const ssymbientAddress = getTokenAddress(TokenName.STSYM, chainId ?? 0);
-  const gsymbientAddress = getTokenAddress(TokenName.WSTSYM, chainId ?? 0);
+  const symbientAddress = getTokenAddress(TokenName.FLYAI, chainId ?? 0);
+  const ssymbientAddress = getTokenAddress(TokenName.STFLYAI, chainId ?? 0);
+  const gsymbientAddress = getTokenAddress(TokenName.WSTFLYAI, chainId ?? 0);
 
   const { balance: symbientBalance } = useTokenBalance(symbientAddress, address);
   const { balance: ssymbientBalance } = useTokenBalance(ssymbientAddress, address);
   const { balance: gsymbientBalance } = useTokenBalance(gsymbientAddress, address);
 
   const balances: Record<PanelToken, number> = {
-    [TokenName.SYM]:
-      symbientBalance != null ? parseFloat(formatUnits(symbientBalance, TOKENS.SYM.decimals)) : 0,
-    [TokenName.STSYM]:
-      ssymbientBalance != null ? parseFloat(formatUnits(ssymbientBalance, TOKENS.STSYM.decimals)) : 0,
-    [TokenName.WSTSYM]:
-      gsymbientBalance != null ? parseFloat(formatUnits(gsymbientBalance, TOKENS.WSTSYM.decimals)) : 0,
+    [TokenName.FLYAI]:
+      symbientBalance != null ? parseFloat(formatUnits(symbientBalance, TOKENS.FLYAI.decimals)) : 0,
+    [TokenName.STFLYAI]:
+      ssymbientBalance != null ? parseFloat(formatUnits(ssymbientBalance, TOKENS.STFLYAI.decimals)) : 0,
+    [TokenName.WSTFLYAI]:
+      gsymbientBalance != null ? parseFloat(formatUnits(gsymbientBalance, TOKENS.WSTFLYAI.decimals)) : 0,
   };
 
   const inputNum = parseFloat(inputAmount) || 0;

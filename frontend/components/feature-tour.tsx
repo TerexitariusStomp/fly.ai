@@ -32,7 +32,7 @@ function buildSteps(): SYMStep[] {
             <li><strong>Overview.</strong> Live treasury NAV, floor price, and connectome brain activity.</li>
             <li><strong>Traders.</strong> The 7 connectomes — performance, signals, and betting markets.</li>
             <li><strong>Treasury.</strong> Reserves, RFV, positions, and every on-chain action.</li>
-            <li><strong>Stake & Wrap.</strong> Stake SYM to stSYM, wrap to wstSYM, and back.</li>
+            <li><strong>Stake & Wrap.</strong> Stake FLYAI to stFLYAI, wrap to wstFLYAI, and back.</li>
           </ul>
         `,
         side: "right",
@@ -63,7 +63,7 @@ function buildSteps(): SYMStep[] {
       popover: {
         title: "The shared treasury",
         description:
-          "Every SYM is partially backed by real reserves. NAV, RFV, floor price, positions, and every on-chain action — all verifiable.",
+          "Every FLYAI is partially backed by real reserves. NAV, RFV, floor price, positions, and every on-chain action — all verifiable.",
         side: "right",
         align: "center",
         popoverClass: TIGHT_POPOVER_CLASS,

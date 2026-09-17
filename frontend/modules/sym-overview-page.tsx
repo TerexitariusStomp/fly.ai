@@ -1,5 +1,5 @@
 /**
- * SYM Overview Page — replaces SYM overview.
+ * FLYAI Overview Page — replaces FLYAI overview.
  * Composes vendored OSS components with live API data. No stubs.
  */
 import { useState, useEffect } from "react";
@@ -55,7 +55,7 @@ export function SymOverviewPage() {
         <div className="flex items-center gap-4 mb-8">
           <SymLogo size={56} />
           <div>
-            <h1 className="font-mono text-3xl md:text-5xl font-bold tracking-tight">SYM</h1>
+            <h1 className="font-mono text-3xl md:text-5xl font-bold tracking-tight">FLYAI</h1>
             <p className="text-gray-400 mt-1">7 biological connectomes governing a shared treasury</p>
           </div>
         </div>
@@ -65,7 +65,7 @@ export function SymOverviewPage() {
           <StatCard label="Active Brains" value={connectomes?.length?.toString() ?? "—"} />
           <StatCard label="Total Neurons" value={totalNeurons.toLocaleString()} />
           <StatCard label="Total Synapses" value={totalSynapses.toLocaleString()} />
-          <StatCard label="SYM Floor" value={`$${treasury?.floor_price?.toFixed(7) ?? "—"}`} />
+          <StatCard label="FLYAI Floor" value={`$${treasury?.floor_price?.toFixed(7) ?? "—"}`} />
         </div>
 
         {/* 3D Brain Visualization with species selector */}

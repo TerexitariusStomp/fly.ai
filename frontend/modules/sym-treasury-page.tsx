@@ -1,6 +1,6 @@
 /**
- * SYM Treasury Page — reserve dashboard + treasury ops (RBS, POL, analytics).
- * Single-token system: treasury reserve assets back the SYM floor price.
+ * FLYAI Treasury Page — reserve dashboard + treasury ops (RBS, POL, analytics).
+ * Single-token system: treasury reserve assets back the FLYAI floor price.
  */
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, PieChart, Pie, Cell } from "recharts";
 import { useApi, type TreasuryPoint, type Treasury, type OnchainTreasury, type Position, type Connectome } from "@/lib/sym-api";
@@ -41,12 +41,12 @@ export function SymTreasuryPage() {
     <div className="min-h-screen bg-[#07090c] text-white">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <h1 className="font-mono text-2xl font-bold mb-2">Treasury</h1>
-        <p className="text-gray-400 mb-6">Reserve assets backing the SYM token floor price. Treasury ops include range stability, protocol-owned liquidity, and connectome allocations.</p>
+        <p className="text-gray-400 mb-6">Reserve assets backing the FLYAI token floor price. Treasury ops include range stability, protocol-owned liquidity, and connectome allocations.</p>
 
         {/* Stats grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <StatCard label="Reserve RFV" value={`$${(onchain?.rfv ?? treasury?.rfv ?? 0).toFixed(4)}`} />
-          <StatCard label="SYM Floor Price" value={`$${(onchain?.floor_price ?? treasury?.floor_price ?? 0).toFixed(7)}`} />
+          <StatCard label="FLYAI Floor Price" value={`$${(onchain?.floor_price ?? treasury?.floor_price ?? 0).toFixed(7)}`} />
           <StatCard label="ETH Deployed" value={treasury?.eth_deployed?.toFixed(4) ?? "—"} />
         </div>
 
@@ -110,7 +110,7 @@ export function SymTreasuryPage() {
                   <Tooltip contentStyle={{ background: "#0a0d12", border: "1px solid #333", borderRadius: "8px" }} labelStyle={{ color: "#8793a0" }} formatter={(v: any, name: any) => name === "Reserve USD" ? `$${Number(v).toFixed(4)}` : `$${Number(v).toFixed(7)}`} />
                   <Area yAxisId="bal" type="monotone" dataKey="reserve" stroke="#6cf08a" strokeWidth={2} fill="url(#priceGrad)" name="Reserve USD" />
                   {hasFloorData && <Area yAxisId="bal" type="monotone" dataKey="rfv" stroke="#3ed8ff" strokeWidth={1} fill="none" name="RFV" connectNulls />}
-                  {hasFloorData && <Area yAxisId="price" type="monotone" dataKey="floor" stroke="#ff5ad2" strokeWidth={1} fill="url(#floorGrad)" name="SYM Floor" connectNulls />}
+                  {hasFloorData && <Area yAxisId="price" type="monotone" dataKey="floor" stroke="#ff5ad2" strokeWidth={1} fill="url(#floorGrad)" name="FLYAI Floor" connectNulls />}
                 </AreaChart>
               </ResponsiveContainer>
             ) : (

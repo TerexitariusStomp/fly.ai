@@ -9,7 +9,7 @@ Uses web3.py to:
 5. Register each connectome in FlyEngine AND ConnectomeGovernor
 
 The 7 registered connectomes:
-  rosophila(49) rat(73) mouse(112) ciona(205) macaque_modha(242) human(234) celegans_male(575)
+  drosophila(49) rat(73) mouse(112) ciona(205) macaque_modha(242) human(234) celegans_male(575)
 
 After registration, connectomes vote on governor proposals via vote(pid, cid) —
 each vote runs the connectome's on-chain LIF inference via FlyEngine.analyze().
