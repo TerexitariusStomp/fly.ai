@@ -1419,14 +1419,19 @@ class Default(WorkerEntrypoint):
         return await do_stub.fetch(do_url)
 
     async def scheduled(self, event, env=None, ctx=None):
-        """Cron trigger — kick all 7 connectome DOs."""
+        """Cron trigger — kick all 7 connectome DOs.
+
+        Fire-and-forget via waitUntil: each /trigger runs a full brain eval
+        (~5-40s). Awaiting them serially blows the cron's CPU/wall budget
+        after the first couple, leaving the rest silent.
+        """
+        tasks = []
         for cid in ALL_CONNECTOMES:
             do_id = self.env.FLY_BRAIN.idFromName(f"connectome:{cid}")
             do_stub = self.env.FLY_BRAIN.get(do_id)
-            try:
-                await do_stub.fetch("https://do/trigger")
-            except Exception:
-                pass  # Some connectomes may not have weights yet
+            tasks.append(do_stub.fetch(f"https://do/{cid}/trigger?cid={cid}"))
+        for t in tasks:
+            self.ctx.waitUntil(t)
 
 # Backward-compatible alias
 FlyBrainDO = ConnectomeDO
