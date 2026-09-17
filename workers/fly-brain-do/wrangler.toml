@@ -42,4 +42,4 @@ API_BASE_URL = "https://api-worker.terexmaps.workers.dev"
 # dies (deploy/crash), this re-kicks all 7 DOs every 5 min. Free tier
 # limit is 5 crons/account; this is #2 (enrichment uses #1).
 [triggers]
-# crons removed — free-tier 5-cron limit; driven by DO alarm chain / fetch
+crons = ["*/5 * * * *"]

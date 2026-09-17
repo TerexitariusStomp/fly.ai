@@ -11,5 +11,5 @@ database_id = "a494ae7e-4efd-49c6-8058-603179e3fd23"
 
 # Cron trigger — every 2 minutes
 [triggers]
-# crons removed — free-tier 5-cron limit; driven by DO alarm chain / fetch
+crons = ["*/2 * * * *"]
 account_id = "6c0140469651854b2e358517371a03d3"
