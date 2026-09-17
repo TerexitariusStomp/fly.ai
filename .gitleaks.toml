@@ -1,0 +1,6 @@
+[allowlist]
+description = "Public data files — Solana/EVM token addresses, market data, no secrets"
+paths = [
+  '''treasury/hermes/docs/data/.*''',
+  '''treasury/hermes/scripts/test_.*\.py''',
+]
