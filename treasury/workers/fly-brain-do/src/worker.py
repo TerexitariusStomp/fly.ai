@@ -1418,7 +1418,7 @@ class Default(WorkerEntrypoint):
         do_url = request.url + (f"&cid={connectome_id}" if "?" in request.url else f"?cid={connectome_id}")
         return await do_stub.fetch(do_url)
 
-    async def scheduled(self, event):
+    async def scheduled(self, event, env=None, ctx=None):
         """Cron trigger — kick all 7 connectome DOs."""
         for cid in ALL_CONNECTOMES:
             do_id = self.env.FLY_BRAIN.idFromName(f"connectome:{cid}")

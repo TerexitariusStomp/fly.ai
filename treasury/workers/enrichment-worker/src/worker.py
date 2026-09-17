@@ -35,7 +35,7 @@ DEXSCREENER_API = "https://api.dexscreener.com/latest/dex"
 class Default(WorkerEntrypoint):
     """Enrichment Worker — runs on Cron Trigger."""
 
-    async def scheduled(self, event):
+    async def scheduled(self, event, env=None, ctx=None):
         await self._enrich_tokens()
 
     async def fetch(self, request):
