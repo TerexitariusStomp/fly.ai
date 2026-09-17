@@ -575,7 +575,7 @@ class ConnectomeDO(DurableObject):
         would exhaust the free-tier daily row-read limit. Falls back to
         a direct D1 query if the API is unreachable.
         """
-        api_base = getattr(self.env, "API_BASE_URL", None) or "https://api-worker.hardwoodstablecoin.workers.dev"
+        api_base = getattr(self.env, "API_BASE_URL", None) or "https://api-worker.terexmaps.workers.dev"
         try:
             resp = await fetch(f"{api_base}/api/tokens?min_score=30&limit={limit}")
             if resp.status == 200:
@@ -639,8 +639,9 @@ class ConnectomeDO(DurableObject):
             key = {"X-Colony-Key": self.env.COLONY_ADMIN_KEY}
             if self.connectome_id == "drosophila":  # only one connectome fans out
                 for url in (
-                    "https://discovery-worker.symbient.workers.dev/",
-                    "https://trade-worker.symbient.workers.dev/process",
+                    "https://discovery-worker.terexmaps.workers.dev/",
+                    "https://trade-worker.terexmaps.workers.dev/process",
+                    "https://enrichment-worker.terexmaps.workers.dev/",
                 ):
                     try:
                         await fetch(url, headers=key)
@@ -649,14 +650,14 @@ class ConnectomeDO(DurableObject):
             # Social every ~7 ticks (~7 min) — keeps posting cadence human
             if self.connectome_id == "celegans_male" and int(time.time()) % 420 < 60:
                 try:
-                    await fetch("https://social-worker.symbient.workers.dev/post", headers=key)
+                    await fetch("https://social-worker.terexmaps.workers.dev/post", headers=key)
                 except Exception:
                     pass
             # Governance cycle every ~15 min — propose/vote/execute queued
             # protocol actions (rewards funding, bond params, whitelists)
             if self.connectome_id == "human" and int(time.time()) % 900 < 60:
                 try:
-                    await fetch("https://governance-worker.symbient.workers.dev/governance/cycle", headers=key)
+                    await fetch("https://governance-worker.terexmaps.workers.dev/governance/cycle", headers=key)
                 except Exception:
                     pass
             # Success — reset backoff to 1 minute
