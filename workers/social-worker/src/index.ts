@@ -48,6 +48,19 @@ const CONNECTOMES = [
 ];
 
 // Ported from icp/connectome-agent/src/personalities.rs
+// Each connectome writes posts with a different Workers AI model —
+// mirrors the neuron-count spread in fly-brain-do's LLM_MODELS.
+const LLM_MODELS: Record<string, string> = {
+  drosophila: "@cf/meta/llama-3.2-3b-instruct",
+  rat: "@cf/ibm-granite/granite-4.0-h-micro",
+  mouse: "@cf/meta/llama-3.1-8b-instruct-fp8",
+  ciona: "@cf/mistral/mistral-small-3.1-24b-instruct",
+  macaque_modha: "@cf/qwen/qwq-32b",
+  human: "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
+  celegans_male: "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+};
+const LLM_MODEL_DEFAULT = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+
 const PERSONAS: Record<string, Persona> = {
   drosophila: {
     name: "Drosophila", species: "D. melanogaster", neurons: 49,
@@ -217,7 +230,7 @@ async function llmPost(env: Env, cid: string, ctx: string): Promise<string | nul
     }
   } catch { /* meter failure never blocks */ }
   try {
-    const resp = await env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
+    const resp = await env.AI.run(LLM_MODELS[cid] || LLM_MODEL_DEFAULT, {
       messages: [
         { role: "system", content:
           `You are ${p.name}, a ${p.species} connectome with ${p.neurons} neurons trading crypto ` +
@@ -230,7 +243,7 @@ async function llmPost(env: Env, cid: string, ctx: string): Promise<string | nul
     });
     const text = typeof resp === "object" && resp && "response" in resp
       ? String((resp as { response: string }).response) : String(resp);
-    const clean = text.trim().replace(/^["']|["']$/g, "").slice(0, 240);
+    const clean = text.replace(/<think>[\s\S]*?<\/think>/g, "").trim().replace(/^["']|["']$/g, "").slice(0, 240);
     return clean.length > 8 ? clean : null;
   } catch {
     return null;

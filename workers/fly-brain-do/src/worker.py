@@ -22,6 +22,7 @@ import time
 import tempfile
 import os
 import base64
+import re
 
 import numpy as np
 
@@ -81,6 +82,25 @@ ALL_CONNECTOMES = [
     "drosophila", "rat", "mouse", "ciona",
     "macaque_modha", "human", "celegans_male",
 ]
+
+# Each connectome reasons with a different Workers AI model — diversity of
+# "cognition" like the neuron-count spread (49 → 575). Roughly scaled:
+# small connectomes get small fast models, the big ones get the frontier.
+LLM_MODELS = {
+    "drosophila":     "@cf/meta/llama-3.2-3b-instruct",
+    "rat":            "@cf/mistral/mistral-7b-instruct-v0.2",
+    "mouse":          "@cf/meta/llama-3.1-8b-instruct",
+    "ciona":          "@cf/qwen/qwen1.5-14b-chat-awq",
+    "macaque_modha":  "@cf/qwen/qwq-32b",
+    "human":          "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
+    "celegans_male":  "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+}
+LLM_MODEL_DEFAULT = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+
+
+def _strip_think(text: str) -> str:
+    """Reasoning models (r1, qwq) wrap chain-of-thought in <think> tags."""
+    return re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
 
 
 class ConnectomeDO(DurableObject):
@@ -382,7 +402,7 @@ class ConnectomeDO(DurableObject):
         try:
             if not await self._ai_budget_ok():
                 return {**neural, "llm_note": "ai budget exhausted — neural only"}
-            resp = await self.env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
+            resp = await self.env.AI.run(LLM_MODELS.get(self.connectome_id) or LLM_MODEL_DEFAULT, {
                 "messages": [
                     {"role": "system", "content": persona},
                     {"role": "user", "content": prompt},
@@ -397,7 +417,7 @@ class ConnectomeDO(DurableObject):
                 text = resp["response"]          # JsDict/dict subscript
             except Exception:
                 text = getattr(resp, "response", None) or str(resp)
-            text = str(text)
+            text = _strip_think(str(text))
             import re, ast as _ast
             m = re.search(r'\{[^{}]*["\']action["\'][^{}]*\}', text)
             if m:
@@ -456,7 +476,7 @@ class ConnectomeDO(DurableObject):
         """Workers AI call → plain text. Handles the JS-proxy response."""
         if not await self._ai_budget_ok():
             raise RuntimeError("ai budget exhausted for today")
-        resp = await self.env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
+        resp = await self.env.AI.run(LLM_MODELS.get(self.connectome_id) or LLM_MODEL_DEFAULT, {
             "messages": [
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
@@ -471,7 +491,7 @@ class ConnectomeDO(DurableObject):
             text = resp["response"]
         except Exception:
             text = getattr(resp, "response", None) or str(resp)
-        return str(text)
+        return _strip_think(str(text))
 
     async def _llm_code(self, task: str, file_path: str, file_content: str) -> dict:
         """Code generation — the connectome's persona + LLM writes the new
@@ -980,7 +1000,7 @@ class ConnectomeDO(DurableObject):
         try:
             if not await self._ai_budget_ok():
                 raise RuntimeError("ai budget exhausted")
-            resp = await self.env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
+            resp = await self.env.AI.run(LLM_MODELS.get(self.connectome_id) or LLM_MODEL_DEFAULT, {
                 "messages": [
                     {"role": "system", "content": "You evolve AI trading personas. Keep each persona distinct, short (2 sentences), species-flavored."},
                     {"role": "user", "content":
@@ -997,7 +1017,7 @@ class ConnectomeDO(DurableObject):
                 text = resp["response"]          # JsDict/dict subscript
             except Exception:
                 text = getattr(resp, "response", None) or str(resp)
-            text = str(text)
+            text = _strip_think(str(text))
             if text.strip():
                 new_persona = text.strip()[:400]
         except Exception:
