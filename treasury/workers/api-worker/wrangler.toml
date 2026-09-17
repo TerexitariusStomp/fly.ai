@@ -6,7 +6,7 @@ compatibility_date = "2026-09-12"
 [[d1_databases]]
 binding = "DB"
 database_name = "sym-protocol"
-database_id = "c8180dd7-0f8b-40b0-bc23-0ccae5260ca3"
+database_id = "a494ae7e-4efd-49c6-8058-603179e3fd23"
 
 # R2 not enabled on this account — brain endpoints return 404
 

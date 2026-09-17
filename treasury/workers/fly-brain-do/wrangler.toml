@@ -2,13 +2,13 @@ name = "fly-brain-do"
 main = "src/worker.py"
 compatibility_date = "2026-09-12"
 compatibility_flags = ["python_workers"]
-account_id = "23738a036108482feac164d7eee10a30"
+account_id = "6c0140469651854b2e358517371a03d3"
 
 # D1 database
 [[d1_databases]]
 binding = "DB"
 database_name = "sym-protocol"
-database_id = "c8180dd7-0f8b-40b0-bc23-0ccae5260ca3"
+database_id = "a494ae7e-4efd-49c6-8058-603179e3fd23"
 
 # Weights live in D1 (`weights` / `weight_chunks` tables) — R2 not enabled
 # on this account.
@@ -36,10 +36,10 @@ SELL_THRESHOLD_HZ = "3.0"
 # API worker URL — DOs fetch token candidates through the edge-cached
 # endpoint instead of scanning D1 directly (16 DOs × 1min scans would
 # exhaust the free-tier daily row-read limit).
-API_BASE_URL = "https://api-worker.symbient.workers.dev"
+API_BASE_URL = "https://api-worker.terexmaps.workers.dev"
 
 # Watchdog cron — DO alarms self-reschedule every 60s, but if the chain
 # dies (deploy/crash), this re-kicks all 7 DOs every 5 min. Free tier
 # limit is 5 crons/account; this is #2 (enrichment uses #1).
 [triggers]
-crons = ["*/5 * * * *"]
+# crons removed — free-tier 5-cron limit; driven by DO alarm chain / fetch
