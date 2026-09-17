@@ -44,28 +44,28 @@ function buildPlan(flow: WrapFlow): PlanStep[] {
         { kind: "approve", token: TokenName.SYM, spender: ContractName.STAKING, label: "Approve SYM" },
         { kind: "call", contract: ContractName.STAKING, abi: SymbientStakingAbi, functionName: "stake", label: "Stake SYM to stSYM", argsBuilder: stakeArgsRebasing, amount: "input" },
       ];
-    case "wrap-symbient-to-wstsym":
+    case "wrap-symbient-to-wstsymbient":
       return [
         { kind: "approve", token: TokenName.SYM, spender: ContractName.STAKING, label: "Approve SYM" },
         { kind: "call", contract: ContractName.STAKING, abi: SymbientStakingAbi, functionName: "stake", label: "Stake SYM to wstSYM", argsBuilder: stakeArgs, amount: "input" },
       ];
-    case "wrap-stsym":
+    case "wrap-stsymbient":
       return [
-        { kind: "approve", token: TokenName.stsym, spender: ContractName.Wstsym, label: "Approve stSYM" },
-        { kind: "call", contract: ContractName.Wstsym, abi: wstSymbientAbi, functionName: "wrap", label: "Wrap stSYM to wstSYM", argsBuilder: singleArg, amount: "input" },
+        { kind: "approve", token: TokenName.STSYM, spender: ContractName.WSTSYM, label: "Approve stSYM" },
+        { kind: "call", contract: ContractName.WSTSYM, abi: wstSymbientAbi, functionName: "wrap", label: "Wrap stSYM to wstSYM", argsBuilder: singleArg, amount: "input" },
       ];
-    case "unwrap-wstsym":
+    case "unwrap-wstsymbient":
       return [
-        { kind: "call", contract: ContractName.Wstsym, abi: wstSymbientAbi, functionName: "unwrap", label: "Unwrap wstSYM to stSYM", argsBuilder: singleArg, amount: "input" },
+        { kind: "call", contract: ContractName.WSTSYM, abi: wstSymbientAbi, functionName: "unwrap", label: "Unwrap wstSYM to stSYM", argsBuilder: singleArg, amount: "input" },
       ];
-    case "unwrap-wstsym-to-symbient":
+    case "unwrap-wstsymbient-to-symbient":
       return [
-        { kind: "approve", token: TokenName.Wstsym, spender: ContractName.STAKING, label: "Approve wstSYM" },
+        { kind: "approve", token: TokenName.WSTSYM, spender: ContractName.STAKING, label: "Approve wstSYM" },
         { kind: "call", contract: ContractName.STAKING, abi: SymbientStakingAbi, functionName: "unstake", label: "Unstake wstSYM to SYM", argsBuilder: unstakeArgs, amount: "input" },
       ];
-    case "unstake-stsym":
+    case "unstake-stsymbient":
       return [
-        { kind: "approve", token: TokenName.stsym, spender: ContractName.STAKING, label: "Approve stSYM" },
+        { kind: "approve", token: TokenName.STSYM, spender: ContractName.STAKING, label: "Approve stSYM" },
         { kind: "call", contract: ContractName.STAKING, abi: SymbientStakingAbi, functionName: "unstake", label: "Unstake stSYM to SYM", argsBuilder: unstakeArgsRebasing, amount: "input" },
       ];
   }
@@ -93,8 +93,8 @@ export function useWrapFlowSequence(flow: WrapFlow, inputAmount: bigint) {
     setError(null);
   }, [plan]);
 
-  const stSymbientAddress = getTokenAddress(TokenName.stsym, chainId);
-  const wstSymbientAddress = getTokenAddress(TokenName.Wstsym, chainId);
+  const stSymbientAddress = getTokenAddress(TokenName.STSYM, chainId);
+  const wstSymbientAddress = getTokenAddress(TokenName.WSTSYM, chainId);
 
   const setStep = (i: number, patch: Partial<SeqStep>) =>
     setSteps((prev) => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
@@ -142,7 +142,7 @@ export function useWrapFlowSequence(flow: WrapFlow, inputAmount: bigint) {
       return;
     }
     if (!publicClient) {
-      setError(new Error("Chain client not ready — is your wallet on Base Sepolia?"));
+      setError(new Error("Chain client not ready — is your wallet on Arc testnet?"));
       return;
     }
     if (!walletClient) {

@@ -1,0 +1,30 @@
+[test]
+coverage = true
+coverageReporter = ["text", "lcov"]
+coverageDir = "./coverage"
+timeout = 60000
+preload = "./packages/test-utils/src/setup.ts"
+
+# Coverage thresholds (per .opencode/context/core/standards/test-coverage.md)
+# Targets: 90% statement, 85% branch, 95% function, 90% line
+# Note: package-scoped runs (test:cli, test:shared, …) load cross-package
+# deps at low coverage and would falsely fail an aggregate 80% gate.
+# Enforce the gate via scripts/test-with-table.ts only for the full suite,
+# and via `bun run coverage:check` for per-file CLI floors.
+# coverageThreshold is intentionally unset here.
+
+# Exclude test harness / infra from coverage denominators
+coveragePathIgnorePatterns = [
+  "packages/test-utils/**",
+  "packages/test-setup-global.ts",
+  "**/node_modules/**",
+  "**/dist/**",
+  "coverage/**",
+  "reports/**",
+]
+
+[test.env]
+NODE_ENV = "test"
+
+[test.reporter]
+junit = "./reports/junit.xml" 

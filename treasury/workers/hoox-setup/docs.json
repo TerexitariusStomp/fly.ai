@@ -1,0 +1,340 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Hoox",
+  "description": "Edge-Native Algorithmic Trading on the Cloudflare Edge. Free, open-source framework for trade signal ingestion, risk management, and execution at the edge.",
+  "colors": {
+    "primary": "#F97316",
+    "light": "#FB923C",
+    "dark": "#EA580C"
+  },
+  "favicon": "/favicon.svg",
+  "logo": {
+    "light": "/logo/dark.svg",
+    "dark": "/logo/light.svg",
+    "href": "https://github.com/hoox-sh/hoox"
+  },
+  "appearance": {
+    "default": "system"
+  },
+  "fonts": {
+    "family": "Inter"
+  },
+  "seo": {
+    "indexing": "navigable",
+    "metatags": {
+      "og:site_name": "Hoox Documentation",
+      "og:title": "Hoox — Edge-Native Algorithmic Trading on the Cloudflare Edge",
+      "og:description": "Free, open-source algorithmic trading framework deployed natively to the Cloudflare Edge Network. Trade signals, risk management, and execution in milliseconds.",
+      "og:type": "website",
+      "og:locale": "en_US",
+      "og:image": "/og-image.png",
+      "twitter:card": "summary_large_image",
+      "twitter:site": "@hoox",
+      "twitter:title": "Hoox Documentation",
+      "twitter:description": "Edge-Native Algorithmic Trading on the Cloudflare Edge. Free, open-source framework for trade signal ingestion, risk management, and execution at the edge.",
+      "twitter:image": "/og-image.png",
+      "canonical": "https://docs.hoox.sh",
+      "robots": "index, follow"
+    }
+  },
+  "search": {
+    "prompt": "Search the Hoox docs..."
+  },
+  "metadata": {
+    "timestamp": true
+  },
+  "banner": {
+    "type": "info",
+    "content": "Hoox is open-source software for algorithmic trading on the Cloudflare edge. Trading carries risk — test on staging first.",
+    "dismissible": true
+  },
+  "navbar": {
+    "primary": {
+      "type": "button",
+      "label": "GitHub",
+      "href": "https://github.com/hoox-sh/hoox"
+    }
+  },
+  "footerSocials": {
+    "github": "https://github.com/hoox-sh/hoox"
+  },
+  "footer": {
+    "links": [
+      {
+        "header": "End User",
+        "items": [
+          {
+            "label": "Installation",
+            "href": "/docs/enduser/getting-started/installation"
+          },
+          {
+            "label": "Quick Start",
+            "href": "/docs/enduser/getting-started/quick-start"
+          },
+          {
+            "label": "Test Trading",
+            "href": "/docs/enduser/guides/test-trading"
+          },
+          {
+            "label": "CLI Reference",
+            "href": "/docs/enduser/reference/cli-commands"
+          }
+        ]
+      },
+      {
+        "header": "Platform",
+        "items": [
+          {
+            "label": "Architecture",
+            "href": "/docs/devops/architecture"
+          },
+          {
+            "label": "Workers",
+            "href": "/docs/devops/workers"
+          },
+          {
+            "label": "DevOps",
+            "href": "/docs/devops"
+          },
+          {
+            "label": "API",
+            "href": "/docs/devops/api"
+          },
+          {
+            "label": "Enterprise",
+            "href": "/docs/enterprise"
+          }
+        ]
+      },
+      {
+        "header": "Community",
+        "items": [
+          {
+            "label": "GitHub Repository",
+            "href": "https://github.com/hoox-sh/hoox"
+          },
+          {
+            "label": "Support",
+            "href": "mailto:support@hoox.sh"
+          },
+          {
+            "label": "Telegram Bot",
+            "href": "/docs/enduser/tutorials/telegram-bot"
+          }
+        ]
+      }
+    ]
+  },
+  "api": {
+    "openapi": "docs/openapi-minimal.yaml",
+    "playground": {
+      "display": "interactive"
+    },
+    "examples": {
+      "languages": ["curl", "javascript", "python"],
+      "defaults": "required",
+      "prefill": true
+    },
+    "params": {
+      "expanded": "all"
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "End User",
+        "groups": [
+          {
+            "group": "End User",
+            "pages": [
+              "docs/index",
+              "docs/enduser/index",
+              {
+                "group": "Getting Started",
+                "pages": [
+                  "docs/enduser/getting-started/installation",
+                  "docs/enduser/getting-started/configuration",
+                  "docs/enduser/getting-started/quick-start"
+                ]
+              },
+              {
+                "group": "Core Concepts",
+                "pages": [
+                  "docs/enduser/concepts/ecosystem",
+                  "docs/enduser/concepts/how-hoox-works",
+                  "docs/enduser/concepts/edge-architecture",
+                  "docs/enduser/concepts/cloudflare-services",
+                  "docs/enduser/concepts/idempotency",
+                  "docs/enduser/concepts/signals-and-trades",
+                  "docs/enduser/concepts/ai-risk-manager"
+                ]
+              },
+              {
+                "group": "Guides",
+                "pages": [
+                  "docs/enduser/guides/local-development",
+                  "docs/enduser/guides/screenshots",
+                  "docs/enduser/guides/tui",
+                  "docs/enduser/guides/database-ops",
+                  "docs/enduser/guides/secrets-security",
+                  "docs/enduser/guides/test-trading",
+                  "docs/enduser/guides/manage-infra",
+                  "docs/enduser/guides/deploy-workers",
+                  "docs/enduser/guides/repair",
+                  "docs/enduser/guides/monitor-trading",
+                  "docs/enduser/guides/pyne-live-trading",
+                  "docs/enduser/guides/axis-and-hoox"
+                ]
+              },
+              {
+                "group": "Tutorials",
+                "pages": [
+                  "docs/enduser/tutorials/tradingview-webhook",
+                  "docs/enduser/tutorials/telegram-bot",
+                  "docs/enduser/tutorials/email-signals"
+                ]
+              },
+              {
+                "group": "Reference",
+                "pages": [
+                  "docs/enduser/reference/cli-commands",
+                  "docs/enduser/reference/api-endpoints",
+                  "docs/enduser/reference/configuration",
+                  "docs/enduser/reference/faq",
+                  "docs/enduser/reference/glossary"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Architecture",
+        "groups": [
+          {
+            "group": "Architecture",
+            "pages": [
+              "docs/devops/architecture/index",
+              "docs/devops/architecture/overview",
+              "docs/devops/architecture/data-flow",
+              "docs/devops/architecture/communication",
+              "docs/devops/architecture/bindings",
+              "docs/devops/architecture/storage",
+              "docs/devops/architecture/endpoints",
+              "docs/devops/architecture/design-system",
+              "docs/devops/architecture/adrs"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Workers",
+        "groups": [
+          {
+            "group": "Workers",
+            "pages": [
+              "docs/devops/workers/index",
+              "docs/devops/workers/hoox",
+              "docs/devops/workers/trade-worker",
+              "docs/devops/workers/d1-worker",
+              "docs/devops/workers/agent-worker",
+              "docs/devops/workers/telegram-worker",
+              "docs/devops/workers/email-worker",
+              "docs/devops/workers/web3-wallet-worker",
+              "docs/devops/workers/analytics-worker",
+              "docs/devops/workers/report-worker",
+              "docs/devops/workers/pyne-worker",
+              "docs/devops/workers/dashboard"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "DevOps",
+        "groups": [
+          {
+            "group": "DevOps",
+            "pages": [
+              "docs/devops/index",
+              {
+                "group": "Setup",
+                "pages": [
+                  "docs/devops/installation-flow",
+                  "docs/devops/setup-and-operations",
+                  "docs/devops/bindings"
+                ]
+              },
+              {
+                "group": "Development",
+                "pages": [
+                  "docs/devops/development/local-dev",
+                  "docs/devops/development/testing",
+                  "docs/devops/development/debugging"
+                ]
+              },
+              {
+                "group": "Deployment",
+                "pages": [
+                  "docs/devops/deployment/production",
+                  "docs/devops/deployment/cicd",
+                  "docs/devops/deployment/monitoring",
+                  "docs/devops/deployment/zero-trust",
+                  "docs/devops/deployment/private-ingress"
+                ]
+              },
+              {
+                "group": "Security",
+                "pages": ["docs/devops/security/overview"]
+              },
+              {
+                "group": "Tooling",
+                "pages": [
+                  "docs/devops/cli-features",
+                  "docs/devops/tui",
+                  "docs/devops/refactoring/workers-pattern-consolidation"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API",
+        "groups": [
+          {
+            "group": "API",
+            "pages": [
+              "docs/devops/api/index",
+              "docs/devops/api/endpoints",
+              "docs/devops/api/payloads",
+              "docs/devops/api/responses"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Enterprise",
+        "groups": [
+          {
+            "group": "Enterprise",
+            "pages": [
+              "docs/enterprise/index",
+              "docs/enterprise/architecture",
+              "docs/enterprise/multi-tenancy",
+              "docs/enterprise/security-compliance",
+              "docs/enterprise/observability-audit"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "openapi": {
+          "source": "docs/openapi-minimal.yaml",
+          "directory": "api-reference"
+        }
+      }
+    ]
+  }
+}

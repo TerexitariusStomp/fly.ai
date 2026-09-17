@@ -4,12 +4,12 @@ export default [
       { internalType: "contract Kernel", name: "kernel_", type: "address" },
       {
         internalType: "contract AggregatorV2V3Interface",
-        name: "shitEthPriceFeed_",
+        name: "symbientEthPriceFeed_",
         type: "address",
       },
       {
         internalType: "uint48",
-        name: "shitEthUpdateThreshold_",
+        name: "symbientEthUpdateThreshold_",
         type: "uint48",
       },
       {
@@ -121,7 +121,7 @@ export default [
       {
         indexed: false,
         internalType: "uint48",
-        name: "shitEthUpdateThreshold_",
+        name: "symbientEthUpdateThreshold_",
         type: "uint48",
       },
       {
@@ -196,7 +196,7 @@ export default [
     inputs: [
       {
         internalType: "uint48",
-        name: "shitEthUpdateThreshold_",
+        name: "symbientEthUpdateThreshold_",
         type: "uint48",
       },
       {
@@ -331,7 +331,7 @@ export default [
   },
   {
     inputs: [],
-    name: "shitEthPriceFeed",
+    name: "symbientEthPriceFeed",
     outputs: [
       {
         internalType: "contract AggregatorV2V3Interface",
@@ -344,7 +344,7 @@ export default [
   },
   {
     inputs: [],
-    name: "shitEthUpdateThreshold",
+    name: "symbientEthUpdateThreshold",
     outputs: [{ internalType: "uint48", name: "", type: "uint48" }],
     stateMutability: "view",
     type: "function",

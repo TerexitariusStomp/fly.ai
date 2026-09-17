@@ -1,0 +1,164 @@
+{
+  // Root wrangler.jsonc — deployment config for all workers
+  //
+  // NOTE: This file is gitignored (actual secrets and IDs should never
+  // be committed). Copy to wrangler.jsonc and customize.
+  //
+  // Use `hoox setup` / `hoox keys generate` to create mesh keys, then
+  // `hoox secrets sync --system` to push system/mesh secrets only.
+  // Integration secrets (exchange keys, bot tokens, etc.) stay in the
+  // per-worker secrets arrays and are synced with plain `hoox secrets sync`.
+  //
+  // Worker key "hoox" maps to path workers/hoox-worker (directory name ≠ key).
+
+  "global": {
+    "cloudflare_api_token": "<USE_CLOUDFLARE_API_TOKEN_ENV_OR_WRANGLER_AUTH>",
+    "cloudflare_account_id": "<YOUR_ACCOUNT_ID>",
+    "subdomain_prefix": "<YOUR_PREFIX>"
+  },
+  "workers": {
+    "d1-worker": {
+      "enabled": true,
+      "path": "workers/d1-worker",
+      "vars": {
+        "database_name": "trade-data-db"
+      },
+      // Mesh: INTERNAL_KEY_BINDING (setup SECRET_WORKER_MAP / ALL_WORKERS)
+      "secrets": [
+        "INTERNAL_KEY_BINDING"
+      ]
+    },
+    "hoox": {
+      "enabled": true,
+      "path": "workers/hoox-worker",
+      "vars": {},
+      // Mesh + gateway: webhook auth, operator plane, notify allowlist
+      "secrets": [
+        "INTERNAL_KEY_BINDING",
+        "WEBHOOK_API_KEY_BINDING",
+        "OPERATOR_API_KEY",
+        "TELEGRAM_ALLOWED_CHAT_IDS",
+        "HA_TOKEN_BINDING"
+      ]
+    },
+    "agent-worker": {
+      "enabled": true,
+      "path": "workers/agent-worker",
+      "vars": {},
+      // Mesh + optional LLM provider secrets (prefer env over CONFIG_KV)
+      "secrets": [
+        "AGENT_INTERNAL_KEY",
+        "INTERNAL_KEY_BINDING",
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "GOOGLE_API_KEY"
+      ]
+    },
+    "analytics-worker": {
+      "enabled": true,
+      "path": "workers/analytics-worker",
+      "vars": {},
+      // Mesh: INTERNAL_KEY_BINDING; integration: CF Analytics Engine token
+      "secrets": [
+        "INTERNAL_KEY_BINDING",
+        "CLOUDFLARE_API_TOKEN"
+      ]
+    },
+    "trade-worker": {
+      "enabled": true,
+      "path": "workers/trade-worker",
+      "vars": {},
+      // Mesh: INTERNAL_KEY_BINDING, TELEGRAM_INTERNAL_KEY_BINDING,
+      //       API_SERVICE_KEY_BINDING (system name; also in env-service map)
+      // Integration: exchange API keys
+      "secrets": [
+        "INTERNAL_KEY_BINDING",
+        "TELEGRAM_INTERNAL_KEY_BINDING",
+        "API_SERVICE_KEY_BINDING",
+        "EXCHANGE_KEY_BINDING",
+        "EXCHANGE_SECRET_BINDING"
+      ]
+    },
+    "telegram-worker": {
+      "enabled": true,
+      "path": "workers/telegram-worker",
+      "vars": {},
+      // Mesh: INTERNAL_KEY_BINDING; integration: bot + chat allowlists
+      "secrets": [
+        "INTERNAL_KEY_BINDING",
+        "TELEGRAM_INTERNAL_KEY_BINDING",
+        "TG_BOT_TOKEN_BINDING",
+        "TG_CHAT_ID_BINDING",
+        "TELEGRAM_SECRET_TOKEN",
+        "AUTHORIZED_CHAT_IDS"
+      ]
+    },
+    "web3-wallet-worker": {
+      "enabled": true,
+      "path": "workers/web3-wallet-worker",
+      "vars": {},
+      // Mesh: INTERNAL_KEY_BINDING; integration: wallet material
+      "secrets": [
+        "INTERNAL_KEY_BINDING",
+        "WALLET_MNEMONIC_SECRET",
+        "WALLET_PK_SECRET"
+      ]
+    },
+    "email-worker": {
+      "enabled": true,
+      "path": "workers/email-worker",
+      "vars": {},
+      // Mesh: INTERNAL_KEY_BINDING (IMAP/Mailgun secrets optional; add if used)
+      "secrets": [
+        "INTERNAL_KEY_BINDING"
+      ]
+    },
+    "report-worker": {
+      "enabled": true,
+      "path": "workers/report-worker",
+      "vars": {},
+      // Mesh: INTERNAL_KEY_BINDING; optional chat override for PDFs
+      "secrets": [
+        "INTERNAL_KEY_BINDING",
+        "REPORT_TELEGRAM_CHAT_ID"
+      ]
+    },
+    "pyne-worker": {
+      "enabled": true,
+      "path": "workers/pyne-worker",
+      "vars": {},
+      // Tooling isolate (outside mesh INTERNAL_KEY graph).
+      // API_KEY: X-API-Key for /run and management endpoints.
+      // ALERT_WEBHOOK_URL: optional default L2 alert destination.
+      "secrets": [
+        "API_KEY",
+        "ALERT_WEBHOOK_URL"
+      ]
+    },
+    "dashboard": {
+      "enabled": true,
+      "path": "workers/dashboard",
+      "vars": {},
+      // Mesh (setup generates AGENT_INTERNAL_KEY + SESSION_SECRET):
+      //   SESSION_SECRET, AGENT_INTERNAL_KEY, and optional service keys
+      //   used when calling other workers (INTERNAL_KEY_BINDING,
+      //   TRADE_INTERNAL_KEY, TELEGRAM_INTERNAL_KEY_BINDING,
+      //   API_SERVICE_KEY_BINDING — SYSTEM_SECRET_NAMES).
+      // Integration: basic-auth credentials; PYNE_API_KEY matches pyne-worker API_KEY.
+      "secrets": [
+        "DASHBOARD_USER",
+        "DASHBOARD_PASS",
+        "SESSION_SECRET",
+        "AGENT_INTERNAL_KEY",
+        "INTERNAL_KEY_BINDING",
+        "TRADE_INTERNAL_KEY",
+        "TELEGRAM_INTERNAL_KEY_BINDING",
+        "API_SERVICE_KEY_BINDING",
+        "PYNE_API_KEY"
+      ]
+    }
+  },
+  "dev": {
+    "runtime": "docker"
+  }
+}

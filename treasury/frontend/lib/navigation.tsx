@@ -69,8 +69,8 @@ export function renderNavIcon(
 export const NAV_SECTIONS: NavSection[] = [
   {
     id: "overview",
-    label: "SYM",
-    sidebarTitle: "SYM Overview",
+    label: "5H1T",
+    sidebarTitle: "5H1T Overview",
     icon: TrendingUp,
     section: "overview",
     items: [
@@ -92,25 +92,20 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     id: "treasury",
     label: "Treasury",
-    sidebarTitle: "FLYAI Reserves & Treasury Ops",
+    sidebarTitle: "Treasury Reserves & Ops",
     icon: TrendingUp,
     section: "treasury",
     route: "treasury",
     items: [],
   },
   {
-    id: "dashboard",
-    label: "Dashboard",
-    sidebarTitle: "Grow & Borrow",
+    id: "wrap",
+    label: "Stake & Wrap",
+    sidebarTitle: "Stake 5H1T / Wrap stSHIT",
     icon: LayoutDashboard,
-    section: "dashboard",
-    route: "dashboard",
-    items: [
-      { label: "Balances", section: "dashboard" },
-      { label: "Stake", section: "dashboard" },
-      { label: "Bonds", section: "dashboard" },
-      { label: "Borrow", section: "dashboard" },
-    ],
+    section: "wrap",
+    route: "stake-wrap",
+    items: [],
   },
 ];
 

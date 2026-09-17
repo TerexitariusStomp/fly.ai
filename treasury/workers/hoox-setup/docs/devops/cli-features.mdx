@@ -1,0 +1,272 @@
+<!--
+  Copyright (c) 2026 HOOX · jango-blockchained (hoox-sh)
+  SPDX-License-Identifier: CC-BY-4.0
+-->
+
+---
+title: "CLI Architecture & Features"
+description: "Detailed specification of the Hoox Command-Line Interface, monorepo workspaces compilation, and task-management engines."
+---
+
+The **`hoox` CLI** (`packages/cli`) is the unified lifecycle engine of the trading platform monorepo. It governs local sandboxes, compiles TypeScript structures, coordinates Cloudflare infrastructure resources, deploys edge isolates, manages encrypted secrets, and executes self-healing diagnostics.
+
+---
+
+## 🏗️ Monorepo Workspace Design
+
+The CLI is integrated into our monorepo using **Bun Workspaces**, which link local packages together. This design ensures that the CLI binary can resolve and load local shared types (`@hoox-sh/hoox-shared`) and TUI components (`packages/tui`) instantly without network downloads or pre-compilation overhead:
+
+```
+hoox/ (Monorepo Root)
+├── packages/
+│   ├── cli/       # CLI Source code (entry binary: bin/hoox.js)
+│   ├── tui/       # OpenTUI dashboard source code
+│   └── shared/    # Common libraries (auth, router, error models)
+├── workers/
+│   └── ...        # Edge V8 isolates
+└── package.json   # Root workspace manager
+```
+
+---
+
+## ⚡ 1. Command-Line Core Architectures
+
+The CLI binary parses terminal instructions using the following architectural layers:
+
+### A. Command Dispatcher (`packages/cli/src/index.ts`)
+
+Intercepts all incoming arguments (e.g. `hoox infra provision`), evaluates global flags (`--json`, `--quiet`), validates configuration integrity, and delegates execution to target command modules under `src/commands/`.
+
+### B. Cloudflare services (`src/services/cloudflare/`, `src/services/*`)
+
+Translates command intentions (like `hoox infra d1 create`) into wrangler subprocess calls or Cloudflare REST API requests. Domain services (setup, secrets, DB, repair, perf) live under `src/services/`.
+
+### C. Shared config & path resolution (`@hoox-sh/hoox-shared`)
+
+Workspace configuration (`wrangler.jsonc`), path layout (`$HOME/.hoox`, monorepo detection), and operator transport live in the shared package rather than a CLI-local `src/core/`.
+
+### D. Workspace context (startup)
+
+Before commands run, `ensureWorkspaceContext()` (`packages/cli/src/services/workspace/`) resolves the monorepo and switches the process into it:
+
+| Priority | Source | Notes |
+| -------- | ------ | ----- |
+| 1 | `HOOX_REPO` | Explicit override |
+| 2 | Walk up from `cwd` | Local clone markers |
+| 3 | `~/.hoox/config/monorepo.json` | Last discovered checkout |
+| 4 | `~/.hoox/repo` | Managed global clone (`doctor --fix-runtime`) |
+
+**Markers** (`isHooxSetupRoot`): `packages/cli/package.json` **and** one of
+`wrangler.jsonc` / `wrangler.jsonc.example` / `workers/` / `.gitmodules`.
+
+On success the CLI:
+
+1. writes/refreshes `monorepo.json` when source is `cwd`, `env`, or `remembered`
+2. sets session `HOOX_REPO` for child processes
+3. `process.chdir(root)` when not already there (notice on stderr unless silent/json/quiet)
+
+This is why `hx check setup` works after you leave the monorepo directory.
+
+---
+
+## 🔒 2. Declarative Config Mapping & Validation
+
+To prevent configuration drift, the CLI enforces strict type validation on `wrangler.jsonc` files:
+
+1. **Config validation**: Built-in parsers validate workspace `wrangler.jsonc` (worker enablement, paths, secrets, vars) via the CLI config/schema services — there is no `src/core/types.ts` path; operator config also lives in `@hoox-sh/hoox-shared`.
+2. **Setup Verification (`hoox check setup`)**: Compares active workspace profiles against expected shape, audits environment variable keys, and scans for missing bindings, outputting formatted terminal reports.
+
+---
+
+## 🛜 3. Self-Healing & Diagnostics Engine
+
+One of the CLI's most powerful features is its **guided repair framework** (`hoox repair` command groups):
+
+- **Diagnostic Probes**: The `hoox repair check` command runs a 5-step checklist (verifying submodule checkouts, NPM/Bun package resolutions, TypeScript variables, Cloudflare zone links, and encrypted credentials).
+- **Automated Recovery**: If a missing resource is identified (e.g. a D1 database ID is bound in `wrangler.jsonc` but the database doesn't exist on your Cloudflare account), the repair engine prompts you and provisions it automatically:
+
+```bash
+# Provision missing Cloudflare bindings and repair system states
+hoox repair infra
+```
+
+---
+
+<Tip>
+  Every single command supports the `--json` global flag. This outputs
+  machine-parseable JSON payloads (e.g. `hoox check health --json`), allowing
+  you to integrate the CLI with external telemetry dashboards or alert scripts
+  effortlessly!
+</Tip>
+
+---
+
+## 🎨 4. Output Framework
+
+The CLI's terminal output is built on a shared framework of small, focused primitives
+that every command composes. The framework lives in `packages/cli/src/utils/` and
+spans five layers:
+
+### Theme tokens (`utils/theme.ts`)
+
+A single source of truth for color and iconography — **modern-minimal** aesthetic
+(zinc/slate text, single indigo-400 accent, de-saturated status colors). Tokens
+available to every command:
+
+- **Text scale**: `theme.text` (zinc-200), `textMuted` (zinc-400), `textSubtle`
+  (zinc-500), `textFaint` (zinc-600)
+- **Status**: `success` (emerald-400), `error` (rose-400), `warning` (amber-400),
+  `info` (sky-400), `accent` (indigo-400)
+- **Borders**: `border` (zinc-700), `borderStrong` (zinc-600)
+- **Spinner**: braille dots `["⠋","⠙","⠹","⠸","⠼","⠴","⠦","⠧","⠇","⠏"]`
+
+All previous named tokens (`success`, `error`, `heading`, `value`, etc.) are
+preserved for backward compatibility — only the values changed.
+
+### Output formatters (`utils/formatters.ts`)
+
+Every command uses one of these for consistent output:
+
+| Formatter                            | Purpose                                                         | Key options                                          |
+| ------------------------------------ | --------------------------------------------------------------- | ---------------------------------------------------- |
+| `formatSuccess(msg)`                 | Single-line success indicator                                   | `--json` / `--quiet`                                 |
+| `formatError(err, opts?)`            | Card-style error with `[code]` badge, `did you mean` suggestion | `suggestions?`, `inCard?`                            |
+| `formatTable(rows, opts?)`           | Box-drawn table                                                 | `zebra`, `alignNumbers`, `colorizeStatus`, `compact` |
+| `formatKeyValue(pairs)`              | Aligned `key: value` pairs                                      | —                                                    |
+| `formatHeader(text, opts?)`          | Section heading with rule                                       | `subtitle?`                                          |
+| `formatList(items)`                  | Bulleted list                                                   | —                                                    |
+| `formatJson(data)`                   | Always-JSON output                                              | —                                                    |
+| `formatBadge(level, text?)`          | Inline status chip                                              | —                                                    |
+| `formatHint(text)`                   | Subtle hint line                                                | —                                                    |
+| `formatCompletion(msg, opts?)`       | "✓ Done in 1.2s" footer + next-step suggestion                  | `durationMs?`, `suggestion?`                         |
+| `formatNumber(n)` / `formatBytes(n)` | Compact notation (`1.2K` / `1.5M` / `1.0 KiB`)                  | —                                                    |
+
+### Rich mode gate (`utils/format-mode.ts`)
+
+`isRichMode(opts)` is the single switch every formatter checks before
+emitting color. It returns `false` (i.e. suppresses color) when any of these is true:
+
+- `--json` or `--quiet` flag is set
+- `--no-color` flag is set
+- `NO_COLOR` env var is set (https://no-color.org)
+- `TERM=dumb` is set
+- stdout is not a TTY (piped, redirected, or running under CI)
+
+This is the single place that encodes "is rich output appropriate right now?" — every
+formatter asks it instead of duplicating TTY/env detection.
+
+### Custom help formatter (`utils/help-formatter.ts`)
+
+Replaces Commander's default flat help layout with a sectioned modern-minimal
+layout for `hoox --help` and per-command `--help`:
+
+```
+ hoox deploy all
+ Cloudflare Workers Platform
+ ───────────────────────────────────────────────────
+
+ Usage
+   hoox deploy all [options]
+
+ Options
+   --auto              Skip confirmations
+   --json              Output JSON
+
+ Examples
+   $ hoox deploy all
+   $ hoox deploy all --auto
+```
+
+Wired into the program via `program.configureHelp({ formatHelp: (cmd, helper) => renderHelp(cmd, helper) })`.
+
+### "Did you mean" + completion footer (`utils/completion.ts`, `utils/error-handler.ts`)
+
+Two small touches that improve UX on errors and after successful commands:
+
+- **Did you mean** — `hoox deplpy` → `did you mean 'hoox deploy' ?`. Uses Levenshtein
+  distance with a threshold of 2; checks against all registered command names
+  (top-level + nested).
+- **Completion footer** — every successful command prints `✓ <message> in 1.2s`
+  and optionally `→ next: hoox <next-command> (<reason>)`. Wired into the global
+  `program.hook("postAction", ...)` in `index.ts`.
+
+### Banner (`ui/banner.ts`) — Linear Rail
+
+`renderBanner()` / `animateBanner()` run when the CLI opens the interactive menu
+(no arguments, initialized workspace). The version is read at module init by
+walking up from `import.meta.url` looking for the `@hoox-sh/hoox-cli`
+`package.json` — this works in source, bundle, and global install layouts.
+
+**Default is Linear Rail** — compact `◆ H · O · O · X` with tagline
+`Cloudflare Workers Platform · vX.Y.Z` (Cloudflare® Workers Platform in prose).
+On a TTY (and not `NO_COLOR` / CI / `TERM=dumb`), the banner assembles →
+pulses → settles; otherwise a single static frame is printed. Variants:
+`logo` / `minimal` (aliases of Linear Rail), `legacy` (block letters),
+`horizon`, and `signal`. Compact one-liner: `◆ Hoox · v…` via
+`renderCompactBanner()`.
+
+### Adding a new output
+
+When writing a new command, the pattern is:
+
+```ts
+import {
+  formatSuccess,
+  formatTable,
+  formatHint,
+  getFormatOptions,
+} from "../../utils/formatters.js";
+import { Command } from "commander";
+
+export function registerMyCommand(program: Command) {
+  program.command("my").action(
+    withErrorHandling(async (cmd) => {
+      const opts = getFormatOptions(cmd);
+      const rows = await loadMyData();
+      formatTable(rows, opts); // respects --json / --quiet / --no-color
+      formatSuccess("Done", opts); // suppressed in --json/--quiet
+      formatHint("next: hoox deploy", opts);
+    })
+  );
+}
+```
+
+Every formatter handles the format modes for you — you never read
+`process.stdout.isTTY` or `process.env.NO_COLOR` yourself.
+
+---
+
+## 🔑 5. Secrets modes (`hoox secrets`)
+
+Top-level `hoox secrets` (alias of `hoox config secrets`) manages Worker secrets
+declared in workspace `wrangler.jsonc`:
+
+| Mode | Command | Behavior |
+| ---- | ------- | -------- |
+| **System / mesh only** | `hoox secrets sync --system` | Syncs internal auth + gateway keys only (`INTERNAL_KEY_BINDING`, `WEBHOOK_API_KEY_BINDING`, session keys, …). Skips exchange keys, bot tokens, and other integration secrets. Alias: `--required`. Prefer after `hoox keys generate` / key rotation. |
+| **Full sync** | `hoox secrets sync` / `hoox secrets sync <worker>` | Puts all declared secrets present in local `.dev.vars`. Reports **synced** / **skipped** (placeholders or missing) / **failed**. |
+| **Single secret** | `hoox secrets set <worker> <name>` | Writes `.dev.vars` and `wrangler secret put` for one name. |
+| **List / delete** | `hoox secrets list [worker]`, `hoox secrets delete …` | Inventory or remove. |
+
+`hoox check setup` only fails remote secret checks when declared names are
+**missing on Cloudflare®** (with `hoox secrets sync` hints) — healthy local
+values no longer produce noisy warnings.
+
+---
+
+## 🚪 6. Setup gates (`hoox onboard` / `hoox setup`)
+
+| Gate | Behavior |
+| ---- | -------- |
+| **Init incomplete** | Onboard does **not** run setup unless `wrangler.jsonc` exists after step 1 (cancel / risk-decline stay fail-closed). |
+| **Cloudflare® auth** | Setup and onboard step 2 require `wrangler whoami` / token env; fail early with login hints. |
+| **Workers gate** | After submodule clone, setup aborts if worker trees are still missing. |
+| **`--skip-keys`** | Loads mesh keys from `.keys/setup.env` so secrets can still push without regenerating keys. |
+
+---
+
+### 🔗 Next Steps
+
+- **[CLI Reference Manual](/docs/enduser/reference/cli-commands)** — Review the complete command tree, positional arguments, and flags.
+- **[Wrangler Setup & Tooling](/docs/devops/development/local-dev)** — Configure Wrangler to bind local D1 and KV instances for dev testing.
+- **[Setup & Operations](/docs/devops/setup-and-operations)** — Deploy order, health probes, runbooks.

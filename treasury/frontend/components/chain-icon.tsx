@@ -10,8 +10,8 @@ type ChainMeta = {
 };
 
 const CHAIN_META: Record<number, ChainMeta> = {
-  8453: { label: "Base", Icon: BaseIcon },
-  84532: { label: "Base Sepolia", Icon: BaseIcon },
+  5042001: { label: "Arc", Icon: BaseIcon },
+  5042002: { label: "Arc Testnet", Icon: BaseIcon },
 };
 
 type ChainIconProps = {

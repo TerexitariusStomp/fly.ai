@@ -1,38 +1,38 @@
 import { defineChain } from "viem";
 import { http, type Transport } from "viem";
 
-// Robinhood Chain — mainnet (chain ID 4663)
-export const robinhood = defineChain({
-  id: 4663,
-  name: "Robinhood Chain",
+// Arc — mainnet
+export const arc = defineChain({
+  id: 5042001,
+  name: "Arc",
   nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
   rpcUrls: {
-    default: { http: ["https://rpc.mainnet.chain.robinhood.com/"] },
+    default: { http: ["https://rpc.mainnet.arc.io/"] },
   },
   blockExplorers: {
-    default: { name: "Blockscout", url: "https://robinhoodchain.blockscout.com" },
+    default: { name: "Arcscan", url: "https://arcscan.app" },
   },
   testnet: false,
 });
 
-// Robinhood Chain — testnet (chain ID 46630)
-export const robinhoodTestnet = defineChain({
-  id: 46630,
-  name: "Robinhood Chain Testnet",
+// Arc — testnet (chain ID 5042002)
+export const arcTestnet = defineChain({
+  id: 5042002,
+  name: "Arc Testnet",
   nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
   rpcUrls: {
-    default: { http: ["https://rpc.testnet.chain.robinhood.com"] },
+    default: { http: ["https://rpc.testnet.arc.io"] },
   },
   blockExplorers: {
-    default: { name: "Blockscout", url: "https://robinhood-testnet.blockscout.com" },
+    default: { name: "Arcscan", url: "https://testnet.arcscan.app" },
   },
   testnet: true,
 });
 
 // Backward-compatible aliases — the SYM frontend imports `base` and `baseSepolia`
-// We alias them to Robinhood Chain so the existing frontend works without rewriting imports
-export const base = robinhood;
-export const baseSepolia = robinhoodTestnet;
+// We alias them to Arc so the existing frontend works without rewriting imports
+export const base = arc;
+export const baseSepolia = arcTestnet;
 
 const withIcon = <T extends { id: number }>(chain: T, iconUrl: string) => ({
   ...chain,
@@ -40,13 +40,13 @@ const withIcon = <T extends { id: number }>(chain: T, iconUrl: string) => ({
   iconBackground: "transparent",
 });
 
-const robinhoodWithIcon = withIcon(robinhood, "/icons/chain-robinhood.svg");
-const robinhoodTestnetWithIcon = withIcon(robinhoodTestnet, "/icons/chain-robinhood.svg");
+const arcWithIcon = withIcon(arc, "/icons/chain-arc.svg");
+const arcTestnetWithIcon = withIcon(arcTestnet, "/icons/chain-arc.svg");
 
 /**
  * Chains available in the wallet network selector.
  */
-export const PRODUCTION_CHAINS = [robinhoodWithIcon] as const;
+export const PRODUCTION_CHAINS = [arcWithIcon] as const;
 
 /**
  * Whether testnet mode is enabled via environment variable.
@@ -55,23 +55,23 @@ export const isTestnetMode = Boolean(import.meta.env.VITE_TESTNET_MODE);
 
 /**
  * Active chains based on testnet mode.
- * In testnet mode, Robinhood Chain Testnet is used. In production, Robinhood Chain is used.
+ * In testnet mode, Arc Testnet is used. In production, Arc mainnet is used.
  */
 export const activeChains = isTestnetMode
-  ? ([robinhoodTestnetWithIcon] as const)
+  ? ([arcTestnetWithIcon] as const)
   : PRODUCTION_CHAINS;
 
 /**
  * All chains for the wagmi config.
  */
 export const allChains = isTestnetMode
-  ? ([robinhoodTestnetWithIcon] as const)
+  ? ([arcTestnetWithIcon] as const)
   : PRODUCTION_CHAINS;
 
 /**
  * Custom RPC transports per chain.
  */
 export const transports: Record<number, Transport> = {
-  [robinhood.id]: http("https://rpc.mainnet.chain.robinhood.com/"),
-  [robinhoodTestnet.id]: http("https://rpc.testnet.chain.robinhood.com"),
+  [arc.id]: http("https://rpc.mainnet.arc.io/"),
+  [arcTestnet.id]: http("https://rpc.testnet.arc.io"),
 };

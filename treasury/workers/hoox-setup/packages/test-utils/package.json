@@ -1,0 +1,43 @@
+{
+  "name": "@hoox/test-utils",
+  "version": "0.0.1",
+  "description": "Shared test setup helpers for the HOOX monorepo (consolidated bun:test preload, edge-runtime mocks)",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./setup": {
+      "types": "./src/setup.ts",
+      "default": "./src/setup.ts"
+    },
+    "./spawn-shim": {
+      "types": "./src/spawn-shim.ts",
+      "default": "./src/spawn-shim.ts"
+    }
+  },
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "hoox",
+    "test",
+    "bun",
+    "cloudflare",
+    "workers"
+  ],
+  "author": "jango-blockchained (hoox-sh)",
+  "license": "Apache-2.0",
+  "engines": {
+    "bun": ">=1.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260708.1",
+    "bun-types": "^1.3.14",
+    "typescript": "^6.0.3"
+  }
+}

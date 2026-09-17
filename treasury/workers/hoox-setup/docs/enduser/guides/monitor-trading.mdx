@@ -1,0 +1,234 @@
+<!--
+  Copyright (c) 2026 HOOX · jango-blockchained (hoox-sh)
+  SPDX-License-Identifier: CC-BY-4.0
+-->
+
+---
+title: "monitor-trading"
+---
+
+# 📈 Monitoring Operations
+
+Algorithmic trading demands high-integrity, real-time observability. Because Hoox microservices are distributed across Cloudflare®'s global edge network, tracking health, logs, and message queues requires a consolidated management plane.
+
+This guide outlines how to use the Hoox CLI to audit system status, monitor queue backlogs, stream live edge logs, and manage the emergency kill switch.
+
+---
+
+## 🟢 1. Probing Worker Health Status
+
+Every Hoox worker is configured with a secure `/health` endpoint that validates local CPU capacity, binding access, and D1 database connection integrity.
+
+To probe and audit all active endpoints simultaneously:
+
+```bash
+hoox check health
+```
+
+> Use `hoox check health` as the single source of truth for worker health probes (not a monitor subcommand).
+
+### Expected Output
+
+The CLI runs asynchronous concurrent health probes, displaying green indicators and public route locations:
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│               Hoox Microservice Health Probes                │
+├─────────────────────────────────────────────────────────────┤
+│  hoox (Gateway)     ... ✅ OK  https://hoox.alpha.workers.dev│
+│  trade-worker       ... ✅ OK  (Internal Binding Verified)   │
+│  d1-worker          ... ✅ OK  (Internal Binding Verified)   │
+│  telegram-worker    ... ✅ OK  (Internal Binding Verified)   │
+│  agent-worker       ... ✅ OK  (Internal Binding Verified)   │
+│  web3-wallet-worker ... ✅ OK  (Internal Binding Verified)   │
+│  email-worker       ... ✅ OK  (Internal Binding Verified)   │
+│  report-worker      ... ✅ OK  (Internal Binding Verified)   │
+│  analytics-worker   ... ✅ OK  (Internal Binding Verified)   │
+│                                                             │
+│  System Status: HEALTHY (0 warnings, 0 errors)              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Interpreting Health States
+
+| Indicator   | Meaning                               | Action Required                            |
+| ----------- | ------------------------------------- | ------------------------------------------ |
+| ✅ OK       | All bindings active, D1 responsive    | None — operating normally                  |
+| ⚠️ DEGRADED | Some bindings unavailable             | Check `hoox logs worker <worker>` for errors |
+| ❌ FAILED   | Worker unreachable or D1 disconnected | Run `hoox repair check` immediately        |
+| 🔄 STARTING | Worker is still booting after deploy  | Wait 30–60 seconds and retry               |
+
+---
+
+## 🚨 2. Governing the Global Kill Switch
+
+The **Global Kill Switch** is your emergency brake. Stored inside the sub-millisecond `CONFIG_KV` namespace, flipping this parameter instantly blocks all incoming trade signals globally in under 10 seconds, without requiring code updates or worker redeployments.
+
+```bash
+hoox monitor kill-switch show
+
+# B. Emergency HALT - disable all edge trade execution immediately
+hoox monitor kill-switch on
+
+# C. Resume normal operations
+hoox monitor kill-switch off
+```
+
+### Kill Switch Behavior
+
+When activated, the following sequence occurs automatically:
+
+<ol>
+  <li>
+    <code>hoox</code> gateway rejects all incoming <code>/webhook</code> POST
+    requests with <code>503 Service Unavailable</code>.
+  </li>
+  <li>
+    A <code>KILL\_SWITCH\_ACTIVE</code> event is logged to D1 for audit trail.
+  </li>
+  <li>
+    <code>agent-worker</code> halts its cron execution loop.
+  </li>
+  <li>
+    <code>trade-worker</code> queues any in-flight payloads for retry (not
+    abandoned).
+  </li>
+  <li>Telegram notification is sent to alert you.</li>
+</ol>
+
+<Warning>
+  When the Kill Switch is turned `ON`, the `hoox` gateway router immediately
+  rejects all incoming TradingView® alerts and API webhook requests with a `503
+  Service Unavailable` error and logs a `KILL_SWITCH_ACTIVE` warning. Active
+  positions must be flattened manually or via `hoox monitor trades close-all`.
+</Warning>
+
+---
+
+## 🗃️ 3. Auditing Recent Transactions
+
+To review execution history directly from your terminal:
+
+```bash
+# Print the 10 most recent trades executed across all exchanges
+hoox monitor trades
+
+# Print the 50 most recent trades
+hoox monitor trades 50
+
+# Filter by specific exchange
+hoox monitor trades --exchange bybit
+
+# Filter by date range (ISO format)
+hoox monitor trades --from 2026-05-15 --to 2026-05-20
+```
+
+This aggregates entries from your production D1 database and prints a formatted terminal table outlining: `TIMESTAMP | REQUEST_ID | EXCHANGE | SYMBOL | ACTION | QUANTITY | PRICE | STATUS`
+
+### Trade Status Codes
+
+| Status          | Meaning                                                                 |
+| --------------- | ----------------------------------------------------------------------- |
+| `EXECUTED`      | Live order filled; written by trade-worker to D1                        |
+| `TEST_EXECUTED` | Testnet (`"test": true`) fill; excluded from dashboard headline stats   |
+| `Filled`        | Exchange-side full fill (report/CLI display)                            |
+| `Partial`       | Only portion filled; remainder queued                                   |
+| `Rejected`      | Exchange returned a business logic error                                |
+| `Failed`        | Max queue retries exhausted; logged for review                          |
+| `Enqueued`      | Submitted to Cloudflare® Queues for async retry                         |
+
+Sandbox fills use position ids like `bybit-testnet-BTCUSDT-LONG`. Filter them in the Dashboard Positions **mode** control (Live only / Testnet / Live + Test). See [Test Trading](/docs/enduser/guides/test-trading).
+
+---
+
+## 📨 4. Inspecting Queue Depth (Guaranteed Delivery Backlog)
+
+If network volatility causes exchange API dropouts, Hoox offloads trade execution payloads to Cloudflare® Queues. To check if there is an active execution backlog:
+
+```bash
+hoox monitor queue-depth
+```
+
+This displays the number of pending messages in the queue:
+
+- **`0`**: System is running normally (all trades executing on the fast-path direct service binding).
+- **`> 0`**: Exchange API is experiencing rate-limits or downtime. Trade-worker is retrying transactions asynchronously in the background.
+
+### Queue Health Indicators
+
+| Queue Depth | Risk Level  | Recommended Action                                                                                 |
+| :---------: | :---------: | -------------------------------------------------------------------------------------------------- |
+|      0      |  🟢 Normal  | No action needed                                                                                   |
+|     1–5     | 🟡 Watchful | Monitor exchange health pages                                                                      |
+|    6–20     | 🟠 Elevated | Check exchange maintenance schedule; consider `hoox config kv set webhooks:queue_mode direct_only` |
+|    20\+     | 🔴 Critical | Verify exchange API keys are valid; check rate limit headers; scale manually if needed             |
+
+---
+
+## 📝 5. Real-Time Log Streaming & Telemetry
+
+When debugging custom strategies, you can stream verbose console logs directly from Cloudflare®'s global edge nodes to your local terminal (`hoox logs worker`):
+
+```bash
+# A. Stream live console logs for a specific worker
+hoox logs worker trade-worker
+
+# B. Stream gateway traffic in real-time
+hoox logs worker hoox
+
+# C. Stream all workers simultaneously (diagnostic mode)
+hoox logs all
+
+# D. Filter logs by severity level
+hoox logs worker trade-worker --level error
+```
+
+### Downloading Logs for Off-Line Analysis
+
+To download historical logs offloaded to your R2 storage bucket for compliance audits or tax reports:
+
+```bash
+hoox logs worker hoox --output logs/gateway-backup.log
+
+# Download trade-worker logs for the last 24 hours
+hoox logs worker trade-worker --output logs/trade-execution.log --since 24h
+```
+
+---
+
+## 📊 6. System Metrics Overview
+
+Hoox tracks key performance indicators via Cloudflare® Analytics Engine. Access summary metrics via:
+
+```bash
+# View current system metrics snapshot
+hoox monitor metrics
+
+# Or use the Dashboard Command Center for visual charts
+hoox dashboard
+```
+
+### Key Metrics Tracked
+
+| Metric           | Source            | Description                      |
+| ---------------- | ----------------- | -------------------------------- |
+| Orders/Min       | analytics-worker  | Trade execution throughput       |
+| Avg Latency (ms) | analytics-worker  | Signal-to-fill round-trip time   |
+| Error Rate (%)   | analytics-worker  | Failed orders / total attempts   |
+| Queue Depth      | Cloudflare® Queues | Pending execution backlog       |
+| Daily P&L        | D1 Database       | Realized profit/loss calculation |
+| Drawdown %       | agent-worker      | Current daily asset drawdown     |
+
+---
+
+<Tip>
+  If the system status check returns a red error indicator (e.g. `d1-worker ...
+  ❌ FAILED`), immediately proceed to the [**Self-Healing & Repair
+  Guide**](/docs/enduser/guides/repair) to run automated diagnostics and restore service bindings!
+</Tip>
+
+### 🔗 Next Steps
+
+- [**Self-Healing & Repair**](/docs/enduser/guides/repair) — Diagnose connection drops, recreate broken bindings, and rebuild environments.
+- [**Terminal UI Operations**](/docs/enduser/guides/tui) — Monitor health status, tail logs, and edit configurations interactively in a full-screen GUI cockpit.
+- [**Infrastructure Management**](/docs/enduser/guides/manage-infra) — Manage KV config namespaces, Queue parameters, and R2 storage buckets.

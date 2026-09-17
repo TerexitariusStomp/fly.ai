@@ -1,0 +1,24 @@
+{
+  "canisters": {
+    "connectome_agent": {
+      "type": "rust",
+      "package": "connectome-agent",
+      "candid": "connectome-agent/did/connectome_agent.did",
+      "metadata": [
+        {
+          "name": "candid:service"
+        }
+      ]
+    },
+    "watchdog": {
+      "type": "rust",
+      "package": "connectome-watchdog",
+      "candid": "watchdog/did/watchdog.did",
+      "metadata": [
+        {
+          "name": "candid:service"
+        }
+      ]
+    }
+  }
+}

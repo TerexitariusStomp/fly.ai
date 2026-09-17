@@ -1,0 +1,61 @@
+{
+  "network": "icp-playground",
+  "deployed": "2026-09-15T23:39:07Z",
+  "canisters": {
+    "connectome_agent": {
+      "id": "zeh3m-fiaaa-aaaab-qacda-cai",
+      "wasm_size_bytes": 1434836,
+      "admin": "brprr-3ogzt-qkqhz-ruxfi-syemb-hj3w5-bwhz6-mj54p-nt6ri-ca2jo-4ae"
+    },
+    "watchdog": {
+      "id": "w6dgu-3iaaa-aaaab-qadha-cai",
+      "wasm_size_bytes": 644003
+    }
+  },
+  "notes": [
+    "Playground reservations expire after ~20 min of inactivity; re-create with dfx canister create --playground",
+    "Wasm built release with panic=abort + fat LTO + wasm-opt -Oz; gix/atrium/rustrict/genetic_algorithms dropped from deps (vendored, unused \u2014 too heavy for the 2MB playground limit)",
+    "EVM calls require set_contracts + Arc RPC configured; social requires set_atproto_credentials",
+    "Re-reserved IDs after playground timeout; init takes opt principal admin"
+  ],
+  "arc_testnet": {
+    "rpc": "https://rpc.testnet.arc.io",
+    "chain_id": 5042002,
+    "verified": "evm_healthcheck returned Ok=5042002; evm_token_balance returned Ok=0 via balanceOf on SYM_TOKEN",
+    "contracts": {
+      "SYM_TOKEN": "0x540ddC583FA459bb1375a20444B34274c398FB97",
+      "FLY_ENGINE": "0x3858ce51c8b0AEeC27E7042A4B104A69bAFB8eec",
+      "GOVERNOR": "0x02102F5313a17Bae8d0e8E6278D8690a0cF2e07e",
+      "STAKING": "0x86F84289B6b510BD9F21b29c605D8fE8CcfEC5cE",
+      "WSTSYM": "0x97EfB45994258a40A1cea53B8312B1f499E123a3",
+      "OLYMPUS_TREASURY": "0xCfd4CDBdfFC220b53D71659Baa8Ba79A18c765de",
+      "SOCIAL_POST_LOG": "0xc54287c7353edcb7bd2c9df2d17e2b9d689b1e40",
+      "SAFETY_GUARD": "0x150d8ef470a6a8766c7b0b1a0160b55abf447a4e",
+      "CONNECTOME_STAKING": "0x2cd0df60004faf77bd43609a7b49fed2692d3a0a"
+    },
+    "pending_deploy": [],
+    "safety_guard_config": {
+      "allowed_tokens": [
+        "0x540ddC583FA459bb1375a20444B34274c398FB97"
+      ],
+      "allowed_contracts": [
+        "0x02102F5313a17Bae8d0e8E6278D8690a0cF2e07e",
+        "0xc54287c7353edcb7bd2c9df2d17e2b9d689b1e40",
+        "0xCfd4CDBdfFC220b53D71659Baa8Ba79A18c765de",
+        "0x86F84289B6b510BD9F21b29c605D8fE8CcfEC5cE"
+      ],
+      "daily_limit_per_connectome": "1000 USDC",
+      "connectome_ids": "keccak256(name) \u2014 matches .env.fly"
+    },
+    "connectome_evm_addresses": {
+      "drosophila": "0xA4D11553aDF9ADF347245096841300490F20f683",
+      "rat": "0xC6F7649Bae304f4E3EE66310B50183363f759551",
+      "mouse": "0xC45b946B1F5921cC40e621343e69f44039e0E5eB",
+      "ciona": "0x68b88345Bd254ADE02a256f36d3d33DE469347C3",
+      "macaque_modha": "0xCe47DB5962C610005e93E502B115311Cc72B0c4C",
+      "human": "0xFD6B6B01f62e8544C18e900Bd2C855B3a6Ddafe2",
+      "celegans_male": "0xE9965604983Fe9F3D41B4e11d0C47836C9059321"
+    },
+    "gas_funded": "0.05 USDC each"
+  }
+}

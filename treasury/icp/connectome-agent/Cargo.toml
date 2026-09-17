@@ -1,0 +1,101 @@
+[package]
+name = "connectome-agent"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+# ============================================================================
+# OSS dependencies — vendored under ../../vendor/ (pinned, auditable).
+# Crates.io only where the project publishes no usable repo checkout.
+# ============================================================================
+
+[dependencies]
+# --- ICP SDK (dfinity/cdk-rs, Apache-2.0) ---
+ic-cdk = "0.18"
+ic-cdk-timers = "0.12"   # crates.io — ic-alloy + dfx toolchain pin ^0.12
+ic-stable-structures = { path = "../../vendor/stable-structures" }
+
+# --- LLM canister client (dfinity/llm, MIT) ---
+ic-llm = { path = "../../vendor/llm/rust" }
+
+# --- EVM (ic-alloy/ic-alloy, MIT/Apache-2.0): tx building, threshold ECDSA ---
+# ic-alloy: the vendored `alloy` meta-crate with the `icp` feature set —
+# providers + rpc-types + ICP transport + threshold-ECDSA signer. No reqwest,
+# no kzg (native c-kzg won't build on wasm32; not needed for our calls).
+alloy = { path = "../../vendor/ic-alloy/crates/alloy", default-features = false,
+          features = ["icp", "std", "contract", "sol-types", "json"] }
+
+# --- ATProto/Bluesky ---
+# atrium vendored for reference — NOT a dep: xrpc-client pulls reqwest →
+# wasm-bindgen (invalid canister imports + 180KB custom section). All ATProto
+# calls go through raw XRPC HTTPS outcalls in src/platforms.rs.
+
+# --- Git objects/packfiles (GitoxideLabs/gitoxide, MIT/Apache-2.0) ---
+# NOTE: gix-pack vendored for reference — NOT a dependency. Its `generate`
+# feature pulls gix-traverse+gix-diff (~500KB code) and is only needed to
+# build packfiles; the gateway serves loose objects from stable memory.
+
+# NOTE: canhttp (dfinity/canhttp) vendored for reference — NOT a dependency.
+# It hard-pins ic-cdk ^0.20 via ic-cdk-management-canister, which conflicts
+# with ic-cdk-timers 0.12 (ic-alloy) requiring ic-cdk ^0.18 — ic-cdk's `links`
+# attr allows only one version. HTTPS outcalls are wired via ic-cdk's
+# management-canister API directly in src/atproto_icp.rs.
+
+# NOTE: canic (dragginzgame/canic) vendored for reference — NOT a dependency.
+# It pins ic-cdk-timers =1.0.0 while ic-alloy requires ^0.12; both crates share
+# a `links` attribute and cannot coexist in one build. Stable memory, timers
+# and lifecycle are wired directly via ic-cdk in src/lib.rs.
+
+# NOTE: guts-git vendored for reference — NOT a dependency (pulls
+# commonware-cryptography → blst, a native C lib that can't build on wasm32).
+# The git smart-HTTP gateway is implemented in src/git_gateway.rs using
+sha1 = "0.10"  # RustCrypto sha1 for git object ids — gix stack dropped
+# NOTE: gitoxide (gix-*) vendored for reference — NOT deps. Git objects are
+# written directly in src/git_store.rs (the loose-object format is 3 lines
+# of spec); gix pulls parking_lot/prodash/bstr (~300KB) we can't afford.
+#
+# NOTE: chaincodec (DarshanKumar89/chainkit) vendored for reference — NOT a
+# dependency (pulls uuid → needs a randomness source unavailable on
+# wasm32-unknown-unknown canisters). Selector/arg decoding is done via
+# alloy sol-types in src/security.rs.
+
+# --- LLM safety (hanzoai/guard, MIT/Apache-2.0) ---
+hanzo-guard = { path = "../../vendor/guard", default-features = false, features = ["pii"] }
+
+# --- Profanity filter (finnbear/rustrict, MIT) ---
+rustrict = { path = "../../vendor/rustrict", features = ["censor"] }
+
+# --- Market regime detection: HMM + ensemble (nuniesmith/indicators-ta, MIT) ---
+indicators-ta = { path = "../../vendor/indicators-ta" }
+
+# --- A/B significance testing (SuperInstance/ab-testing-rs, MIT) ---
+ab-testing = { path = "../../vendor/ab-testing-rs" }
+
+# --- crates.io only (no usable repo checkout / leaf crates) ---
+rl-bandit = "1.0"           # Multi-armed bandit: personality variants
+# NOTE: genetic_algorithms (crates.io) vendored in plan — NOT a dep. Its
+# engine machinery is ~300KB of wasm; param optimization uses basin's
+# Nelder-Mead simplex instead (already a dep, derivative-free, same role).
+ta-statistics = "0.2"       # Rolling stats: P&L/engagement trends (no_std)
+# NOTE: wp-evm-aave-v3 / uniswap-v3-sdk / wp-evm-v3-core pin upstream alloy v1.x
+# which conflicts with the ic-alloy fork (c-kzg `links`, incompatible types).
+# Aave V3 + UniV3 + WETH ABIs are declared with alloy's `sol!` macro in
+# src/evm_bindings.rs instead — same OSS coverage, one alloy version.
+
+# --- Serialization / misc (serde-rs, MIT) ---
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+candid = "0.10"
+hex = "0.4"
+regex-lite = "0.1"
+
+# Force the single `links`-pinned ic-cdk executor family to the vendored
+# cdk-rs checkout — two copies (path + registry) cannot coexist.
+
+# wasm32 canisters have no OS entropy: register a custom getrandom backend
+# (seeded once from ICP raw_rand at init, then advanced by canister time).
+getrandom_02 = { package = "getrandom", version = "0.2", features = ["custom"] }
+getrandom_03 = { package = "getrandom", version = "0.3" }  # backend via .cargo/config.toml cfg
+futures = "0.3"

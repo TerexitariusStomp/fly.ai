@@ -1,0 +1,155 @@
+<!--
+  Copyright (c) 2026 HOOX · jango-blockchained (hoox-sh)
+  SPDX-License-Identifier: CC-BY-4.0
+-->
+
+---
+title: "repair"
+---
+
+# 🛠️ Self-Healing & Repair
+
+Algorithmic trading environments must be resilient and self-healing. If you experience deployment failures, database routing discrepancies, expired authentication tokens, or missing git submodules, the Hoox CLI features a dedicated **`hoox repair`** command group designed to diagnose issues, check infrastructure status, and recover your workspace automatically.
+
+---
+
+## 1. Running the 5-Step System Diagnostics
+
+If your trading gateway throws errors or the dashboard reports connection issues, run a comprehensive diagnostic sweep:
+
+```bash
+hoox repair check
+```
+
+The diagnostics engine runs a strict, sequential analysis of your entire monorepo environment. Each of the 5 steps completes and reports back:
+
+- Submodule Integrity (verify all 9 workers are cloned)
+- Dependency Resolution (verify bun workspaces)
+- TypeScript Type Safety (run tsc --noEmit)
+- Cloudflare® Edge Bindings (verify D1, KV, R2, Queues)
+- Hardware Secrets Validation (verify API keys are bound)
+
+---
+
+## 2. Targeted Component Repairs
+
+If a diagnostic check fails, you do not need to redeploy the entire stack. You can run highly targeted repairs:
+
+```bash
+hoox repair infra
+
+# B. Re-audit and sync encrypted Workers Secrets to Cloudflare
+hoox repair secrets
+
+# C. Reset the CONFIG_KV configuration namespace to default variables
+hoox repair kv
+
+# D. Re-apply Drizzle DQL schemas and run pending D1 database migrations
+hoox repair db
+
+# E. Rebuild and redeploy a single, degraded worker
+hoox repair worker trade-worker
+
+# F. Full interactive workspace rebuild (last resort)
+hoox repair rebuild
+```
+
+### Repair Command Quick Reference
+
+| Command                   | Use Case                                |    Safe?    | Downtime  |
+| :------------------------ | :-------------------------------------- | :---------: | :-------: |
+| `hoox repair infra`       | Missing D1/KV/Queue bindings            |     Yes     |   None    |
+| `hoox repair secrets`     | Rotated API keys need re-binding        |     Yes     |   None    |
+| `hoox repair kv`          | Configuration drift, need defaults      |   Caution   | under 10s |
+| `hoox repair db`          | Schema mismatch or failed migrations    |   Caution   |  Seconds  |
+| `hoox repair worker NAME` | Single worker crash or build failure    |     Yes     |  Seconds  |
+| `hoox repair rebuild`     | Catastrophic failure, full system reset | Destructive |  Minutes  |
+
+---
+
+## 3. Full System Interactive Rebuild
+
+In the event of a catastrophic system failure, execute a full interactive self-healing rebuild:
+
+```bash
+hoox repair rebuild
+```
+
+### The Rebuild Sequence
+
+When triggered, the CLI walks you through a structured recovery protocol:
+
+- **Phase 1** — D1 Database Backup: Exports current ledger to `backups/recovery-pre-rebuild.sql`.
+- **Phase 2** — Infrastructure Tear-Down: Deletes corrupted D1, KV, and Queue instances.
+- **Phase 3** — Fresh Provisioning: Recreates all database tables and config buckets on Cloudflare®.
+- **Phase 4** — Sequenced Redeployment: Re-compiles and deploys all 9 edge workers in correct dependency order.
+- **Phase 5** — Database Seeding: Restores backup SQL data and re-applies schema migrations.
+- **Phase 6** — KV Sync: Applies the 16-key configuration manifest defaults.
+
+<Warning>
+  The `hoox repair rebuild` command performs destructive resets on D1 and KV
+  instances. Ensure you carefully read the interactive prompts and confirm
+  database backup completion before letting the script proceed!
+</Warning>
+
+---
+
+## 4. Common Troubleshooting Scenarios
+
+| Symptom                                                   | Cause                                                    | Action                                                                                     |
+| :-------------------------------------------------------- | :------------------------------------------------------- | :----------------------------------------------------------------------------------------- |
+| `bun install` crashes                                     | Git submodules are empty                                 | `git submodule update --init --recursive` then `hoox repair check`                         |
+| `D1_ERROR: no such table`                                 | SQLite D1 tables not initialized                         | `hoox db apply --remote`                                                                   |
+| `500 Internal Server Error`                               | Missing or rotated exchange API secrets                  | `hoox secrets set trade-worker BYBIT_KEY_BINDING "key"`                                    |
+| `500 Internal Server Error` (2)                           | Or webhooks not registered                               | `hoox deploy update-internal-urls`                                                         |
+| Telegram Bot is mute                                      | BotFather token is wrong                                 | `hoox secrets set telegram-worker TELEGRAM_BOT_TOKEN "token"`                              |
+| Telegram Bot is mute (2)                                  | Or webhook is unregistered                               | `hoox deploy telegram-webhook`                                                             |
+| Queue depth growing                                       | Exchange API returning errors                            | Check API key validity; `hoox monitor queue-depth`                                         |
+| Dashboard at 500 errors                                   | Next.js build failed or D1 schema outdated               | `hoox repair db` then `hoox dashboard deploy`                                              |
+| All trades returning 409                                  | Idempotency keys colliding from rapid duplicate webhooks | Verify TradingView® alert frequency; wait 24h for DO TTL cleanup                           |
+| Workers unreachable / unhealthy                           | One or more workers not responding                       | `hoox check health` (single source of truth)                                               |
+| Interrupted `setup` / `deploy` (Ctrl+C, network drop)     | Workers in partially-deployed state                      | `hoox check health` → `hoox repair worker <name>` → `hoox deploy all --auto` (idempotent)  |
+| CLI crashes with "Bun is not defined"                     | Ran under Node instead of Bun                            | Re-run with `bunx hoox` or install Bun (`curl -fsSL https://bun.sh \| bash`)               |
+| `check prerequisites` shows "token lacks required scopes" | API token missing D1/KV/R2/Queues:Edit                   | Recreate token with: Workers Scripts:Edit, D1:Edit, KV:Edit, R2:Edit, Queues:Edit, AI:Read |
+
+---
+
+## 5. Emergency Decision Tree
+
+```text
+Trading not working?
+
+  Is the kill switch ON? -> hoox monitor kill-switch show
+    YES -> hoox monitor kill-switch off
+    NO  (continue)
+
+  Are workers healthy? -> hoox check health
+    Any FAILED? -> hoox repair check
+    All OK  (continue)
+
+  Are secrets bound? -> hoox secrets list <worker>
+    Any missing? -> hoox secrets set <worker> NAME VALUE
+    All present  (continue)
+
+  Is queue depth > 0? -> hoox monitor queue-depth
+    YES -> Exchange API issue; check exchange status page
+    NO  (continue)
+
+  Still stuck? -> Open GitHub Issue with hoox logs worker output
+```
+
+---
+
+### Pro Tips
+
+- Scheduled Health Checks: Set up a cron job to run `hoox repair check` daily and email yourself the results.
+- Pre-Deploy Checklist: Always run `hoox repair check` and `hoox test` before deploying to production.
+- Secrets Rotation: Rotate exchange API keys quarterly. Use `hoox secrets set` to update — no redeployment needed.
+
+---
+
+### 🔗 Next Steps
+
+- [**Monitoring Operations Guide**](/docs/enduser/guides/monitor-trading) — Audit system status, tail console logs, and verify fills.
+- [**CLI Reference Manual**](/docs/enduser/reference/cli-commands) — Review all CLI commands, options, and JSON flags.
+- [**Configuration Dictionary**](/docs/enduser/reference/configuration) — Map all 31 environment variables and 16 KV manifest entries.

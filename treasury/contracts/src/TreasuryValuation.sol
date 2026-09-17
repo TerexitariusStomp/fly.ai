@@ -1,24 +1,27 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.24;
 
-import {MultisigGuard} from "./MultisigGuard.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ITreasuryPolicy} from "./ITreasuryPolicy.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IPriceFeed} from "./IPriceFeed.sol";
-import {IValuationCalculator} from "./IValuationCalculator.sol";
-import {TRSRYv1} from "@symbient-v3/modules/TRSRY/TRSRY.v1.sol";
+import {TRSRYv1} from "@olympus-v3/modules/TRSRY/TRSRY.v1.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
 /// @title TreasuryValuation
 /// @notice Multi-source RFV/NAV oracle for protocol treasury
-/// @dev Reads reserve balances from SYM ProtocolTreasury (SYM Protocol V3 TRSRY module) and prices
+/// @dev Reads reserve balances from OlympusTreasury (Olympus V3 TRSRY module) and prices
 ///      them via registered price feeds. Supports LP positions, Morpho/Yearn vaults (ERC4626),
 ///      raw ERC20 balances, and manual entries. Each asset has a haircut for RFV.
 ///      Multisig can also set valuations manually as an override.
 ///      Implements ITreasuryPolicy for SymbientStaking.rebase() gating.
 ///      Minters must call canMint() before minting to enforce RFV invariant.
-contract TreasuryValuation is MultisigGuard, ITreasuryPolicy {
+contract TreasuryValuation is AccessControl, ITreasuryPolicy {
+    bytes32 public constant MULTISIG_ROLE = keccak256("MULTISIG_ROLE");
+    error ZeroAddress();
+    error NotAuthorized();
+
     error RfvInvariantFailed(uint256 requiredRfv, uint256 actualRfv);
     error AssetAlreadyRegistered();
     error AssetNotFound();
@@ -41,13 +44,9 @@ contract TreasuryValuation is MultisigGuard, ITreasuryPolicy {
 
     uint256 public constant BPS_DENOMINATOR = 10_000;
 
-    /// @notice SYM ProtocolTreasury address — source of reserve balances (includes debt)
+    /// @notice OlympusTreasury address — source of reserve balances (includes debt)
     /// @dev When set, computeValuations reads TRSRYv1.getReserveBalance(token) instead of balanceOf(this)
     TRSRYv1 public reserveTreasury;
-
-    /// @notice Swappable valuation calculator — multisig can upgrade to improve pricing logic
-    /// @dev When set, computeValuations() delegates to this contract. When zero, uses built-in logic.
-    address public valuationCalculator;
 
     address[] public assetList;
     mapping(address => Asset) public assets;
@@ -56,7 +55,7 @@ contract TreasuryValuation is MultisigGuard, ITreasuryPolicy {
     uint256 public rfv;
     uint256 public nav;
     uint256 public floorPrice;
-    uint256 public shitSupply;
+    uint256 public symbientSupply;
     bool public rfvBypass;
     bool public manualOverride; // When true, use setValuations values instead of computed
 
@@ -67,29 +66,26 @@ contract TreasuryValuation is MultisigGuard, ITreasuryPolicy {
     event RfvBypassToggled(bool indexed bypass);
     event ManualOverrideToggled(bool indexed override_);
     event ReserveTreasurySet(address indexed treasury);
-    event ValuationCalculatorSet(address indexed calculator);
 
-    constructor(address _multisig) MultisigGuard(_multisig) {
+    /// @notice Multisig address (stored for backwards compatibility with external readers)
+    address public multisig;
+
+    constructor(address _multisig) AccessControl() {
+        _grantRole(DEFAULT_ADMIN_ROLE, _multisig);
+        _grantRole(MULTISIG_ROLE, _multisig);
+        multisig = _multisig;
         if (_multisig == address(0)) revert ZeroAddress();
     }
 
     // ============ Treasury Source ============
 
-    /// @notice Set the SYM ProtocolTreasury address to read reserve balances from
-    /// @dev SYM ProtocolTreasury.getReserveBalance(token) returns balance + totalDebt, giving
+    /// @notice Set the OlympusTreasury address to read reserve balances from
+    /// @dev OlympusTreasury.getReserveBalance(token) returns balance + totalDebt, giving
     ///      a complete picture of protocol reserves including debt claims.
-    function setReserveTreasury(address _treasury) external onlyMultisig {
+    function setReserveTreasury(address _treasury) external onlyRole(MULTISIG_ROLE) {
         if (_treasury == address(0)) revert ZeroAddress();
         reserveTreasury = TRSRYv1(_treasury);
         emit ReserveTreasurySet(_treasury);
-    }
-
-    /// @notice Set a swappable valuation calculator for upgraded pricing logic
-    /// @dev Pass address(0) to revert to built-in computation. The calculator receives
-    ///      the asset list and encoded asset data, and returns (nav, rfv).
-    function setValuationCalculator(address _calculator) external onlyMultisig {
-        valuationCalculator = _calculator;
-        emit ValuationCalculatorSet(_calculator);
     }
 
     // ============ Asset Registry ============
@@ -104,7 +100,7 @@ contract TreasuryValuation is MultisigGuard, ITreasuryPolicy {
         AssetType _assetType,
         address _priceFeed,
         uint256 _haircutBps
-    ) external onlyMultisig {
+    ) external onlyRole(MULTISIG_ROLE) {
         if (_token == address(0)) revert ZeroAddress();
         if (assets[_token].active) revert AssetAlreadyRegistered();
 
@@ -123,7 +119,7 @@ contract TreasuryValuation is MultisigGuard, ITreasuryPolicy {
     }
 
     /// @notice Remove a treasury asset from tracking
-    function removeAsset(address _token) external onlyMultisig {
+    function removeAsset(address _token) external onlyRole(MULTISIG_ROLE) {
         if (!assets[_token].active) revert AssetNotFound();
         assets[_token].active = false;
         assetCount--;
@@ -131,7 +127,7 @@ contract TreasuryValuation is MultisigGuard, ITreasuryPolicy {
     }
 
     /// @notice Update asset haircut or price feed
-    function updateAsset(address _token, uint256 _haircutBps, address _priceFeed) external onlyMultisig {
+    function updateAsset(address _token, uint256 _haircutBps, address _priceFeed) external onlyRole(MULTISIG_ROLE) {
         if (!assets[_token].active) revert AssetNotFound();
         assets[_token].haircutBps = _haircutBps;
         assets[_token].priceFeed = _priceFeed;
@@ -139,14 +135,14 @@ contract TreasuryValuation is MultisigGuard, ITreasuryPolicy {
     }
 
     /// @notice Set manual value for a MANUAL type asset
-    function setManualValue(address _token, uint256 _value) external onlyMultisig {
+    function setManualValue(address _token, uint256 _value) external onlyRole(MULTISIG_ROLE) {
         if (!assets[_token].active) revert AssetNotFound();
         assets[_token].manualValue = _value;
     }
 
     // ============ Internal Helpers ============
 
-    /// @dev Get asset balance — reads from SYM ProtocolTreasury if set, otherwise balanceOf(this)
+    /// @dev Get asset balance — reads from OlympusTreasury if set, otherwise balanceOf(this)
     function _getAssetBalance(address token) internal view returns (uint256) {
         if (address(reserveTreasury) != address(0)) {
             return reserveTreasury.getReserveBalance(ERC20(token));
@@ -157,22 +153,9 @@ contract TreasuryValuation is MultisigGuard, ITreasuryPolicy {
     // ============ Valuation Computation ============
 
     /// @notice Compute aggregate RFV and NAV from all registered on-chain assets
-    /// @dev If valuationCalculator is set, delegates to it for upgraded logic.
-    ///      Otherwise uses built-in computation.
     /// @return computedNav Total NAV (sum of asset values at market price)
     /// @return computedRfv Total RFV (NAV after per-asset haircuts)
     function computeValuations() public view returns (uint256 computedNav, uint256 computedRfv) {
-        if (valuationCalculator != address(0)) {
-            // Encode asset data as array of (token, Asset) tuples
-            uint256 len = assetList.length;
-            bytes memory data = abi.encode(len);
-            for (uint256 i = 0; i < len; i++) {
-                Asset storage a = assets[assetList[i]];
-                data = abi.encodePacked(data, abi.encode(assetList[i], a.assetType, a.priceFeed, a.haircutBps, a.manualValue, a.active));
-            }
-            return IValuationCalculator(valuationCalculator).computeValuations(assetList, data, address(reserveTreasury));
-        }
-
         for (uint256 i = 0; i < assetList.length; i++) {
             address tokenAddr = assetList[i];
             Asset storage a = assets[tokenAddr];
@@ -221,12 +204,12 @@ contract TreasuryValuation is MultisigGuard, ITreasuryPolicy {
 
     /// @notice Refresh on-chain valuations and update stored rfv/nav/floorPrice
     /// @dev Call this after asset values change. Only multisig to prevent front-running.
-    function refreshValuations(uint256 _shitSupply) external onlyMultisig {
+    function refreshValuations(uint256 _symbientSupply) external onlyRole(MULTISIG_ROLE) {
         (uint256 computedNav, uint256 computedRfv) = computeValuations();
         rfv = computedRfv;
         nav = computedNav;
-        shitSupply = _shitSupply;
-        floorPrice = _shitSupply > 0 ? (rfv * 1e18) / _shitSupply : 0;
+        symbientSupply = _symbientSupply;
+        floorPrice = _symbientSupply > 0 ? (rfv * 1e18) / _symbientSupply : 0;
         manualOverride = false;
         emit ValuationsUpdated(rfv, nav, floorPrice);
     }
@@ -237,20 +220,20 @@ contract TreasuryValuation is MultisigGuard, ITreasuryPolicy {
     address public rfvKeeper;
 
     /// @notice Set the RFV keeper address — multisig only
-    function setRfvKeeper(address _keeper) external onlyMultisig {
+    function setRfvKeeper(address _keeper) external onlyRole(MULTISIG_ROLE) {
         rfvKeeper = _keeper;
     }
 
     /// @notice Refresh valuations from an authorized keeper (automated RFV push)
     /// @dev Callable by multisig or rfvKeeper. Same logic as refreshValuations but
     ///      allows the trade worker to auto-push RFV after each profitable sell.
-    function refreshValuationsFromKeeper(uint256 _shitSupply) external {
-        if (msg.sender != multisig && msg.sender != rfvKeeper) revert NotMultisig();
+    function refreshValuationsFromKeeper(uint256 _symbientSupply) external {
+        if (!hasRole(MULTISIG_ROLE, msg.sender) && msg.sender != rfvKeeper) revert NotAuthorized();
         (uint256 computedNav, uint256 computedRfv) = computeValuations();
         rfv = computedRfv;
         nav = computedNav;
-        shitSupply = _shitSupply;
-        floorPrice = _shitSupply > 0 ? (rfv * 1e18) / _shitSupply : 0;
+        symbientSupply = _symbientSupply;
+        floorPrice = _symbientSupply > 0 ? (rfv * 1e18) / _symbientSupply : 0;
         manualOverride = false;
         emit ValuationsUpdated(rfv, nav, floorPrice);
     }
@@ -258,11 +241,11 @@ contract TreasuryValuation is MultisigGuard, ITreasuryPolicy {
     /// @notice Set treasury valuations manually — multisig override
     /// @dev Use when on-chain computation isn't available or needs correction.
     ///      Sets manualOverride = true so computeValuations results are ignored.
-    function setValuations(uint256 _rfv, uint256 _nav, uint256 _shitSupply) external onlyMultisig {
+    function setValuations(uint256 _rfv, uint256 _nav, uint256 _symbientSupply) external onlyRole(MULTISIG_ROLE) {
         rfv = _rfv;
         nav = _nav;
-        shitSupply = _shitSupply;
-        floorPrice = _shitSupply > 0 ? (rfv * 1e18) / _shitSupply : 0;
+        symbientSupply = _symbientSupply;
+        floorPrice = _symbientSupply > 0 ? (rfv * 1e18) / _symbientSupply : 0;
         manualOverride = true;
         emit ValuationsUpdated(rfv, nav, floorPrice);
     }
@@ -270,22 +253,22 @@ contract TreasuryValuation is MultisigGuard, ITreasuryPolicy {
     // ============ ITreasuryPolicy ============
 
     /// @inheritdoc ITreasuryPolicy
-    function enforceRfvInvariant(uint256 _shitSupply) external view {
+    function enforceRfvInvariant(uint256 _symbientSupply) external view {
         if (rfvBypass) return;
         if (rfv == 0) revert RfvInvariantFailed(0, 0);
-        uint256 requiredRfv = (_shitSupply * floorPrice) / 1e18;
+        uint256 requiredRfv = (_symbientSupply * floorPrice) / 1e18;
         if (requiredRfv > rfv) revert RfvInvariantFailed(requiredRfv, rfv);
     }
 
     /// @inheritdoc ITreasuryPolicy
     function navPerSymbient() external view returns (uint256) {
-        return shitSupply > 0 ? (nav * 1e18) / shitSupply : 0;
+        return symbientSupply > 0 ? (nav * 1e18) / symbientSupply : 0;
     }
 
     // ============ Admin ============
 
     /// @notice Toggle RFV invariant bypass — multisig emergency override
-    function setRfvBypass(bool _bypass) external onlyMultisig {
+    function setRfvBypass(bool _bypass) external onlyRole(MULTISIG_ROLE) {
         rfvBypass = _bypass;
         emit RfvBypassToggled(_bypass);
     }

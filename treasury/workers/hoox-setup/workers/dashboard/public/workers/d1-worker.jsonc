@@ -1,0 +1,5 @@
+{
+  "display_name": "D1 Worker",
+  "description": "D1 is managed via named RPCs and migrations — no runtime operator toggles in CONFIG_KV. Retention policies are not implemented as flat KV keys.",
+  "sections": {}
+}

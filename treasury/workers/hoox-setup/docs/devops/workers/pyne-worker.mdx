@@ -1,0 +1,96 @@
+<!--
+  Copyright (c) 2026 HOOX · jango-blockchained (hoox-sh)
+  SPDX-License-Identifier: CC-BY-4.0
+-->
+
+---
+title: "pyne-worker Isolate Profile"
+description: "Python Cloudflare Worker for PYNE Pine Script edge evaluation — /run, script registry, bar-close cron, R2 OHLCV, alert webhooks, trade-worker forwarding."
+---
+
+The **`pyne-worker`** is the Python edge host for **[PYNE](https://hoox.sh/pyne)** — evaluate TradingView® Pine Script™ on Cloudflare Workers with the same evaluate contract as the Pro API. It is a **tooling isolate** outside the mesh `INTERNAL_KEY_BINDING` graph: callers authenticate with `X-API-Key` / Worker secret `API_KEY`.
+
+Source: [hoox-sh/pyne-worker](https://github.com/hoox-sh/pyne-worker) · Product docs: [hoox.sh/pyne/docs](https://hoox.sh/pyne/docs)
+
+This isolate vendors **Python** `pynescript.runtime`. It is not [PyneTS](https://hoox.sh/pyne/docs/pynets) (`@hoox-sh/pynets`, a TypeScript library). Product docs: [pyne-worker](https://hoox.sh/pyne/docs/pyne-worker). Live order mapping: [PYNE live trading](/docs/enduser/guides/pyne-live-trading). AXIS may `POST /run` as a client; the PWA still does not place orders — [AXIS and HOOX](/docs/enduser/guides/axis-and-hoox).
+
+---
+
+## Bindings
+
+| Binding | Type | Purpose |
+| ------- | ---- | ------- |
+| `TRADE_SERVICE` | Service | Forward strategy trade events to `trade-worker` |
+| `OHLCV_DATA` | R2 | Kline / OHLCV storage and script registry |
+
+Cron: `* * * * *` (bar-close scheduler; only re-runs when R2 has a newer bar).
+
+---
+
+## Secrets
+
+| Secret | Required | Purpose |
+| ------ | -------- | ------- |
+| `API_KEY` | **Yes** (production) | HTTP auth for `/run` and management APIs (`X-API-Key`). Unset = open dev mode — do not ship that way. |
+| `INTERNAL_KEY_BINDING` | **Yes** (live trade forward) | Mesh internal key sent as `X-Internal-Auth-Key` when forwarding strategy events to `trade-worker` via `TRADE_SERVICE`. Same secret family as the rest of the mesh (or a dedicated trade-execute key bound for that hop). Without it, live strategy → trade-worker calls are rejected by `requireInternalAuth`. |
+| `ALERT_WEBHOOK_URL` | No | Default **HTTPS** destination for `alert()` / `alertcondition()` (public hosts only; private/loopback IPs rejected) |
+| `DEFAULT_EXCHANGE` | No | Default exchange id on forwarded WebhookPayloads when the strategy event does not specify one (e.g. `binance`, `bybit`, `mexc`) |
+
+Dashboard callers that use the public URL or binding should set **`PYNE_API_KEY`** to the same value as `API_KEY`.
+
+```bash
+hoox secrets set pyne-worker API_KEY
+hoox secrets set pyne-worker INTERNAL_KEY_BINDING  # required for live TRADE_SERVICE forward
+hoox secrets set pyne-worker ALERT_WEBHOOK_URL     # optional
+hoox secrets set pyne-worker DEFAULT_EXCHANGE      # optional
+hoox secrets set dashboard PYNE_API_KEY            # optional, match API_KEY
+```
+
+### Security notes
+
+- **Public / tooling routes:** `API_KEY` via `X-API-Key` — constant-time key compare; rate limit 100 req / 60s per key (per isolate). **Not** mesh `INTERNAL_KEY_BINDING` on these routes.
+- **Strategy forward → trade-worker:** sends `X-Internal-Auth-Key` (from `INTERNAL_KEY_BINDING` / trade-execute key) on `TRADE_SERVICE` `POST /webhook`, plus an idempotency key for replay safety.
+- Payload caps: 5 MB body, 100 KB script, 100 K bars; `/run` wall timeout 30 s.
+- Alert webhooks: HTTPS + public host only (SSRF fail-closed).
+- R2 OHLCV keys: sanitized `symbol` / `timeframe` only — no path separators.
+
+---
+
+## Endpoints
+
+| Method | Path | Auth | Description |
+| ------ | ---- | ---- | ----------- |
+| GET | `/health` | No | Health + feature flags |
+| POST | `/run` | Yes | Evaluate Pine (`mode` interpret \| compile \| auto) |
+| POST | `/ingest` | Yes | Upload OHLCV to R2 |
+| POST/GET/DELETE | `/scripts`… | Yes | Deployed script registry |
+| GET/PUT | `/cron/jobs` | Yes | Bar-close job config |
+| POST | `/cron/run` | Yes | Manual scheduler trigger |
+| POST | `/feed/refresh` | Yes | Pull klines into R2 |
+
+---
+
+## Setup in HOOX
+
+1. Clone with submodules (or `hoox clone pyne-worker` / `git submodule update --init workers/pyne-worker`).
+2. Secrets: `hoox secrets set pyne-worker API_KEY` (and mesh key for live trade forward). Dashboard Setup wizard lists `API_KEY` under Integrations; set `PYNE_API_KEY` on the dashboard to the same value.
+3. Deploy (CLI-first):
+   ```bash
+   hoox pyne deploy                 # sync-vendor + wrangler deploy
+   # or: hoox deploy worker pyne-worker
+   # manual: cd workers/pyne-worker && ./scripts/sync_vendor.sh && npx wrangler deploy
+   ```
+4. Health: `hoox pyne health` (or `hoox check health` when the worker is enabled).
+
+> **Deploy gotcha:** Wrangler packages `python_modules/pynescript`, not an editable install. After updating PYNE, re-run `./scripts/sync_vendor.sh` (or `hoox pyne sync-vendor`).
+
+---
+
+## Related
+
+- [Workers index](/docs/devops/workers/index)
+- [trade-worker](/docs/devops/workers/trade-worker) — execution target for strategy events
+- [dashboard](/docs/devops/workers/dashboard) — `PYNE_SERVICE` binding + `PYNE_API_KEY`
+- [PYNE pyne-worker](https://hoox.sh/pyne/docs/pyne-worker) — product evaluate docs
+- [PyneTS](https://hoox.sh/pyne/docs/pynets) — TypeScript library (`@hoox-sh/pynets`)
+- [pyne-agent-worker](https://hoox.sh/pyne/docs/agent) — NL authoring

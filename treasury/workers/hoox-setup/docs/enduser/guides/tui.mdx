@@ -1,0 +1,207 @@
+<!--
+  Copyright (c) 2026 HOOX · jango-blockchained (hoox-sh)
+  SPDX-License-Identifier: CC-BY-4.0
+-->
+
+---
+title: "Terminal UI (TUI)"
+description: "Master reference for the full-screen terminal operations cockpit, keyboard shortcuts, view registries, and resilience engines."
+---
+
+The **Hoox Terminal User Interface (TUI)** (`@hoox-sh/hoox-tui` **0.3.x**) is a full-screen, keyboard-driven operations cockpit built with **OpenTUI**, React 19, and Zustand. It provides real-time visibility into the edge trading mesh—workers, logs, trades, config, queues, KV, secrets, D1, and AI chat—without leaving the terminal.
+
+<Frame caption="TUI dashboard — worker health, alerts, model status">
+  <img src="/docs/images/tui/dashboard.png" alt="HOOX TUI dashboard view" />
+</Frame>
+
+<Frame caption="Stitched tour of primary TUI views">
+  <img src="/docs/images/gifs/tui-view-switch.gif" alt="GIF of HOOX TUI views" />
+</Frame>
+
+Still of every view and wizard step: [Interface gallery](/docs/enduser/guides/screenshots).
+
+Recent quality pass: **reconnect controller** (status bar `connected` → `reconnecting` → `offline`), **overlay-safe keyboard** handling, Service Manager / Dashboard key ops, fail-closed prefs path, and auth / Cloudflare® Access parity for remote mode.
+
+---
+
+## 🏁 Launching the TUI
+
+```bash
+# 1. Recommended: via the hoox CLI (install TUI if missing)
+bun add -g @hoox-sh/hoox-cli @hoox-sh/hoox-tui
+hoox tui
+# alias: hx tui
+
+# 2. Optional flags (forwarded as env to the renderer)
+hoox tui --fps 60
+hoox tui --no-mouse
+
+# 3. Remote management plane (fail-closed auth)
+export HOOX_API_TOKEN=…   # or Access service-token env
+hoox tui --remote --api-url https://mgmt.example.com
+
+# 4. Development: package entry
+cd packages/tui && bun run dev
+
+# 5. Built bundle
+cd packages/tui && bun run build && bun run start
+
+# 6. Repo-root shortcut (from a cloned monorepo)
+./hoox-tui
+```
+
+**Requirements:** Bun ≥ 1.2, 256-color terminal, minimum **80×24**, OpenTUI installed via `bun install`.
+
+Persistent UI state lives under `$HOME/.hoox/.tui-state/` (session, crash log, chat history, DB query history).
+
+---
+
+## ⌨️ Global Keyboard Navigation
+
+| Shortcut       | Action |
+| -------------- | ------ |
+| `Ctrl+1`       | **Dashboard** — system health overview |
+| `Ctrl+2`       | **Workers Overview** — 2-column worker cards |
+| `Ctrl+3`       | **Worker Detail** — metrics / logs / DOs / config (select a worker first) |
+| `Ctrl+4`       | **Trade Monitor** — live fills + positions + performance |
+| `Ctrl+5`       | **Logs Viewer** — filtered log stream |
+| `Ctrl+6`       | **Service Manager** — deploy / repair / kill-switch / edge map |
+| `Ctrl+7`       | **Config Editor** — TOML/JSON editor + validate |
+| `Ctrl+8`       | **Setup Wizard** — onboarding |
+| `Ctrl+9`       | **Settings** — preferences, check setup, fix |
+| `Ctrl+0`       | **Queue Depth** — backlog visualization |
+| `Ctrl+Alt+K`   | **KV Viewer** — read-only KV browser |
+| `Ctrl+Alt+S`   | **Secrets Viewer** — secret names only (never values) |
+| `Ctrl+Alt+C`   | **AI Chat** — streaming agent chat |
+| `Ctrl+Alt+Q`   | **DB Query** — read-only D1 SQL |
+| `Ctrl+Alt+E`   | **Edge Topology** — graph-metadata mesh map |
+| `Ctrl+P`       | Command palette (fuzzy) |
+| `Ctrl+B`       | Toggle sidebar |
+| `Ctrl+R`       | Refresh worker data (**force reconnect** if offline) |
+| `Ctrl+Q`       | Quit (confirmation dialog) |
+| `Ctrl+Shift+D` | Toggle status-bar error diagnostics |
+| `Esc`          | Close palette / dismiss modal / go back |
+| `Tab` / `Shift+Tab` | Cycle focus |
+| `Enter`        | Select / confirm |
+| `Space`        | Toggle (e.g. pause trade feed) |
+| `/`            | Search (searchable views) |
+
+### Service Manager keys (`Ctrl+6`)
+
+| Key | Action |
+| --- | ------ |
+| `↑` `↓` | Select worker |
+| `d` / `r` | Deploy / restart selected |
+| `D` / `R` (Shift) | Deploy all / restart all |
+| `k` / `e` / `u` | Kill-switch refresh / engage / release |
+
+### Dashboard keys (`Ctrl+1`)
+
+| Key | Action |
+| --- | ------ |
+| `←` `→` | Focus worker health card |
+| `Enter` | Open focused worker detail |
+| `↑` `↓` / `x` | Alerts: navigate / dismiss |
+
+If `Ctrl+Q` is swallowed by XON/XOFF flow control: `stty -ixon`, or use **Ctrl+P → QUIT HOOX**.
+
+---
+
+## 🗺️ All 15 Views
+
+### 1. Dashboard (`Ctrl+1`)
+
+Service health grid, kill-switch status, auto-repair (`hoox check fix`), AI model health, alerts, quick stats (P&L, trades, AI calls).
+
+### 2. Workers Overview (`Ctrl+2`)
+
+2-column cards: status, uptime, CPU, memory, requests, DO count, edges. **Enter** opens Worker Detail. Actions: logs / deploy / repair via CLI bridge.
+
+### 3. Worker Detail (`Ctrl+3`)
+
+Four panes for the **selected** worker (select from Workers first): metrics, live logs, Durable Objects (names inferred from count), config preview (`hoox config show` with fallbacks).
+
+### 4. Trade Monitor (`Ctrl+4`)
+
+Live trade feed (SSE `/trades/stream` when API is up), open positions, today/7d/30d P&L, win rate, Sharpe. **Space** pauses the feed.
+
+### 5. Logs Viewer (`Ctrl+5`)
+
+Level + worker filters, text search, pause, fetch via `hoox` logs, export to `~/.hoox/logs-export-*.json`. SSE `/logs/stream` when API is up.
+
+### 6. Service Manager (`Ctrl+6`)
+
+Per-worker deploy/repair, deploy-all, rebuild, kill-switch show/engage/disengage, interactive PoP-style edge map.
+
+### 7. Config Editor (`Ctrl+7`)
+
+File tree + TOML/JSON syntax highlighting, live validate (`hoox config validate`), format on demand.
+
+### 8. Setup Wizard (`Ctrl+8`)
+
+Guided onboarding (Cloudflare®, exchanges, AI, strategies, Telegram) ending in deploy.
+
+### 9. Settings (`Ctrl+9`)
+
+Dark-only theme note, refresh interval, default view, notifications, keyboard shortcut reference, **Check Setup** / **Check Fix**, and a **read-only connection readout** (mode, API host, transport, auth presence — no secrets). Change transport via `hx config transport` / env; probe with `hx doctor --security`.
+
+### 10. Queue Depth (`Ctrl+0`)
+
+Queue backlog snapshot via `hoox monitor queue-depth` (auto-refresh while focused).
+
+### 11. KV Viewer (`Ctrl+Alt+K`)
+
+Read-only list + on-demand value reveal for non-secret keys (`config kv list` / `get`). Writes stay CLI-only.
+
+### 12. Secrets Viewer (`Ctrl+Alt+S`)
+
+Read-only **names and metadata only** — values are never fetched or shown.
+
+### 13. AI Chat (`Ctrl+Alt+C`)
+
+Streaming chat with agent worker models. History persisted under `.tui-state/chat-history.json` (Bun has no `localStorage`).
+
+### 14. DB Query (`Ctrl+Alt+Q`)
+
+Read-only SQL (`SELECT` / `WITH` / `EXPLAIN` only). Client-side validation + CLI enforcement. History under `.tui-state/db-query-history.json`.
+
+### 15. Edge Topology (`Ctrl+Alt+E`)
+
+Interactive map from monorepo `graph-metadata.json` (workers, infrastructure, communities, data flows). Resolves the file from CWD or monorepo root.
+
+---
+
+## 🛜 Data channels
+
+| Channel | Role |
+| ------- | ---- |
+| **HTTP** | `fetchWorkers` + API when `HOOX_API_URL` is reachable |
+| **CLI bridge** | Spawns `hoox …` for deploy, logs, config, queues, KV, secrets, D1, health |
+| **SSE** | Trade + log streams (`streamTrades` / `streamLogs`) started after session restore when the API is available |
+
+Connection state machine: `connected` → `reconnecting` → `offline` (status bar pills + expandable CLI error panel). The reconnect controller retries automatically; use **`Ctrl+R`** or the command palette **reconnect** action to force a cycle.
+
+---
+
+## 🛡️ Crash protection
+
+1. **Per-view ErrorBoundary** — a broken view shows Retry; sidebar/status keep running.
+2. **CrashRecoveryApp** — process-level trap → Restart / Safe Mode / Report Bug → `$HOME/.hoox/.tui-state/crash.log`.
+
+---
+
+## 🛠️ Troubleshooting
+
+| Symptom | Fix |
+| ------- | --- |
+| Garbled prompt after exit | `reset` or `tput reset` |
+| Ctrl+Q ignored | `stty -ixon` or command palette Quit |
+| Layout broken | Resize to ≥ 80×24; `export TERM=xterm-256color` |
+| OFFLINE forever | Start mesh / set `HOOX_API_URL`, ensure `hoox` on PATH |
+| Topology empty | Run from monorepo root or `bun run graph` to refresh metadata |
+
+### Next steps
+
+- **[Local Development](/docs/enduser/guides/local-development)** — API / wrangler mesh that feeds the TUI  
+- **[CLI Reference](/docs/enduser/reference/cli-commands)** — commands the TUI invokes  
+- **[TUI architecture (DevOps)](/docs/devops/tui)** — stores, backoff, crash model  

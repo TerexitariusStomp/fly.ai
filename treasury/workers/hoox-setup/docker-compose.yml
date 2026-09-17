@@ -1,0 +1,212 @@
+# ---------------------------------------------------------------------------
+# Hoox local development stack.
+#
+# Architecture: only `hoox` (gateway) and `dashboard` are public-facing.
+# All other workers are reachable only via service bindings on the `hoox-net`
+# bridge network — exactly as in production (Cloudflare Workers Service
+# Bindings). Publishing internal worker ports to the host would defeat this
+# and leak internal endpoints to anything bound to the host.
+#
+# Profiles: workers | dashboard | full
+# Build image: docker buildx bake dev --load
+#              docker compose --profile workers build
+#
+# Requires Bun ≥ 1.4.1 (lockfile). Override with BUN_VERSION=1.4.1 if the
+# image was built with an older default.
+#
+# Bind-mounts hide image-built packages/shared/dist — the image entrypoint
+# runs `bun run build:shared` when dist is missing. You can also pre-build
+# on the host: bun run build:shared
+# ---------------------------------------------------------------------------
+
+# YAML anchors — applied to all worker services to avoid 9× duplication.
+x-worker-base: &worker-base
+  build:
+    context: .
+    dockerfile: Dockerfile.dev
+    # Prefer the bake-built local tag when present; otherwise compose builds.
+    tags:
+      - hoox:dev
+    args:
+      BUN_VERSION: ${BUN_VERSION:-1.4.1}
+  image: hoox:dev
+  init: true # PID 1 reaper (M-07): clean signal handling
+  mem_limit: 512m # (M-11) cap runaway workers
+  cpus: "1.0"
+  env_file:
+    - path: .env.local
+      required: false # (M-14) tolerate missing file on fresh clone
+  networks:
+    - hoox-net
+  restart: unless-stopped
+  # Common bind mounts — shared across every worker. Sequence merge (`<<:`)
+  # keeps the per-service worker mount (added below) in addition to these two.
+  #   ./packages  → covers shared, cli, tui, test-utils (C-02)
+  #   ./.wrangler/state → local D1 / KV cache (preserved across restarts)
+  volumes:
+    - ./packages:/app/packages
+    - ./.wrangler/state:/app/.wrangler/state
+
+services:
+  hoox:
+    <<: *worker-base
+    command: bunx wrangler dev -c workers/hoox-worker/wrangler.jsonc --local --ip 0.0.0.0
+    ports:
+      - "8787:8787" # public gateway
+    volumes:
+      - ./workers/hoox-worker:/app/workers/hoox-worker
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bun",
+          "-e",
+          "fetch('http://127.0.0.1:8787/').then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    # hoox is required by the dashboard (depends_on: [hoox, d1-worker,
+    # agent-worker]), so it must be part of the `dashboard` profile in
+    # addition to `workers`/`full`.
+    profiles:
+      - workers
+      - dashboard
+      - full
+
+  trade-worker:
+    <<: *worker-base
+    command: bunx wrangler dev -c workers/trade-worker/wrangler.jsonc --local --ip 0.0.0.0
+    volumes:
+      - ./workers/trade-worker:/app/workers/trade-worker
+    depends_on:
+      - hoox
+    # trade-worker is required transitively by agent-worker (which the
+    # dashboard depends on for AI features), so it must be part of the
+    # `dashboard` profile in addition to `workers`/`full`.
+    profiles:
+      - workers
+      - dashboard
+      - full
+
+  telegram-worker:
+    <<: *worker-base
+    command: bunx wrangler dev -c workers/telegram-worker/wrangler.jsonc --local --ip 0.0.0.0
+    volumes:
+      - ./workers/telegram-worker:/app/workers/telegram-worker
+    depends_on:
+      - hoox
+    profiles:
+      - workers
+      - full
+
+  d1-worker:
+    <<: *worker-base
+    command: bunx wrangler dev -c workers/d1-worker/wrangler.jsonc --local --ip 0.0.0.0
+    mem_limit: 1024m # D1 local emulation can be memory-hungry
+    volumes:
+      - ./workers/d1-worker:/app/workers/d1-worker
+    depends_on:
+      - hoox
+    # d1-worker is required by the dashboard, so it must be part of the
+    # `dashboard` profile in addition to `workers`/`full`.
+    profiles:
+      - workers
+      - dashboard
+      - full
+
+  web3-wallet-worker:
+    <<: *worker-base
+    command: bunx wrangler dev -c workers/web3-wallet-worker/wrangler.jsonc --local --ip 0.0.0.0
+    volumes:
+      - ./workers/web3-wallet-worker:/app/workers/web3-wallet-worker
+    depends_on:
+      - hoox
+    profiles:
+      - workers
+      - full
+
+  dashboard:
+    <<: *worker-base
+    command: bun run --cwd workers/dashboard dev -H 0.0.0.0 -p 8794
+    ports:
+      - "8794:8794" # public UI
+    volumes:
+      - ./workers/dashboard:/app/workers/dashboard
+    depends_on:
+      - hoox
+      - d1-worker
+      - agent-worker
+    profiles:
+      - dashboard
+      - full
+
+  agent-worker:
+    <<: *worker-base
+    command: bunx wrangler dev -c workers/agent-worker/wrangler.jsonc --local --ip 0.0.0.0
+    volumes:
+      - ./workers/agent-worker:/app/workers/agent-worker
+    depends_on:
+      - hoox
+      - d1-worker
+      - trade-worker
+    # agent-worker is required by the dashboard (depends_on: [..., agent-worker]),
+    # so it must be part of the `dashboard` profile in addition to `workers`/`full`.
+    profiles:
+      - workers
+      - dashboard
+      - full
+
+  email-worker:
+    <<: *worker-base
+    command: bunx wrangler dev -c workers/email-worker/wrangler.jsonc --local --ip 0.0.0.0
+    volumes:
+      - ./workers/email-worker:/app/workers/email-worker
+    depends_on:
+      - hoox
+    profiles:
+      - workers
+      - full
+
+  report-worker:
+    <<: *worker-base
+    command: bunx wrangler dev -c workers/report-worker/wrangler.jsonc --local --ip 0.0.0.0 --port 8797
+    mem_limit: 1024m # Browser Rendering is memory-hungry
+    volumes:
+      - ./workers/report-worker:/app/workers/report-worker
+    depends_on:
+      - hoox
+      - d1-worker
+    profiles:
+      - workers
+      - full
+
+  analytics-worker:
+    <<: *worker-base
+    command: bunx wrangler dev -c workers/analytics-worker/wrangler.jsonc --local --ip 0.0.0.0 --port 8798
+    volumes:
+      - ./workers/analytics-worker:/app/workers/analytics-worker
+    depends_on:
+      - hoox
+    profiles:
+      - workers
+      - full
+
+  # Python Workers runtime — prefer host `wrangler dev` if the image lacks
+  # Python Workers support. Included for compose topology parity.
+  pyne-worker:
+    <<: *worker-base
+    command: bunx wrangler dev -c workers/pyne-worker/wrangler.jsonc --local --ip 0.0.0.0 --port 8799
+    volumes:
+      - ./workers/pyne-worker:/app/workers/pyne-worker
+    depends_on:
+      - hoox
+      - trade-worker
+    profiles:
+      - workers
+      - full
+
+networks:
+  hoox-net:
+    driver: bridge

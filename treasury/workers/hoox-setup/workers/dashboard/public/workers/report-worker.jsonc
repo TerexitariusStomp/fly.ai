@@ -1,0 +1,24 @@
+{
+  "display_name": "Report Worker",
+  "description": "Schedule/PDF options live in wrangler (crons + Browser Rendering). Only optional Telegram chat override is operator-set.",
+  "sections": {
+    "delivery": {
+      "title": "Telegram Delivery (CLI)",
+      "description": "Default: omit chatId (telegram-worker TG_CHAT_ID_BINDING + allowlist). Optional override secret only.",
+      "icon": "send",
+      "priority": 10,
+      "fields": {
+        "telegram_chat_id": "Requires CLI Setup"
+      },
+      "descriptions": {
+        "telegram_chat_id": "REPORT_TELEGRAM_CHAT_ID — leave unset unless reports must go to a non-default chat."
+      },
+      "secrets": {
+        "telegram_chat_id": true
+      },
+      "secret_commands": {
+        "telegram_chat_id": "hoox secrets set report-worker REPORT_TELEGRAM_CHAT_ID"
+      }
+    }
+  }
+}

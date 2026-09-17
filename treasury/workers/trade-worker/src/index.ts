@@ -29,6 +29,7 @@ import { createWalletClient, createPublicClient, http, parseEther, formatEther, 
 import { privateKeyToAccount } from "viem/accounts";
 import { ABI, ADDRESSES, V2_ROUTER_ABI, encodeV4Swap, poolKeyFor, poolIdOf, minOutFromRate, BPS } from "./loxley-swap";
 import { evaluateGateSync, CONSTITUTIONAL_GATE_ENABLED, type GateResult } from "./constitutional-gate";
+import { safeDb } from "./safe-db";
 
 interface Env {
   DB: D1Database;
@@ -74,7 +75,16 @@ const COLORS: Record<string, number> = {
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
+    env = { ...env, DB: safeDb(env.DB) };
     const url = new URL(request.url);
+    // Mutations need the colony key; reads stay open
+    if (url.pathname === "/process" || url.pathname === "/force-sell-all") {
+      const key = request.headers.get("X-Colony-Key") || url.searchParams.get("key") || "";
+      const expected = (env as unknown as { COLONY_ADMIN_KEY?: string }).COLONY_ADMIN_KEY;
+      if (!expected || key !== expected) {
+        return Response.json({ error: "forbidden" }, { status: 403 });
+      }
+    }
     if (url.pathname === "/process") {
       ctx.waitUntil(processSignals(env));
       return Response.json({ status: "processing" });
@@ -110,6 +120,7 @@ export default {
   },
 
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
+    env = { ...env, DB: safeDb(env.DB) };
     ctx.waitUntil(processSignals(env));
   },
 };
@@ -233,10 +244,14 @@ async function processBuySignals(env: Env, isReal: boolean = false) {
       await logGateResult(env, gate, "trade", connectomeId);
       if (gate.verdict === "block") continue;
     }
-    if (isReal) {
-      await handleRealBuy(env, signal, balance, params, connectomeId);
-    } else {
-      await handlePaperBuy(env, signal, balance, params, connectomeId);
+    try {
+      if (isReal) {
+        await handleRealBuy(env, signal, balance, params, connectomeId);
+      } else {
+        await handlePaperBuy(env, signal, balance, params, connectomeId);
+      }
+    } catch (e) {
+      console.error(`buy failed for ${signal.token_address} [${connectomeId}]:`, e);
     }
   }
 }
@@ -401,8 +416,8 @@ async function sellPosition(env: Env, position: any, reason: string, action: str
 
   await env.DB.prepare(
     "UPDATE positions SET status = 'closed', exit_price = ?, exit_tx = ?, exit_at = ?, pnl_percent = ? "
-    + "WHERE id = ?"
-  ).bind(exitPrice, txHash, now, pnlPct, position.id).run();
+    + "WHERE token_address = ? AND (connectome_id = ? OR (connectome_id IS NULL AND ? IS NULL))"
+  ).bind(exitPrice, txHash, now, pnlPct, position.token_address, position.connectome_id, position.connectome_id).run();
 
   // Update per-connectome wallet
   await updateConnectomeWallet(env, connectomeId, newBalance, pnlUsd, pnlUsd > 0);
@@ -455,7 +470,10 @@ async function maybeTriggerRetrain(env: Env) {
 
   if (completed && completed.n > 0 && completed.n % threshold === 0) {
     try {
-      await fetch(FLY_BRAIN_RETRAIN_URL, { method: "POST" });
+      await fetch(FLY_BRAIN_RETRAIN_URL, {
+        method: "POST",
+        headers: { "X-Colony-Key": (env as unknown as { COLONY_ADMIN_KEY?: string }).COLONY_ADMIN_KEY || "" },
+      });
       await postDiscord(env, {
         action: "RETRAIN", symbol: "Brain",
         reason: `${completed.n} trades completed — triggering model retrain`,
@@ -655,8 +673,9 @@ async function handleRealSell(env: Env, position: any, reason: string, action: s
   ).bind(position.token_address, position.symbol, entryPrice, exitValueUsd / positionSize, positionSize, pnlUsd, pnlPct, newBalance, connectomeId, now, txHash).run();
 
   await env.DB.prepare(
-    "UPDATE positions SET status = 'closed', exit_price = ?, exit_tx = ?, exit_at = ?, pnl_percent = ? WHERE id = ?"
-  ).bind(exitValueUsd / positionSize, txHash, now, pnlPct, position.id).run();
+    "UPDATE positions SET status = 'closed', exit_price = ?, exit_tx = ?, exit_at = ?, pnl_percent = ? "
+    + "WHERE token_address = ? AND (connectome_id = ? OR (connectome_id IS NULL AND ? IS NULL))"
+  ).bind(exitValueUsd / positionSize, txHash, now, pnlPct, position.token_address, position.connectome_id, position.connectome_id).run();
 
   await updateConnectomeWallet(env, connectomeId, newBalance, pnlUsd, pnlUsd > 0);
   await recordTrainingData(env, position, entryPrice, exitValueUsd / positionSize, pnlPct, now);

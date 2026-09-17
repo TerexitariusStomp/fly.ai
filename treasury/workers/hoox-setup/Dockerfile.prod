@@ -1,0 +1,128 @@
+# syntax=docker/dockerfile:1.7
+# =============================================================================
+# Hoox production image (self-hosted Bun.serve router).
+#
+# Multi-stage + BuildKit:
+#   1. `builder`  — oven/bun compiles each worker into dist/<worker>/index.js
+#   2. `runtime`  — alpine ships only bundles + server.js + cloudflare shim
+#
+# Build (local load):
+#   docker buildx bake prod --load
+# Publish:
+#   VERSION=x.y.z REVISION=$(git rev-parse HEAD) docker buildx bake prod --push
+#
+# Runtime limitations: see DESIGN.md → Self-Hosted Limitations.
+# =============================================================================
+
+ARG BUN_VERSION=1.4.1
+
+# ---------------------------------------------------------------------------
+# Stage 1: builder
+# ---------------------------------------------------------------------------
+FROM oven/bun:${BUN_VERSION} AS builder
+
+WORKDIR /app
+
+RUN chown -R bun:bun /app
+USER bun
+
+# Layer-cached install: root + workspace package manifests first.
+# Full workers/ package.json set is required so bun.lock stays valid under
+# --frozen-lockfile (workspaces: workers/*).
+COPY --chown=bun:bun package.json bun.lock* ./
+COPY --chown=bun:bun packages/shared/package.json packages/shared/
+COPY --chown=bun:bun packages/cli/package.json packages/cli/
+COPY --chown=bun:bun packages/tui/package.json packages/tui/
+COPY --chown=bun:bun packages/test-utils/package.json packages/test-utils/
+COPY --chown=bun:bun workers/ workers/
+
+# Remaining monorepo sources (packages/shared is inlined into worker bundles).
+# NOTE: bun install MUST run AFTER all source COPYs — a later COPY of a
+# worker dir would replace the directory and destroy the
+# node_modules/@hoox-sh/hoox-shared workspace symlink that
+# `bun install` creates, breaking `bun build` resolution below.
+# Worker sources already arrived via `COPY workers/` above; do NOT re-copy
+# workers/hoox-worker → workers/hoox (that duplicated package name "hoox"
+# under workspaces workers/* and made bun install fail with
+# "Workspace name \"hoox\" already exists").
+COPY --chown=bun:bun packages/shared packages/shared
+COPY --chown=bun:bun server.js scripts/cloudflare-workers-shim.js ./
+
+# BuildKit cache mount keeps the Bun install cache across rebuilds.
+# --ignore-scripts skips husky prepare / puppeteer chrome download in the image.
+# Runs last so the workspace symlinks survive into the bundle step.
+RUN --mount=type=cache,id=bun-cache-prod,target=/home/bun/.bun/install/cache,uid=1000,gid=1000 \
+    PUPPETEER_SKIP_DOWNLOAD=true bun install --frozen-lockfile --ignore-scripts
+
+# Build packages/shared — its dist/ is gitignored and NOT in the build
+# context, but workers bundle `@hoox-sh/hoox-shared` from it.
+# Without this, `bun build` cannot resolve the shared workspace package.
+RUN --mount=type=cache,id=bun-cache-prod,target=/home/bun/.bun/install/cache,uid=1000,gid=1000 \
+    cd packages/shared && bun run build
+
+# Bundle each self-hosted worker for Bun. Shared is fully inlined so the
+# runtime image does not need packages/shared or its transitive deps.
+# `cloudflare:workers` is provided at runtime by the fail-loud shim (option a).
+# Source dir is the monorepo path (hoox-worker); dist name is what server.js
+# imports (dist/hoox/...). Format: source_dir:dist_name
+RUN mkdir -p dist && \
+    for entry in \
+      hoox-worker:hoox \
+      trade-worker:trade-worker \
+      telegram-worker:telegram-worker \
+      d1-worker:d1-worker \
+      web3-wallet-worker:web3-wallet-worker \
+      agent-worker:agent-worker \
+      email-worker:email-worker \
+      report-worker:report-worker \
+      analytics-worker:analytics-worker; do \
+      src="${entry%%:*}"; \
+      out="${entry##*:}"; \
+      bun build "workers/${src}/src/index.ts" \
+        --outdir="dist/${out}" \
+        --target=bun \
+        --external cloudflare:workers; \
+    done
+
+# ---------------------------------------------------------------------------
+# Stage 2: runtime
+# ---------------------------------------------------------------------------
+FROM oven/bun:${BUN_VERSION}-alpine AS runtime
+
+ARG BUN_VERSION
+ARG VERSION=0.0.0
+ARG REVISION=unknown
+
+LABEL org.opencontainers.image.title="hoox" \
+      org.opencontainers.image.description="Hoox self-hosted production image (multi-worker Bun.serve router)" \
+      org.opencontainers.image.source="https://github.com/hoox-sh/hoox" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.revision="${REVISION}"
+
+WORKDIR /app
+
+RUN chown -R bun:bun /app
+USER bun
+
+ENV NODE_ENV=production \
+    PORT=8080 \
+    BUN_VERSION=${BUN_VERSION}
+
+COPY --from=builder --chown=bun:bun /app/server.js ./server.js
+COPY --from=builder --chown=bun:bun /app/dist ./dist
+
+# cloudflare:workers shim (subtask 07, option a — fail loudly).
+# Literal colon path is valid on Linux (Docker runtime).
+COPY --from=builder --chown=bun:bun /app/cloudflare-workers-shim.js \
+     ./node_modules/cloudflare:workers/index.js
+
+# Alpine has no wget/curl — probe with bun. Non-zero exit = unhealthy.
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD bun -e "fetch('http://127.0.0.1:'+(process.env.PORT||'8080')+'/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
+EXPOSE 8080
+
+# HOOX_SERVER_API_KEY is required when NODE_ENV=production (server.js exits 1).
+STOPSIGNAL SIGTERM
+CMD ["bun", "run", "server.js"]

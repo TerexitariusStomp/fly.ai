@@ -13,8 +13,6 @@ import { useGlobalErrorHandler } from "@/hooks/use-global-error-handler";
 import { useRoutePrefetch } from "@/hooks/use-route-prefetch";
 import { useScrollDepthTracking } from "@/hooks/use-scroll-depth-tracking";
 import { initWebVitals } from "@/hooks/use-web-vitals";
-import { ReferralFeeTracker } from "@/hooks/use-referral-fee-tracker";
-import { ReferralAutoBind } from "@/hooks/use-referral-auto-bind";
 
 const WalletAnalytics = lazy(() =>
   import("@/hooks/use-wallet-analytics").then((m) => ({ default: m.WalletAnalyticsTracker })),
@@ -81,8 +79,6 @@ export default function AppLayout() {
         <GlobalErrorHandler />
         <RoutePrefetcher />
         <ScrollDepthTracker />
-        <ReferralAutoBind />
-        <ReferralFeeTracker />
         <div className="flex h-dvh bg-surface-bg-l1 overflow-hidden">
           {/* Desktop icon sidebar — hidden on mobile and socials subdomain */}
           {!isSocials && (

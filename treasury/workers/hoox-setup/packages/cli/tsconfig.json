@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "esModuleInterop": true,
+    "moduleResolution": "Bundler",
+    "outDir": "./dist",
+    "types": ["bun-types", "node", "@cloudflare/workers-types"],
+    "rootDir": "..",
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["src/**/*", "bin/**/*"],
+  "exclude": ["tests/**/*", "node_modules", "dist"]
+}

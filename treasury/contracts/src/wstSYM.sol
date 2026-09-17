@@ -42,21 +42,23 @@ contract WstSYM is ERC20Permit {
     }
 
     /// @notice Get amount of wstSYM for a given stSYM amount
+    /// @dev Share-of-pool: wrapper holdings / wrapper supply (tracks rebase only,
+    ///      unaffected by new stakers joining the staking contract).
     function stSymbientToWstSymbient(uint256 _stSymbientAmount) public view returns (uint256) {
         if (totalSupply() == 0) return _stSymbientAmount;
-        return (_stSymbientAmount * totalSupply()) / stSYM.totalSupply();
+        return (_stSymbientAmount * totalSupply()) / stSYM.balanceOf(address(this));
     }
 
     /// @notice Get amount of stSYM for a given wstSYM amount
     function wstSymbientToStSymbient(uint256 _wstSymbientAmount) public view returns (uint256) {
-        uint256 totalStSymbient = stSYM.totalSupply();
+        uint256 pool = stSYM.balanceOf(address(this));
         if (totalSupply() == 0) return _wstSymbientAmount;
-        return (_wstSymbientAmount * totalStSymbient) / totalSupply();
+        return (_wstSymbientAmount * pool) / totalSupply();
     }
 
     /// @notice Get stSYM per wstSYM
     function stSymbientPerToken() external view returns (uint256) {
         if (totalSupply() == 0) return 1e18;
-        return (stSYM.totalSupply() * 1e18) / totalSupply();
+        return (stSYM.balanceOf(address(this)) * 1e18) / totalSupply();
     }
 }

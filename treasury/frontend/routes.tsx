@@ -21,65 +21,6 @@ function retryLazy<T>(
   });
 }
 
-const VerifyPage = lazy(() =>
-  retryLazy(() => import("@/modules/verify-verify-page")).then((m) => ({ default: m.VerifyPage })),
-);
-const ContractsPage = lazy(() =>
-  retryLazy(() => import("@/modules/contracts-contracts-page")).then((m) => ({ default: m.ContractsPage })),
-);
-const WhitepaperPage = lazy(() =>
-  retryLazy(() => import("@/modules/protocol-whitepaper-page")).then((m) => ({ default: m.WhitepaperPage })),
-);
-const WhitelistPage = lazy(() =>
-  retryLazy(() => import("@/modules/whitelist-whitelist-page")).then((m) => ({ default: m.WhitelistPage })),
-);
-
-const DocsPage = lazy(() =>
-  retryLazy(() => import("@/modules/protocol-docs-page")).then((m) => ({ default: m.DocsPage })),
-);
-
-const BugBountyPage = lazy(() =>
-  retryLazy(() => import("@/modules/protocol-bug-bounty-page")).then((m) => ({
-    default: m.BugBountyPage,
-  })),
-);
-
-const DashboardPage = lazy(() =>
-  retryLazy(() => import("@/modules/protocol-dashboard-page")).then((m) => ({
-    default: m.DashboardPage,
-  })),
-);
-
-const BondPage = lazy(() =>
-  retryLazy(() => import("@/modules/bonds-bond-page")).then((m) => ({
-    default: m.BondPage,
-  })),
-);
-
-const WrapPage = lazy(() =>
-  retryLazy(() => import("@/modules/symbient-wrap-page")).then((m) => ({
-    default: m.WrapPage,
-  })),
-);
-
-const CoolerBorrowPage = lazy(() =>
-  retryLazy(() => import("@/modules/cooler-borrow-page")).then((m) => ({
-    default: m.CoolerBorrowPage,
-  })),
-);
-
-const RBSPage = lazy(() =>
-  retryLazy(() => import("@/modules/rbs-rbs-page")).then((m) => ({
-    default: m.RBSPage,
-  })),
-);
-
-const UnifiedDashboardPage = lazy(() =>
-  retryLazy(() => import("@/modules/protocol-unified-dashboard-page")).then((m) => ({
-    default: m.UnifiedDashboardPage,
-  })),
-);
-
 const SymOverviewPage = lazy(() =>
   retryLazy(() => import("@/modules/sym-overview-page")).then((m) => ({ default: m.SymOverviewPage })),
 );
@@ -88,6 +29,11 @@ const SymTradersPage = lazy(() =>
 );
 const SymTreasuryPage = lazy(() =>
   retryLazy(() => import("@/modules/sym-treasury-page")).then((m) => ({ default: m.SymTreasuryPage })),
+);
+const WrapPage = lazy(() =>
+  retryLazy(() => import("@/modules/symbient-wrap-page")).then((m) => ({
+    default: m.WrapPage,
+  })),
 );
 
 const withSuspense = (element: React.ReactNode) => (
@@ -103,18 +49,7 @@ export const router = createHashRouter([
       { index: true, element: withSuspense(<SymOverviewPage />) },
       { path: "traders", element: withSuspense(<SymTradersPage />) },
       { path: "treasury", element: withSuspense(<SymTreasuryPage />) },
-      { path: "verify", element: withSuspense(<VerifyPage />) },
-      { path: "contracts", element: withSuspense(<ContractsPage />) },
-      { path: "whitepaper", element: withSuspense(<WhitepaperPage />) },
-      { path: "docs/:docId", element: withSuspense(<DocsPage />) },
-      { path: "bug-bounty", element: withSuspense(<BugBountyPage />) },
-      { path: "whitelist", element: withSuspense(<WhitelistPage />) },
-      { path: "dashboard", element: withSuspense(<DashboardPage />) },
-      { path: "bonds", element: withSuspense(<BondPage />) },
       { path: "stake-wrap", element: withSuspense(<WrapPage />) },
-      { path: "borrow", element: withSuspense(<CoolerBorrowPage />) },
-      { path: "rbs", element: withSuspense(<RBSPage />) },
-      { path: "dashboards", element: withSuspense(<UnifiedDashboardPage />) },
       { path: "*", element: <Navigate to="/" replace /> },
     ],
   },

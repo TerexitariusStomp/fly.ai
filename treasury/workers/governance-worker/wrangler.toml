@@ -1,12 +1,13 @@
 name = "governance-worker"
 main = "src/index.ts"
 compatibility_date = "2026-09-12"
+account_id = "23738a036108482feac164d7eee10a30"
 
 # D1 database
 [[d1_databases]]
 binding = "DB"
-database_name = "symbient-token"
-database_id = "YOUR_D1_DATABASE_ID"
+database_name = "sym-protocol"
+database_id = "c8180dd7-0f8b-40b0-bc23-0ccae5260ca3"
 
 # Durable Object binding to fly-brain-do (cross-worker reference)
 [[durable_objects.bindings]]
@@ -14,7 +15,21 @@ name = "FLY_BRAIN"
 class_name = "ConnectomeDO"
 script_name = "fly-brain-do"
 
-# Triggers every 2 minutes
-[triggers]
-crons = ["*/2 * * * *"]
-account_id = "YOUR_CLOUDFLARE_ACCOUNT_ID"
+# no cron — driven by fly-brain-do alarm chain
+
+[vars]
+RPC_URL = "https://rpc.mainnet.arc.io"
+USDC_ADDRESS = "0x3600000000000000000000000000000000000000"
+SYM_TOKEN = "0x7996827522B8e2459bBC8f17E48Abe0Cb65076f8"
+SYM_PAIR = "0xa1bE726cb2F4589d008ebD43453A650541C5C563"
+# Arc mainnet deployment (chain 5042, deployer 0x47bB7d30...)
+GOVERNOR_ADDRESS = "0xca184c37a2af24b004319912c07976d119d09e97"
+GOVERNOR_POLICY = "0x01c33f3070c312f205035393595aa810599733fd"
+TRSRY_ADDRESS = "0x9db82d9b418eaab7d0106b6b1c0eae1f5200e9f0"
+FEE_ROUTER = "0x1bd2f20780efc916a6a886e6ee25644bc712024f"
+INVERSE_BOND = "0xf7046cacbf72f11f2d2b42207343a1af9d445054"
+STAKING = "0xcfd4cdbdffc220b53d71659baa8ba79a18c765de"
+RELAY_ENGINE = "0x9459c71bca66b1e39a53b6a96a51f1dae369ea4c"
+# Colony self-improvement loop — set to enable code ideation + PR auto-merge
+# GITHUB_REPO = "owner/repo"           # target repo for colony PRs
+# secret: npx wrangler secret put GITHUB_TOKEN   (fine-grained PAT, contents+pull-requests write)

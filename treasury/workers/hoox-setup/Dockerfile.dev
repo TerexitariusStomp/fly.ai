@@ -1,0 +1,51 @@
+# syntax=docker/dockerfile:1.7
+# =============================================================================
+# Hoox development image — Bun + wrangler for docker-compose worker profiles.
+#
+# Build:
+#   docker buildx bake dev --load
+#   docker compose --profile workers build
+# =============================================================================
+
+ARG BUN_VERSION=1.4.1
+FROM oven/bun:${BUN_VERSION}
+
+# Non-root `bun` user from the official image. WORKDIR is chowned so compose
+# bind mounts (./workers, ./packages, ./.wrangler) stay writable from the host.
+WORKDIR /app
+RUN chown -R bun:bun /app
+
+# ---------------------------------------------------------------------------
+# Layer-cached dependency install (manifests first, source later).
+# Workspace package.json files must be present so Bun can resolve workspace:*.
+# ---------------------------------------------------------------------------
+COPY --chown=bun:bun package.json bun.lock* ./
+COPY --chown=bun:bun packages/shared/package.json packages/shared/
+COPY --chown=bun:bun packages/cli/package.json packages/cli/
+COPY --chown=bun:bun packages/tui/package.json packages/tui/
+COPY --chown=bun:bun packages/test-utils/package.json packages/test-utils/
+COPY --chown=bun:bun workers/ workers/
+
+USER bun
+
+# BuildKit cache + skip husky/puppeteer side effects inside the image build.
+RUN --mount=type=cache,id=bun-cache-dev,target=/home/bun/.bun/install/cache,uid=1000,gid=1000 \
+    PUPPETEER_SKIP_DOWNLOAD=true bun install --frozen-lockfile --ignore-scripts
+
+# Remaining source. Install layer above is reused when only app code changes.
+COPY --chown=bun:bun . .
+
+# Pre-build shared so the image works without a host bind-mount. Compose
+# bind-mounts ./packages and hides this layer — the entrypoint rebuilds
+# if dist is missing after the mount.
+RUN bun run build:shared
+
+COPY --chmod=755 --chown=bun:bun scripts/docker-entrypoint-dev.sh /app/scripts/docker-entrypoint-dev.sh
+ENTRYPOINT ["/app/scripts/docker-entrypoint-dev.sh"]
+
+# Dev ports used on the hoox-net bridge. Only hoox:8787 and dashboard:8794
+# are published to the host (see docker-compose.yml).
+EXPOSE 8787 8788 8789 8790 8791 8792 8793 8794 8795 8796 8797 8798
+
+# Compose overrides command per service.
+CMD ["tail", "-f", "/dev/null"]

@@ -1,7 +1,7 @@
-"""Generate 16 connectome NPZ artifacts for paper trading.
+"""Generate 7 connectome NPZ artifacts for paper trading.
 
 Produces weights.npz (CSR sparse matrix) and brain.npz (metadata) for each
-of the 16 connectomes. The MaleCNS connectome uses real data; the other 15
+of the 7 governing connectomes.
 use biologically-inspired synthetic networks with appropriate structure.
 
 Output: /home/terex/fly-data/connectomes/<id>/{weights.npz,brain.npz}
@@ -14,25 +14,16 @@ from pathlib import Path
 OUT = Path("/home/terex/fly-data/connectomes")
 OUT.mkdir(parents=True, exist_ok=True)
 
-# 16 connectomes with metadata
+# 7 governing connectomes (quorum: 3 of 7 on-chain)
 CONNECTOMES = [
     # (id, species, n_neurons, description)
-    ("celegans",    "C. elegans",     302,    "C. elegans hermaphrodite (White et al. 1986)"),
-    ("larva",       "D. melanogaster", 3016,   "Drosophila larva (Jovanic et al. 2023)"),
-    ("hemibrain",   "D. melanogaster", 21636,  "Drosophila hemibrain (Janelia v1.2)"),
-    ("banc",        "D. melanogaster", 56000,  "BANC whole-brain (FlyWire)"),
-    ("manc",        "D. melanogaster", 134000, "MaleCNS v1.0 (Janelia)"),
-    ("fafb-cb",     "D. melanogaster", 80000,  "FAFB central brain (FlyWire)"),
-    ("malecns",     "D. melanogaster", 166700, "MaleCNS v1.0 full (Janelia)"),
-    ("ciona",       "C. intestinalis", 1770,   "Ciona connectome (Ryan et al. 2016)"),
-    ("medulla",     "D. melanogaster", 40000,  "Drosophila medulla (Nern et al. 2024)"),
-    ("mretina",     "D. melanogaster", 8000,   "Drosophila retina lamina (Matsliah 2024)"),
-    ("platynereis", "P. dumerilii",    5000,   "Platynereis larval brain (Veras et al. 2024)"),
-    ("cat-cortex",  "F. catus",        50000,  "Cat cortex (Scannell et al. 1999)"),
-    ("macaque",     "M. mulatta",      91000,  "Macaque cortex (Markov et al. 2014)"),
-    ("marmoset",    "C. jacchus",      30000,  "Marmoset cortex (Mars et al. 2021)"),
-    ("allen-mouse", "M. musculus",     18000,  "Allen mouse cortex (Oh et al. 2014)"),
-    ("microns",     "M. musculus",     200000, "MICrONS cortical volume"),
+    ("drosophila",    "D. melanogaster", 49,    "Drosophila subnetwork (49 neurons)"),
+    ("rat",           "R. norvegicus",   73,    "Rat subnetwork (73 neurons)"),
+    ("mouse",         "M. musculus",     112,   "Mouse subnetwork (112 neurons)"),
+    ("ciona",         "C. intestinalis", 205,   "Ciona connectome (Ryan et al. 2016)"),
+    ("macaque_modha", "M. mulatta",      242,   "Macaque Modha & Singh (242 neurons)"),
+    ("human",         "H. sapiens",      234,   "Human subnetwork (234 neurons)"),
+    ("celegans_male", "C. elegans",      575,   "C. elegans male (Cook et al. 2019)"),
 ]
 
 
@@ -172,14 +163,6 @@ def save_connectome(cid, species, n, desc, seed=42):
 
     print(f"  {cid}: generating {n} neurons...")
 
-    if cid == "malecns":
-        # Copy existing MaleCNS data
-        import shutil
-        shutil.copy2("/home/terex/fly-data/weights.npz", weights_path)
-        shutil.copy2("/home/terex/fly-data/brain.npz", brain_path)
-        print(f"  {cid}: copied from existing MaleCNS data")
-        return
-
     # Generate synthetic connectome
     # Use small-world for smaller brains, scale-free for larger ones
     if n <= 5000:
@@ -198,7 +181,7 @@ def save_connectome(cid, species, n, desc, seed=42):
 
 
 def main():
-    print("Generating 16 connectomes for paper trading...")
+    print("Generating 7 connectomes for paper trading...")
     for i, (cid, species, n, desc) in enumerate(CONNECTOMES):
         seed = hash(cid) % (2**32)
         save_connectome(cid, species, n, desc, seed=seed)

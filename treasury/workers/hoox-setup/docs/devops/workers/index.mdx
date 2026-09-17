@@ -1,0 +1,50 @@
+<!--
+  Copyright (c) 2026 HOOX · jango-blockchained (hoox-sh)
+  SPDX-License-Identifier: CC-BY-4.0
+-->
+
+---
+title: "Workers"
+description: "Per-isolate profiles for every HOOX Cloudflare Worker — gateway, execution, data, agents, and UI."
+---
+
+Each page is an **isolate profile**: bindings, routes, secrets, and behavior for one worker in the mesh.
+
+Worker sources live as **git submodules** under `workers/` in [hoox-sh/hoox](https://github.com/hoox-sh/hoox). Each repository carries a GitHub description, `package.json` description, and a README with a shared **Mesh interconnect** section that links every sibling isolate.
+
+## Ingress & execution
+
+| Worker | Role | Source |
+| ------ | ---- | ------ |
+| [hoox (Gateway)](/docs/devops/workers/hoox) | Public webhook ingress, WAF/auth, two-phase DO idempotency + rate-limit DO, notify chatId allowlist, queue/service dispatch | [hoox-worker](https://github.com/hoox-sh/hoox-worker) |
+| [trade-worker](/docs/devops/workers/trade-worker) | Exchange REST execution (Binance / Bybit / MEXC), queue concurrency, named D1 RPCs, test trading | [trade-worker](https://github.com/hoox-sh/trade-worker) |
+| [web3-wallet-worker](/docs/devops/workers/web3-wallet-worker) | On-chain wallet identity (ethers.js); bridge toward DeFi settlement | [web3-wallet-worker](https://github.com/hoox-sh/web3-wallet-worker) |
+
+## Data & intelligence
+
+| Worker | Role | Source |
+| ------ | ---- | ------ |
+| [d1-worker](/docs/devops/workers/d1-worker) | SQL proxy + named `/rpc/list-*` / insert RPCs, dashboard stats, settings KV | [d1-worker](https://github.com/hoox-sh/d1-worker) |
+| [agent-worker](/docs/devops/workers/agent-worker) | Configurable cron (1–1440 min) risk, trailing stops, multi-provider AI, kill switch | [agent-worker](https://github.com/hoox-sh/agent-worker) |
+| [analytics-worker](/docs/devops/workers/analytics-worker) | Analytics Engine fan-in (trades, signals, latency, heartbeats) | [analytics-worker](https://github.com/hoox-sh/analytics-worker) |
+| [report-worker](/docs/devops/workers/report-worker) | Browser Rendering PDFs → R2, telegram delivery | [report-worker](https://github.com/hoox-sh/report-worker) |
+
+## Tooling (outside core mesh auth)
+
+| Worker | Role | Source |
+| ------ | ---- | ------ |
+| [pyne-worker](/docs/devops/workers/pyne-worker) | Python PYNE edge evaluate — Pine Script™ `/run`, bar-close cron, R2 OHLCV, alerts (`hoox pyne`) | [pyne-worker](https://github.com/hoox-sh/pyne-worker) |
+
+## Channels & UI
+
+| Worker | Role | Source |
+| ------ | ---- | ------ |
+| [telegram-worker](/docs/devops/workers/telegram-worker) | Alerts, bot commands, outbound/inbound chat allowlists, RAG | [telegram-worker](https://github.com/hoox-sh/telegram-worker) |
+| [email-worker](/docs/devops/workers/email-worker) | Mailgun / email signal parsing → trade-worker | [email-worker](https://github.com/hoox-sh/email-worker) |
+| [dashboard](/docs/devops/workers/dashboard) | Next.js ops console (OpenNext, public) | monorepo `workers/dashboard` |
+
+## Related
+
+- [Architecture](/docs/devops/architecture) — mesh topology  
+- [Test Trading](/docs/enduser/guides/test-trading) — sandbox fills across trade / agent / dashboard  
+- Parent monorepo README — worker table with repository links

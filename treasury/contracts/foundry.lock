@@ -11,7 +11,7 @@
       "rev": "bf647bd6046f2f7da30d0c2bf435e5c76a780c1b"
     }
   },
-  "lib/sym-v3": {
+  "lib/olympus-v3": {
     "rev": "75476de003b47be099a5725eca41809032c9d3f2"
   },
   "lib/openzeppelin": {

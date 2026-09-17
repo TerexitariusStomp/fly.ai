@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.24;
 
-import {IDistributor} from "@symbient-v3/policies/interfaces/IDistributor.sol";
-import {IPeriodicTask} from "@symbient-v3/interfaces/IPeriodicTask.sol";
-import {IStaking} from "@symbient-v3/interfaces/IStaking.sol";
+import {IDistributor} from "@olympus-v3/policies/interfaces/IDistributor.sol";
+import {IPeriodicTask} from "@olympus-v3/interfaces/IPeriodicTask.sol";
+import {IStaking} from "@olympus-v3/interfaces/IStaking.sol";
 import {SymbientStaking} from "./SymbientStaking.sol";
 
 /// @title SymbientDistributor
-/// @notice Minimal distributor that bridges SYM Protocol Heart to SymbientStaking's rebase.
-/// @dev The SYM Protocol Heart calls `distributor.triggerRebase()` on each beat.
+/// @notice Minimal distributor that bridges Olympus Heart to SymbientStaking's rebase.
+/// @dev The Olympus Heart calls `distributor.triggerRebase()` on each beat.
 ///      SymbientStaking handles its own reward distribution (harvest yield + supplemental emissions),
 ///      so this distributor simply delegates the rebase call. No MINTR or TRSRY dependencies needed.
 ///      The `staking()` getter returns the StakingAdapter (IStaking) so the Heart can sync
@@ -40,7 +40,7 @@ contract SymbientDistributor is IDistributor, IPeriodicTask {
     function distribute() external override {}
 
     /// @inheritdoc IDistributor
-    /// @dev Returns 0 — no bounty system in SYM Protocol.
+    /// @dev Returns 0 — no bounty system.
     function retrieveBounty() external override returns (uint256) {
         return 0;
     }

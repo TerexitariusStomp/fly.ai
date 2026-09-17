@@ -1,0 +1,28 @@
+{
+  "display_name": "Analytics Worker",
+  "description": "Analytics Engine writes are always-on in code. Only SQL API credentials are operator-configured (secrets).",
+  "sections": {
+    "query": {
+      "title": "Query Access (CLI)",
+      "description": "Cloudflare Analytics Engine SQL API credentials. Tracking toggles were removed — the worker does not read ai:track_* from CONFIG_KV.",
+      "icon": "key",
+      "priority": 10,
+      "fields": {
+        "cloudflare_api_token": "Requires CLI Setup",
+        "cloudflare_account_id": "Requires CLI Setup"
+      },
+      "descriptions": {
+        "cloudflare_api_token": "Token with Analytics:Read. Prefer wrangler secrets over dashboard KV.",
+        "cloudflare_account_id": "Cloudflare account id for SQL API queries."
+      },
+      "secrets": {
+        "cloudflare_api_token": true,
+        "cloudflare_account_id": true
+      },
+      "secret_commands": {
+        "cloudflare_api_token": "hoox secrets set analytics-worker CLOUDFLARE_API_TOKEN",
+        "cloudflare_account_id": "hoox secrets set analytics-worker CLOUDFLARE_ACCOUNT_ID"
+      }
+    }
+  }
+}

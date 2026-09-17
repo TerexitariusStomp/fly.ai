@@ -106,7 +106,8 @@ export const blockExplorerTxBaseUrl = `${config.getClient().chain.blockExplorers
 const BLOCK_EXPLORER_URLS: Record<number, string> = {
   1: "https://etherscan.io",
   42161: "https://arbiscan.io",
-  8453: "https://basescan.org",
+  5042001: "https://arcscan.app",
+  5042002: "https://testnet.arcscan.app",
   80094: "https://berascan.com",
 };
 

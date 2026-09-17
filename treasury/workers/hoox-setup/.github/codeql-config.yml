@@ -1,0 +1,24 @@
+# CodeQL custom configuration
+# https://docs.github.com/en/code-security/reference/code-scanning/workflow-configuration-options#custom-configuration-files
+
+name: "HOOX CodeQL"
+
+queries:
+  - uses: security-and-quality
+
+# First-party code only. `pages` was a leftover path and is gone.
+paths:
+  - packages
+  - workers
+  - scripts
+  - .github
+
+paths-ignore:
+  - "**/node_modules"
+  - "**/python_modules"
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.spec.ts"
+  - "**/dist"
+  - "**/.wrangler"
+  - "**/generated"

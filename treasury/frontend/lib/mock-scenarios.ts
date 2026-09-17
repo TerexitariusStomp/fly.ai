@@ -3,14 +3,13 @@ import { DEFAULT_PRICES } from "./mock-fixtures-prices";
 import {
   WHALE_BALANCES,
   EMPTY_BALANCES,
-  LEGACY_BALANCES,
-  MULTI_CHAIN_BALANCES,
+  STAKER_BALANCES,
 } from "./mock-fixtures-balances";
 
 export const SCENARIOS: Record<string, MockScenario> = {
   whale: {
     name: "whale",
-    description: "Large SYM + wstSYM balances across multiple chains",
+    description: "Large SYM + stSYM + wstSYM balances",
     isConnected: true,
     prices: DEFAULT_PRICES,
     balances: WHALE_BALANCES,
@@ -22,19 +21,12 @@ export const SCENARIOS: Record<string, MockScenario> = {
     prices: DEFAULT_PRICES,
     balances: EMPTY_BALANCES,
   },
-  legacy: {
-    name: "legacy",
-    description: "Wallet with v1 SYM, v1 sSHIT, wsSHIT needing migration",
+  staker: {
+    name: "staker",
+    description: "Wallet mostly staked into stSYM / wstSYM",
     isConnected: true,
     prices: DEFAULT_PRICES,
-    balances: LEGACY_BALANCES,
-  },
-  "multi-chain": {
-    name: "multi-chain",
-    description: "wstSYM spread across 6 chains",
-    isConnected: true,
-    prices: DEFAULT_PRICES,
-    balances: MULTI_CHAIN_BALANCES,
+    balances: STAKER_BALANCES,
   },
   disconnected: {
     name: "disconnected",

@@ -1,0 +1,239 @@
+<!--
+  Copyright (c) 2026 HOOX · jango-blockchained (hoox-sh)
+  SPDX-License-Identifier: CC-BY-4.0
+-->
+
+---
+title: "5-Minute Quick Start"
+description: "Install the CLI, run hoox onboard, deploy the edge mesh, and fire a simulated trade webhook in under 5 minutes."
+---
+
+This guide gets you from a blank console to a **fully active, edge-deployed algorithmic trading ecosystem** on the Cloudflare® network, processing simulated signals in under 5 minutes.
+
+The recommended path is **`bun add -g @hoox-sh/hoox-cli`** → clone → **`hoox onboard`** → **`hoox deploy all --auto`**. Prefer the CLI over manual Wrangler for provision, secrets, and deploy.
+
+---
+
+## 🏁 Step-by-Step Deployment Path
+
+### Step 0: Install CLI & Clone
+
+```bash
+# Bun ≥ 1.2 required (CLI is Bun-only)
+curl -fsSL https://bun.sh/install | bash
+
+bun add -g @hoox-sh/hoox-cli
+
+git clone --recursive https://github.com/hoox-sh/hoox.git
+cd hoox
+```
+
+### Step 1: Onboard Your Workspace
+
+Run the one-shot bootstrap from the monorepo root (or after the CLI has remembered
+that path — see [Installation → Run from any directory](/docs/enduser/getting-started/installation#run-from-any-directory-monorepo-remember)):
+
+```bash
+hoox onboard
+# alias: hx onboard
+```
+
+_Interactive prompts will ask for your Cloudflare® Account ID, API Token, and your unique `SUBDOMAIN_PREFIX` (e.g., `alpha-trading`). For non-interactive use, pass `--token` and `--account` flags._
+
+After the first successful discovery, `hx check setup` and other commands work from any cwd.
+
+If you want fine-grained control over each step, run them separately:
+
+```bash
+hoox init    # 1. Write wrangler.jsonc and collect integration secrets
+hoox setup   # 2. Generate keys, apply D1 schema, push secrets, deploy dashboard
+```
+
+Setup **gates** stop the flow when init is incomplete (no `wrangler.jsonc`) or worker submodule trees are still empty — fix with `git submodule update --init --recursive` (or `hoox clone --all`) and re-run.
+
+---
+
+### Step 2: Inject Encrypted Exchange API Keys
+
+For your safety, exchange credentials (API keys and private signatures) are never stored in plain text. Inject them as encrypted **Cloudflare® Workers Secrets** bound securely to your compute instances:
+
+```bash
+# One key pair for all venues (Binance / Bybit / MEXC).
+# Which exchange is used comes from the signal / routing config — not the secret name.
+hoox secrets set trade-worker EXCHANGE_KEY_BINDING "your_exchange_api_key"
+hoox secrets set trade-worker EXCHANGE_SECRET_BINDING "your_exchange_api_secret"
+
+# Optional dedicated testnet pair (when signals use "test": true)
+# hoox secrets set trade-worker EXCHANGE_TESTNET_KEY_BINDING "..."
+# hoox secrets set trade-worker EXCHANGE_TESTNET_SECRET_BINDING "..."
+```
+
+<Warning>
+  Cloudflare® Secrets are encrypted at rest using hardware-level keys and are
+  injected straight into your V8 execution isolates at runtime. They can never
+  be decrypted or read back via the API, ensuring top-tier security for your
+  capital.
+</Warning>
+
+---
+
+### Step 3: Deploy All Workers in Sequence
+
+Hoox microservices communicate internally via Service Bindings. The CLI automatically manages the deployment sequence, ensuring databases, queues, and configuration stores compile first, followed by gateway routers and background compute tasks:
+
+```bash
+# Compile and deploy all enabled workers (includes pyne-worker when enabled)
+hoox deploy all --auto
+```
+
+_This command automatically provisions:_
+
+<ol>
+  <li>
+    <strong>D1 Edge Database</strong> (<code>hoox-db</code> / trade-data-db)
+  </li>
+  <li>
+    <strong>CONFIG_KV</strong> configuration namespace
+  </li>
+  <li>
+    <strong>Internal Workers</strong> (<code>trade-worker</code>,{" "}
+    <code>d1-worker</code>, <code>telegram-worker</code>,{" "}
+    <code>pyne-worker</code>, …)
+  </li>
+  <li>
+    <strong>Public Gateway</strong> (<code>hoox</code> gateway router)
+  </li>
+  <li>
+    <strong>Next.js Dashboard Command Center</strong> (
+    <code>workers/dashboard</code>)
+  </li>
+</ol>
+
+Once completed, the CLI will output your public Gateway endpoint URL: `https://hoox.alpha-trading.workers.dev`
+
+---
+
+### Step 4: Verify the Deployment
+
+Run the health check to confirm everything is online:
+
+```bash
+hoox check health
+```
+
+You should see all enabled workers reporting `healthy` status. To fix any issues automatically:
+
+```bash
+hoox check health --fix
+```
+
+Also useful after onboard:
+
+```bash
+hoox check setup   # config / infra / secrets presence (quiet when healthy)
+```
+
+---
+
+### Step 5: Fire a Simulated Trade Webhook
+
+Now, fire a test webhook trade signal to your live gateway using `curl`.
+
+```bash
+# Live trade (default)
+curl -X POST https://hoox.alpha-trading.workers.dev/webhook \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiKey": "your-hoox-webhook-passkey",
+    "exchange": "bybit",
+    "action": "LONG",
+    "symbol": "BTCUSDT",
+    "quantity": 0.001,
+    "leverage": 10
+  }'
+
+# Testnet trade (Binance / Bybit only)
+# Prefer dedicated secrets: BYBIT_TESTNET_KEY_BINDING / BYBIT_TESTNET_SECRET_BINDING
+curl -X POST https://hoox.alpha-trading.workers.dev/webhook \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiKey": "your-hoox-webhook-passkey",
+    "exchange": "bybit",
+    "action": "LONG",
+    "symbol": "BTCUSDT",
+    "quantity": 0.001,
+    "leverage": 10,
+    "test": true
+  }'
+```
+
+See **[Test Trading](/docs/enduser/guides/test-trading)** for credential setup, D1 isolation, and dashboard filters.
+
+---
+
+### Step 6 (Optional): Measure Fast-Path Latency
+
+Once live, you can probe the deployed system to measure end-to-end latency:
+
+```bash
+# Send 50 synthetic probes and report p50/p95/p99 per-hop latency
+hoox perf fastpath run --n 50
+```
+
+This reports per-hop latency for `hoox`, `trade-worker`, and `analytics-worker` so you can identify bottlenecks.
+
+---
+
+## 📥 Webhook Payload Parameters Spec
+
+Every webhook payload fired to your Gateway must match the following JSON Schema:
+
+| Parameter  |   Type    | Required | Description                                                                                      |
+| :--------- | :-------: | :------: | :----------------------------------------------------------------------------------------------- |
+| `apiKey`   | `string`  | **Yes**  | Your custom webhook authorization passkey (defined in `CONFIG_KV`).                              |
+| `exchange` | `string`  | **Yes**  | Target exchange router: `binance`, `bybit`, or `mexc`.                                           |
+| `action`   | `string`  | **Yes**  | `LONG`, `SHORT`, `CLOSE_LONG`, or `CLOSE_SHORT`.                                                 |
+| `symbol`   | `string`  | **Yes**  | Standard market symbol.                                                                          |
+| `quantity` | `number`  | **Yes**  | Position size / quantity.                                                                        |
+| `leverage` | `number`  |    No    | Leverage coefficient. Defaults to `1` (spot) if omitted.                                         |
+| `test`     | `boolean` |    No    | When `true`, use exchange testnet (Binance/Bybit). Rejected for MEXC. Prefer `*_TESTNET_*` secrets. Default: live. |
+
+---
+
+## 📤 Expected Success Response
+
+When a signal arrives, the Hoox Gateway authorizes the request, locks execution via Durable Objects, routes order calculations to the edge node nearest to Bybit's servers, executes the order, and registers the transaction in your D1 SQLite table.
+
+You will receive an instantaneous, low-latency JSON response:
+
+```json
+{
+  "success": true,
+  "requestId": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+  "exchange": "bybit",
+  "symbol": "BTCUSDT",
+  "action": "LONG",
+  "result": {
+    "orderId": "18049284739",
+    "status": "Filled",
+    "executedQty": 0.001,
+    "price": 68425.5,
+    "timestamp": 1779261050000
+  }
+}
+```
+
+---
+
+<Tip>
+  If the exchange is temporarily undergoing system maintenance or experiences
+  high network congestion, Hoox will automatically intercept the failure,
+  enqueue the trade in **Cloudflare® Queues** with exponential backoff retry
+  policies, and return a `"status": "Enqueued"` response to guarantee delivery!
+</Tip>
+
+### 🔗 Next Steps
+
+- [**How Hoox Works**](/docs/enduser/concepts/how-hoox-works) — Take a deep dive into the edge processing pipelines.
+- [**Terminal UI Guide**](/docs/enduser/guides/tui) — Run, hot-reload, and inspect live metrics in a full-screen console interface.
+- [**Set Up Telegram Alerts**](/docs/enduser/tutorials/telegram-bot) — Link your bot to get order fills pushed straight to your phone.

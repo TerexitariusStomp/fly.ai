@@ -18,9 +18,9 @@ const DESKTOP_BREAKPOINT = 1023.5;
 const TIGHT_POPOVER_CLASS = "symbient-tour-popover symbient-tour-popover-tight";
 const NEW_BADGE = `<span class="px-1.25 pt-px mx-[3px] rounded-full bg-green/20 text-[8px] font-semibold text-green uppercase inline-flex items-center justify-center align-middle relative -top-px">NEW</span>`;
 
-type SHITStep = DriveStep & { name: string };
+type SYMStep = DriveStep & { name: string };
 
-function buildSteps(): SHITStep[] {
+function buildSteps(): SYMStep[] {
   return [
     {
       name: "sidebar_overview",
@@ -29,12 +29,10 @@ function buildSteps(): SHITStep[] {
         title: "Everything starts here",
         description: `
           <ul>
-            <li><strong>Pulse</strong>${NEW_BADGE}. Live revenue, treasury health, buyback and emission activity, and every on-chain action.</li>
-            <li><strong>SYM.</strong> Balances, wrapping (previously Stake), bridging across chains.</li>
-            <li><strong>Cooler.</strong> Borrow USDS against your wstSYM at 0.5% APR, no liquidation risk.</li>
-            <li><strong>CDs.</strong> Convertible Deposits — now built into the app.</li>
-            <li><strong>DAO.</strong> Vote on proposals, delegate, view contract parameters (previously Govern).</li>
-            <li><strong>Engage</strong>${NEW_BADGE}. CD participants accumulate iSHIT, convertible to SYM below market.</li>
+            <li><strong>Overview.</strong> Live treasury NAV, floor price, and connectome brain activity.</li>
+            <li><strong>Traders.</strong> The 7 connectomes — performance, signals, and betting markets.</li>
+            <li><strong>Treasury.</strong> Reserves, RFV, positions, and every on-chain action.</li>
+            <li><strong>Stake & Wrap.</strong> Stake SYM to stSYM, wrap to wstSYM, and back.</li>
           </ul>
         `,
         side: "right",
@@ -42,17 +40,16 @@ function buildSteps(): SHITStep[] {
       },
     },
     {
-      name: "pulse",
-      element: '[data-tour="nav-pulse"]',
+      name: "traders",
+      element: '[data-tour="nav-traders"]',
       popover: {
-        title: "Pulse – the protocol, live",
+        title: "The connectomes",
         description: `
-          <p style="margin-bottom:20px">What the protocol is doing, what backs it, and every action it takes.</p>
+          <p style="margin-bottom:20px">Seven real biological neural networks govern the treasury and trade it autonomously.</p>
           <ul>
-            <li><strong>Overview.</strong> Live revenue, treasury health, buyback and emission activity</li>
-            <li><strong>Treasury.</strong> What backs every SYM — assets, liabilities, and protocol-owned liquidity</li>
-            <li><strong>Protocol.</strong> Where revenue comes from and how it flows through buybacks and emissions</li>
-            <li><strong>Feed.</strong> Every on-chain action as it happens</li>
+            <li><strong>Leaderboard.</strong> Each connectome's track record and conviction scores</li>
+            <li><strong>Signals.</strong> Live trade signals and predictions</li>
+            <li><strong>Governance.</strong> Protocol actions need at least 3 of 7 connectomes to pass</li>
           </ul>
         `,
         side: "right",
@@ -61,24 +58,12 @@ function buildSteps(): SHITStep[] {
       },
     },
     {
-      name: "cds",
-      element: '[data-tour="nav-cds"]',
+      name: "treasury",
+      element: '[data-tour="nav-treasury"]',
       popover: {
-        title: "Convertible Deposits – now built in",
+        title: "The shared treasury",
         description:
-          "CDs are now fully integrated into the main app. Same positions, same mechanics — deposit, borrow, and track activity all from the sidebar.",
-        side: "right",
-        align: "center",
-        popoverClass: TIGHT_POPOVER_CLASS,
-      },
-    },
-    {
-      name: "engage",
-      element: '[data-tour="nav-engage"]',
-      popover: {
-        title: "Engage – Coming Soon",
-        description:
-          "Convertible Deposits participants receive convSHIT — the right to purchase SYM at a discount to market. The more you participate, the more you accumulate.",
+          "Every SYM is partially backed by real reserves. NAV, RFV, floor price, positions, and every on-chain action — all verifiable.",
         side: "right",
         align: "center",
         popoverClass: TIGHT_POPOVER_CLASS,

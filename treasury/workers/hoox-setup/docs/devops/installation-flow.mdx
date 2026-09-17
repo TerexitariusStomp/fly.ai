@@ -1,0 +1,170 @@
+<!--
+  Copyright (c) 2026 HOOX · jango-blockchained (hoox-sh)
+  SPDX-License-Identifier: CC-BY-4.0
+-->
+
+---
+title: "Cloudflare® Workers Setup Flow"
+description: "Detailed system onboarding, toolchain validation steps, wrangler.jsonc schemas, and Secret Store binding architectures."
+---
+
+This document details the step-by-step installation, bootstrapping, and validation workflows executed by the Hoox CLI during project initialization.
+
+<Note>
+  Workspace `wrangler.jsonc` is validated by the CLI (show/set/check setup and
+  schema commands). Prefer the documented shape and presets rather than
+  bypassing validation when extending worker parameters.
+</Note>
+
+---
+
+## 🏗️ Onboarding Wizard (`hoox onboard`)
+
+The recommended entry point is **`hoox onboard`** (alias: `hx onboard`). It chains `init` (configuration) and `setup` (infrastructure) into a single command. Running `hoox` / `hx` with no arguments on an uninitialized workspace auto-launches `onboard` (or `onboard --resume` when `.wizard-state.json` exists).
+
+**Setup gates (0.11+ / current 0.13.x):** onboard will **not** run setup if `init` was cancelled or never wrote `wrangler.jsonc`. Setup also aborts when worker trees are still missing after the submodule clone attempt, and requires Cloudflare® auth (`wrangler login` or `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`).
+
+To start the system bootstrap, run the one-shot wizard from the monorepo root
+(the CLI remembers that path so later `hx` calls work from any directory):
+
+```bash
+cd /path/to/hoox   # first discovery writes ~/.hoox/config/monorepo.json
+hoox onboard
+# later, from any directory:
+hx doctor          # shows Remembered + Runtime root
+hx check health
+```
+
+For fine-grained control, run the two steps separately:
+
+```bash
+hoox init    # 1. Write wrangler.jsonc, collect integration secrets
+hoox setup   # 2. Generate keys, apply D1 schema, push secrets, deploy dashboard
+```
+
+The setup wizard guides you through these critical onboarding phases:
+
+### Phase 1: Cloudflare® Authentication
+
+Prompts for your Cloudflare® API token (with `Account.D1`, `Account.KV`, `Account.Workers` permissions) and Account ID.
+
+### Phase 2: Worker Preset Selection
+
+Chooses a **preset** rather than free-form per-worker toggles in the wizard:
+
+| Preset     | Focus                                                                 |
+| :--------- | :-------------------------------------------------------------------- |
+| `minimal`  | Gateway + D1 + analytics — webhook processing only                    |
+| `standard` | Trading + analytics + Telegram notifications                          |
+| `full`     | All workers (AI agent, DeFi wallet, email, pyne-worker / Pine Script™, …) + integrations |
+
+Pass `--preset minimal|standard|full` for non-interactive runs (`hoox onboard` / `hoox init`). You can still edit `wrangler.jsonc` afterward to refine enabled workers.
+
+### Phase 3: Integration Secrets
+
+Collects any integration secrets required by the selected preset (exchange API keys, Telegram bot tokens, AI provider keys) and writes them to local `.dev.vars` files.
+
+### Phase 4: Configuration Write
+
+Consolidates all chosen parameters and writes your central `wrangler.jsonc` file, mapping out variables and bindings for every worker.
+
+### Phase 5: Infrastructure Provisioning
+
+Generates internal auth keys, creates D1 databases, applies the schema, and pushes secrets to Cloudflare®. Builds and deploys the Next.js dashboard (via `hoox setup` / onboard chain).
+
+### Phase 6: Verification (suggested next step)
+
+Does **not** auto-run validation. When setup finishes successfully, the CLI **suggests** `hoox check setup` as the next step so you can verify config, infra, secrets, and database health.
+
+---
+
+## 🔎 Configuration Files Spec
+
+The Hoox platform uses a dual configuration file architecture to track workspace states:
+
+### A. wrangler.jsonc (Central Settings)
+
+This file represents the declarative single source of truth for your monorepo's active workers:
+
+```jsonc
+{
+  "global": {
+    "cloudflare_account_id": "debc6545e63bea36be059cbc82d80ec8",
+    "subdomain_prefix": "hoox",
+  },
+  "workers": {
+    "d1-worker": {
+      "enabled": true,
+      "path": "workers/d1-worker",
+      "vars": { "database_name": "trade-data-db" },
+    },
+    "trade-worker": {
+      "enabled": true,
+      "path": "workers/trade-worker",
+      "secrets": ["BYBIT_API_KEY", "BYBIT_API_SECRET", "TELEGRAM_BOT_TOKEN"],
+    },
+  },
+}
+```
+
+---
+
+### B. `.wizard-state.json` (Onboarding State)
+
+During the interactive setup, the CLI caches your current step and intermediate inputs inside `.wizard-state.json` at your project root (constant `WIZARD_STATE_PATH` in `@hoox-sh/hoox-shared`).
+
+- **State Recovery**: If your terminal session is disconnected or wrangler login prompts timeout, you can run `hoox onboard` (or `hoox init --resume`) again. The CLI will detect the state file and seamlessly resume your onboarding from the last incomplete step. Running `hoox` with no args and no `wrangler.jsonc` also resumes via `onboard --resume` when this file exists.
+- **Auto-Cleanup**: When the wizard completes successfully (or when the workspace is already initialized), the state file is cleaned up so the project root stays tidy.
+
+---
+
+## 🔒 Secret Bindings Architecture
+
+Hoox utilizes Cloudflare® hardware-secured **Secret Store** to bind environment credentials to V8 isolates without exposing them in git history.
+
+### Local Mocking (`.dev.vars`)
+
+During local development, wrangler dev looks for a local, gitignored file called `.dev.vars` inside each worker's directory to simulate secrets:
+
+```bash
+# workers/trade-worker/.dev.vars
+BYBIT_API_KEY=mock_bybit_development_key
+BYBIT_API_SECRET=mock_bybit_development_secret
+```
+
+---
+
+### Production Secret Bindings
+
+When deploying to production, wrangler binds these variables using direct encrypted environments in your worker's wrangler configuration:
+
+```json
+{
+  "secrets_store": {
+    "bindings": [
+      {
+        "binding": "BYBIT_API_KEY_BINDING",
+        "store_id": "48433bc559a943f09d9d6c622e188fd5",
+        "secret_name": "BYBIT_API_KEY"
+      }
+    ]
+  }
+}
+```
+
+This guarantees that secrets are never logged, never cached in plain text on disk, and are only accessible inside your worker's sandboxed execution isolate memory.
+
+---
+
+<Tip>
+  Made a configuration mistake or changed your subdomain? Re-run `hoox check
+  setup` at any time for high-integrity validation of config, infra, secrets,
+  and bindings. Workspace `wrangler.jsonc` is also checked by `hoox schema
+  validate` and related CLI commands.
+</Tip>
+
+### 🔗 Next Steps
+
+- **[DevOps Setup & Operations Manual](/docs/devops/setup-and-operations)** — Dive into complete operations, variable matrices, and troubleshooting.
+- **[Terminal UI Cockpit](/docs/devops/tui)** — Run, hot-reload, and monitor your local workers via TUI.
+- **[CLI features](/docs/devops/cli-features)** — Monorepo remember path, secrets modes, Linear Rail banner.

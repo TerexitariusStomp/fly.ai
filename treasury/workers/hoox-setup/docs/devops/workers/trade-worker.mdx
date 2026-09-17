@@ -1,0 +1,207 @@
+<!--
+  Copyright (c) 2026 HOOX · jango-blockchained (hoox-sh)
+  SPDX-License-Identifier: CC-BY-4.0
+-->
+
+---
+title: "trade-worker Isolate Profile"
+description: "Comprehensive engineering specification for the Hoox Trade Execution Worker, covering multi-exchange client architectures, HMAC signing, and D1 database ledgers."
+---
+
+The **`trade-worker`** is the execution engine of the Hoox trading platform. Deployed as a private compute isolate behind the edge firewall, this worker is responsible for calculating order parameters, executing leverage scaling, performing cryptographic HMAC-SHA256 signature calculations, placing trades on Bybit, Binance, and MEXC, and offloading transactional metrics.
+
+---
+
+## ⚡ 1. Declared Wrangler Configurations & Bindings
+
+The `trade-worker` does not expose a public URL, communicating internally via V8 Service Bindings. Its `wrangler.jsonc` maps out its critical storage, queue, and database hooks:
+
+```jsonc
+{
+  "name": "trade-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-05-19",
+  "compatibility_flags": ["nodejs_compat"],
+  "account_id": "debc6545e63bea36be059cbc82d80ec8",
+  "placement": {
+    "mode": "smart",
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "trade-data-db",
+      "database_id": "c5917667a21745e390ff969f32b1847a",
+    },
+  ],
+  "r2_buckets": [
+    { "binding": "REPORTS_BUCKET", "bucket_name": "trade-reports" },
+    { "binding": "SYSTEM_LOGS_BUCKET", "bucket_name": "hoox-system-logs" },
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "CONFIG_KV",
+      "id": "c5917667a21745e390ff969f32b1847d",
+    },
+  ],
+  "queues": {
+    "consumers": [
+      {
+        "queue": "trade-execution",
+        "max_batch_size": 10,
+        "max_batch_timeout": 1,
+      },
+    ],
+  },
+  "secrets": [
+    "INTERNAL_KEY_BINDING",
+    // Unified exchange API (venue selected by signal / routing)
+    "EXCHANGE_KEY_BINDING",
+    "EXCHANGE_SECRET_BINDING",
+    // Optional testnet pair (preferred when payload.test === true)
+    "EXCHANGE_TESTNET_KEY_BINDING",
+    "EXCHANGE_TESTNET_SECRET_BINDING",
+  ],
+}
+```
+
+---
+
+## 🔄 Position reconciliation
+
+Fills write D1 positions via non-blocking `waitUntil` for latency. To recover ledger drift, **`POST /api/positions/reconcile`** (trade-execute internal auth) pulls open positions from each exchange with credentials and upserts D1 (`OPEN` / `CLOSED`). Agent housekeeping cron invokes this path automatically.
+
+| Body field | Effect |
+| ---------- | ------ |
+| `exchanges` | Optional list (`binance` / `bybit` / `mexc`) |
+| `testnet` | Reconcile testnet namespace + clients |
+| `dryRun` | Diff only — no D1 writes |
+
+---
+
+## 🧪 Test trading (`test: true`)
+
+| Topic | Behavior |
+| ----- | -------- |
+| Schema | Optional `test?: boolean` on `WebhookPayload` and `TradeQueueMessage` |
+| Hosts | Binance Futures testnet · Bybit testnet · MEXC rejected |
+| Credentials | Prefer `*_TESTNET_*` secrets; fall back to live keys with a warn log |
+| Transport | Always REST; live WebSocket Durable Object is never used |
+| D1 trades | `status = 'TEST_EXECUTED'` |
+| D1 positions | id = `{exchange}-testnet-{symbol}-{side}` |
+| Telegram | Exchange label includes `[TEST]` (single notify — no queue double-send) |
+| Analytics | Exchange blob encoded as `{exchange}:test` |
+| Live WS perf | When `use_websocket=true` and live, router **skips** REST client construction |
+
+Operator guide: [Test Trading](/docs/enduser/guides/test-trading).
+
+---
+
+## 🔀 2. The Provider-Based `ExchangeRouter` Pattern
+
+To support multiple centralized exchanges with different API schemas while maintaining a clean code structure, `trade-worker` implements a **Provider Composition Pattern**:
+
+### A. Generic Exchange Provider Interface
+
+The client abstraction is defined inside the shared monorepo package `@hoox-sh/hoox-shared/types`:
+
+```typescript
+export interface IExchangeProvider<TClient, TEnv> {
+  readonly name: string;
+  createClient(env: TEnv, options?: { testnet?: boolean }): TClient;
+  hasCredentials(env: TEnv): boolean;
+  /** False for exchanges with no public REST sandbox (e.g. MEXC). */
+  readonly supportsTestTrading?: boolean;
+}
+```
+
+### B. Dynamic Runtime Routing
+
+The `ExchangeRouter` evaluates the incoming symbol and parses settings in `CONFIG_KV` in sub-milliseconds:
+
+1. **Default Path**: Routes trades to the default CEX declared in `exchanges:default_routing` (typically `bybit`).
+2. **Dynamic Symbol Redirects**: Parses overrides in KV (e.g. `exchanges:routing:SOLUSDT = binance`). If present, the router bypasses Bybit and instantiates the `BinanceProvider` instantly without redeploying code.
+3. **Test trading**: When the payload includes `"test": true`, the router creates the client with `testnet: true` (Binance → `testnet.binancefuture.com`, Bybit → `api-testnet.bybit.com`). MEXC rejects with `TEST_TRADING_UNSUPPORTED`. Test mode always uses REST (live WebSocket Durable Objects are skipped). Credentials prefer `BINANCE_TESTNET_*` / `BYBIT_TESTNET_*` secrets, falling back to live bindings.
+4. **Live WS perf**: when `exchange:{name}:use_websocket=true` and the trade is live, the router skips REST client construction entirely and hands off to the Durable Object.
+
+---
+
+## 🔌 3. Internal REST API Specification
+
+> **Note:** For the canonical endpoint directory with full request/response examples across all workers, see [`/docs/devops/api/endpoints`](/docs/devops/api/endpoints).
+
+### A. Process Order Pipeline
+
+Invoked by the `hoox` gateway or the `TRADE_QUEUE` consumer batch runner.
+
+- **Endpoint**: `/process`
+- **Method**: `POST`
+- **Headers**: `X-Internal-Auth-Key: <INTERNAL_KEY_BINDING>`
+- **JSON Payload**:
+  ```json
+  {
+    "requestId": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+    "payload": {
+      "exchange": "bybit",
+      "action": "LONG",
+      "symbol": "BTCUSDT",
+      "quantity": 0.005,
+      "leverage": 10,
+      "test": true
+    }
+  }
+  ```
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "result": {
+      "orderId": "18049284739",
+      "status": "Filled",
+      "price": 68425.5
+    },
+    "error": null
+  }
+  ```
+
+---
+
+## 🛡️ 4. Standardized Exception Handling
+
+All execution rejects and validation failures are intercepted by the `trade-worker` error middleware and formatted using the shared `Errors` factory from `@hoox-sh/hoox-shared/errors`:
+
+```typescript
+import { Errors } from "@hoox-sh/hoox-shared/errors";
+
+// 1. Parameter Validation Failure
+if (quantity <= 0) {
+  return Errors.badRequest("Quantity parameter must be greater than zero.");
+}
+
+// 2. Exchange Signature Timeout
+if (timestampExpired) {
+  return Errors.unauthorized(
+    "Timestamp verification failed. Check system NTP sync."
+  );
+}
+
+// 3. API Execution Rejects
+try {
+  await exchange.placeOrder(order);
+} catch (err: any) {
+  return Errors.internal(`Exchange API Reject: ${err.message}`);
+}
+```
+
+---
+
+<Tip>
+  If the exchange API rejects an order due to account rate-limiting, the queue
+  consumer automatically returns a retry flag. Cloudflare Queues will back off
+  and re-route the batch at intervals starting at 30 seconds, protecting your
+  strategy from missed fills.
+</Tip>
+
+### 🔗 Next Steps
+
+- **[hoox Gateway Profile](/docs/devops/workers/hoox)** — Review WAF rules and Durable Object idempotency locks.
+- **[D1 Database Operations](/docs/enduser/guides/database-ops)** — Manage Drizzle schemas, migrations, and query operations.

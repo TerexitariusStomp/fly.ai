@@ -27,7 +27,7 @@ const THEME_OPTIONS: { value: Theme; label: string; icon: React.ReactNode }[] = 
 ];
 
 const SOCIAL_LINKS = [
-  { href: "https://twitter.com/SHITFinance", icon: RiTwitterXFill, label: "X" },
+  { href: "https://twitter.com/SYMFinance", icon: RiTwitterXFill, label: "X" },
   { href: "https://radicle.network/nodes/rosa.radicle.network/rad%3Az2kY22UBjvyrbxfKZftjF4H66C7Wx", icon: RiGitBranchLine, label: "Radicle" },
   { href: "/#/whitepaper", icon: RiBookOpenLine, label: "Whitepaper" },
   { href: "/#/contracts", icon: RiFileListLine, label: "Contracts" },
@@ -67,8 +67,8 @@ function pad(n: number) {
 export function Footer() {
   const { theme, setTheme } = useTheme();
   const { hours, minutes, seconds, progress } = useEpochTimer();
-  const WstsymToken = useToken(TokenName.Wstsym);
-  const SHITToken = useToken(TokenName.SYM);
+  const WSTSYMToken = useToken(TokenName.WSTSYM);
+  const SYMToken = useToken(TokenName.SYM);
 
   const beatLabel = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 
@@ -156,13 +156,13 @@ export function Footer() {
         </div>
         <div className="flex items-center">
           <div className="flex items-center gap-x-1">
-            <Icon name={SHITToken.icon} className="size-4" />
-            <NumberFlow value={SHITToken.price} className="text-sm" />
+            <Icon name={SYMToken.icon} className="size-4" />
+            <NumberFlow value={SYMToken.price} className="text-sm" />
           </div>
           <Separator orientation="vertical" className="h-5 mx-4 w-px" />
           <div className="flex items-center gap-x-1">
-            <Icon name={WstsymToken.icon} className="size-4" />
-            <NumberFlow value={WstsymToken.price} className="text-sm" />
+            <Icon name={WSTSYMToken.icon} className="size-4" />
+            <NumberFlow value={WSTSYMToken.price} className="text-sm" />
           </div>
           <Separator orientation="vertical" className="h-5 mx-4 w-px" />
           <ConnectButton />

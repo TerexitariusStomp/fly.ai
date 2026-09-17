@@ -29,17 +29,16 @@ import {ProfitSharingVault} from "@profitSharingVault/ProfitSharingVault.sol";
 /// @notice Deploys all vendored OSS betting contracts and wires them to SYM token
 /// @dev All contracts are MIT-licensed OSS. This script is ~90 lines of glue.
 contract DeployBetting is Script {
-    string[16] CONNECTOMES = [
-        "celegans", "drosophila", "human", "macaque", "macaque_modha", "mouse", "rat",
-        "malecns", "hemibrain", "medulla", "mouse_retina", "platynereis",
-        "ciona", "larva", "celegans_herm", "celegans_male"
+    string[7] CONNECTOMES = [
+        "drosophila", "rat", "mouse", "ciona",
+        "macaque_modha", "human", "celegans_male"
     ];
 
     function run() external {
         uint256 deployerKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerKey);
         address multisig = vm.envAddress("MULTISIG_ADDRESS");
-        address shitToken = vm.envAddress("SHIT_TOKEN_ADDRESS");
+        address symbientToken = vm.envAddress("SYM_TOKEN_ADDRESS");
 
         vm.startBroadcast(deployerKey);
 
@@ -58,10 +57,10 @@ contract DeployBetting is Script {
         // Deploy VUSD receipt token first
         VUSD vusd = new VUSD(deployer);
         // Deploy Vault with SYM as collateral and VUSD as receipt
-        Vault copyVault = new Vault(shitToken, address(vusd), multisig);
+        Vault copyVault = new Vault(symbientToken, address(vusd), multisig);
         // Deploy TradingEngine
         TradingEngine tradingEngine = new TradingEngine(
-            shitToken,    // usdc_ (using SYM as collateral)
+            symbientToken,    // usdc_ (using SYM as collateral)
             address(copyVault), // vault_
             multisig,     // keeper_
             multisig,     // treasury_
@@ -70,7 +69,7 @@ contract DeployBetting is Script {
         CopyTradeRegistry copyRegistry = new CopyTradeRegistry(address(tradingEngine), multisig);
         console2.log("CopyTradeRegistry:", address(copyRegistry));
 
-        // Register 16 connectomes as copy-trade leaders
+        // Register 7 connectomes as copy-trade leaders
         // Note: registerLeader uses msg.sender as the leader address
         // In production, each connectome would call this from its own wallet
         for (uint256 i = 0; i < CONNECTOMES.length; i++) {
@@ -82,7 +81,7 @@ contract DeployBetting is Script {
         address[] memory vaults = new address[](16);
         for (uint256 i = 0; i < CONNECTOMES.length; i++) {
             ProfitSharingVault vault = new ProfitSharingVault(
-                shitToken,     // _asset (SYM token)
+                symbientToken,     // _asset (SYM token)
                 deployer,      // strategyAddress (connectome's wallet — placeholder)
                 "",            // strategyUri
                 CONNECTOMES[i],// strategyName (connectome ID)

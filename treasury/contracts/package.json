@@ -1,15 +1,13 @@
 {
-  "name": "symbient-finance-contracts",
+  "name": "sym-contracts",
   "version": "0.1.0",
   "license": "AGPL-3.0-only",
   "scripts": {
     "build": "forge build",
     "test": "forge test",
     "test:vv": "forge test -vvv",
-    "deploy:core": "forge script script/DeployshitCore.s.sol --broadcast --verify",
-    "deploy:phase2": "forge script script/DeployshitPhase2.s.sol --broadcast --verify",
-    "mine-vanity": "npx tsx scripts/mine-vanity-salt.ts",
-    "harvest-pol": "npx tsx scripts/harvest-pol.ts",
+    "deploy:testnet": "forge script script/DeploySimplified.s.sol --rpc-url https://rpc.testnet.arc.io --broadcast",
+    "deploy:phase2": "forge script script/DeployPhase2.s.sol --broadcast --verify",
     "setup-gelato": "npx tsx scripts/setup-gelato-tasks.ts",
     "fmt": "forge fmt",
     "clean": "forge clean"

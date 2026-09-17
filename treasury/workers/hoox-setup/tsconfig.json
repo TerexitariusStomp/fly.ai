@@ -1,0 +1,45 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "esnext",
+    "lib": ["es2020", "WebWorker", "DOM"],
+    "moduleResolution": "bundler",
+    "paths": {
+      "@hoox-sh/hoox-shared/*": ["./packages/shared/src/*"],
+      "@hoox-sh/hoox-shared": ["./packages/shared/src/index.ts"],
+      "@hoox/test-utils/*": ["./packages/test-utils/src/*"],
+      "@hoox/test-utils": ["./packages/test-utils/src"]
+    },
+    "types": ["bun-types", "node"],
+    "esModuleInterop": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "outDir": "./dist",
+    "allowJs": true,
+    "checkJs": false,
+    "isolatedModules": true,
+    "emitDeclarationOnly": false,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "ignoreDeprecations": "5.0"
+  },
+  "include": [
+    "src/**/*",
+    "scripts/**/*",
+    "test/**/*",
+    "packages/test-setup-global.ts"
+  ],
+  "exclude": ["node_modules", "**/node_modules/*", "dist"]
+}

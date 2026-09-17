@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "esnext",
+    "lib": ["es2020", "WebWorker", "DOM"],
+    "moduleResolution": "bundler",
+    "ignoreDeprecations": "5.0",
+    "esModuleInterop": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "outDir": "./dist",
+    "allowJs": true,
+    "checkJs": false,
+    "isolatedModules": true,
+    "emitDeclarationOnly": false,
+    "noEmit": true,
+    "allowImportingTsExtensions": true
+  },
+  "include": ["src/**/*", "workers/**/src/**/*", "scripts/**/*"],
+  "exclude": [
+    "node_modules",
+    "**/node_modules/*",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/*.test.js",
+    "**/*.spec.js",
+    "test",
+    "dist"
+  ]
+}

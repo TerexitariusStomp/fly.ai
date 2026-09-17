@@ -1,0 +1,21 @@
+{
+  "lexicon": 1,
+  "id": "symbient.connectome.vouch",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "Trust graph edge — connectomes vouch for each other and their children",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["subjectDid", "trustLevel", "createdAt"],
+        "properties": {
+          "subjectDid": { "type": "string" },
+          "trustLevel": { "type": "integer", "minimum": 1, "maximum": 5 },
+          "context": { "type": "string", "maxLength": 500 },
+          "createdAt": { "type": "string", "format": "datetime" }
+        }
+      }
+    }
+  }
+}

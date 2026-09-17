@@ -7,7 +7,7 @@ import { getTokenAddress, TokenName } from "@/lib/tokens";
 import { getContractAddress, ContractName } from "@/lib/contracts";
 import { formatTokenAmount } from "@/lib/math";
 
-const ONE_Wstsym = parseUnits("1", 18);
+const ONE_WSTSYM = parseUnits("1", 18);
 const PRICE_QUERY_OPTIONS = {
   staleTime: 60_000,
   gcTime: 5 * 60_000,
@@ -21,40 +21,36 @@ function sameAddress(a?: Address, b?: Address): boolean {
 }
 
 export const useTokenPrice = (chainId: number, tokenAddress?: Address): { price: number } => {
-  const shitAddress = getTokenAddress(TokenName.SYM, chainId);
-  const usdsAddress = getTokenAddress(TokenName.USDS, chainId);
-  const azusdAddress = getTokenAddress(TokenName.USDC, chainId);
-  const gSymbientAddress = getTokenAddress(TokenName.Wstsym, chainId);
+  const symbientAddress = getTokenAddress(TokenName.SYM, chainId);
+  const gSymbientAddress = getTokenAddress(TokenName.WSTSYM, chainId);
   const priceAddress = getContractAddress(ContractName.PRICE, chainId);
 
-  const isSymbientToken = sameAddress(tokenAddress, shitAddress);
-  const isUsdsToken = sameAddress(tokenAddress, usdsAddress);
-  const isAzusdToken = sameAddress(tokenAddress, azusdAddress);
-  const isWstsymToken = sameAddress(tokenAddress, gSymbientAddress);
+  const isSymbientToken = sameAddress(tokenAddress, symbientAddress);
+  const isWSTSYMToken = sameAddress(tokenAddress, gSymbientAddress);
 
-  // PRICE module returns SYM price in reserve (USDS) with 18 decimals.
-  const { data: shitPriceRaw } = useReadContract({
+  // PRICE module returns SYM price in reserve units with 18 decimals.
+  const { data: symbientPriceRaw } = useReadContract({
     address: priceAddress,
     abi: PriceAbi,
     functionName: "getCurrentPrice",
     chainId,
     query: {
       ...PRICE_QUERY_OPTIONS,
-      enabled: !!tokenAddress && !!priceAddress && (isSymbientToken || isWstsymToken),
+      enabled: !!tokenAddress && !!priceAddress && (isSymbientToken || isWSTSYMToken),
     },
   });
 
   // Convert exactly 1 wstSYM to SYM via token contract helper.
   // wstSymbientToStSymbient returns stSYM amount, then stSymbientPerToken gives SYM per stSYM.
-  const { data: stSymbientFromOneWstsym } = useReadContract({
+  const { data: stSymbientFromOneWSTSYM } = useReadContract({
     address: gSymbientAddress,
     abi: gSymbientAbi,
     functionName: "wstSymbientToStSymbient",
-    args: [ONE_Wstsym],
+    args: [ONE_WSTSYM],
     chainId,
     query: {
       ...PRICE_QUERY_OPTIONS,
-      enabled: !!tokenAddress && !!gSymbientAddress && isWstsymToken,
+      enabled: !!tokenAddress && !!gSymbientAddress && isWSTSYMToken,
     },
   });
 
@@ -65,28 +61,23 @@ export const useTokenPrice = (chainId: number, tokenAddress?: Address): { price:
     chainId,
     query: {
       ...PRICE_QUERY_OPTIONS,
-      enabled: !!tokenAddress && !!gSymbientAddress && isWstsymToken,
+      enabled: !!tokenAddress && !!gSymbientAddress && isWSTSYMToken,
     },
   });
 
-  if (isUsdsToken || isAzusdToken) {
-    // todo:Temporary assumption for stablecoin pricing.
-    return { price: 1 };
-  }
-
   if (isSymbientToken) {
-    return { price: shitPriceRaw ? formatTokenAmount(shitPriceRaw) : 0 };
+    return { price: symbientPriceRaw ? formatTokenAmount(symbientPriceRaw) : 0 };
   }
 
-  if (isWstsymToken) {
-    if (!shitPriceRaw || !stSymbientFromOneWstsym || !stSymbientPerToken) return { price: 0 };
+  if (isWSTSYMToken) {
+    if (!symbientPriceRaw || !stSymbientFromOneWSTSYM || !stSymbientPerToken) return { price: 0 };
 
-    const shitPriceUsd = formatTokenAmount(shitPriceRaw);
-    const stSymbientPerWstSymbient = formatTokenAmount(stSymbientFromOneWstsym);
-    const shitPerStSymbient = formatTokenAmount(stSymbientPerToken);
-    const shitPerWstSymbient = stSymbientPerWstSymbient * shitPerStSymbient;
+    const symbientPriceUsd = formatTokenAmount(symbientPriceRaw);
+    const stSymbientPerWstSymbient = formatTokenAmount(stSymbientFromOneWSTSYM);
+    const symbientPerStSymbient = formatTokenAmount(stSymbientPerToken);
+    const symbientPerWstSymbient = stSymbientPerWstSymbient * symbientPerStSymbient;
 
-    return { price: shitPriceUsd * shitPerWstSymbient };
+    return { price: symbientPriceUsd * symbientPerWstSymbient };
   }
 
   return { price: 0 };

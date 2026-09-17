@@ -61,7 +61,7 @@ export const ABI = {
   router: parseAbi(["function execute(bytes commands, bytes[] inputs, uint256 deadline) payable"]),
 } as const;
 
-// Uniswap V2 Router02 ABI (for non-Pons tokens)
+// Uniswap V2 Router02 ABI (for treasury swaps)
 export const V2_ROUTER_ABI = parseAbi([
   "function swapExactETHForTokens(uint256 amountOutMin, address[] path, address to, uint256 deadline) payable returns (uint256[] amounts)",
   "function swapExactTokensForETH(uint256 amountIn, uint256 amountOutMin, address[] path, address to, uint256 deadline) returns (uint256[] amounts)",
@@ -80,7 +80,7 @@ const POOL_KEY_TYPE = {
   ],
 } as const;
 
-// ---------- curve maths, integer, to the wei (pons v2) — from loxley ----------
+// ---------- curve maths, integer, to the wei — from loxley ----------
 export const amountOut = (inp: bigint, reserveIn: bigint, reserveOut: bigint): bigint =>
   (inp * reserveOut) / (reserveIn + inp);
 export const amountIn = (out: bigint, reserveIn: bigint, reserveOut: bigint): bigint =>
@@ -119,7 +119,7 @@ export function quoteSell(s: any, tokensIn: bigint) {
 export const minOutFromRate = (amount: bigint, slippageBps: bigint): bigint =>
   (amount * (BPS - BigInt(slippageBps))) / BPS;
 
-// ---------- v4 encoding, the universal router behind the pons hook — from loxley ----------
+// ---------- v4 encoding, universal router — from loxley ----------
 function sortCurrencies(a: `0x${string}`, b: `0x${string}`): [`0x${string}`, `0x${string}`] {
   return BigInt(a) < BigInt(b) ? [a, b] : [b, a];
 }
@@ -223,11 +223,8 @@ export function encodeV4Swap(
   };
 }
 
-// Robinhood Chain addresses (from loxley/cli/env.js)
+// Arc addresses (from loxley/cli/env.js)
 export const ADDRESSES = {
-  FACTORY: "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e" as const,
-  LAUNCH_ROUTER: "0xe33E9E479dF8802cb0866d5d05258bEc4cF62948" as const,
-  PONS_HOOK: "0xE5e702641Ea86F4ae6cC3cDaeD2B886f976Be044" as const,
   UNIVERSAL_ROUTER: "0x8876789976decbfcbbbe364623c63652db8c0904" as const,
   V4_QUOTER: "0x8dc178efb8111bb0973dd9d722ebeff267c98f94" as const,
   V4_STATE_VIEW: "0xf3334192d15450cdd385c8b70e03f9a6bd9e673b" as const,

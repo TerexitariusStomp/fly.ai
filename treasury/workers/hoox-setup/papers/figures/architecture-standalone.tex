@@ -1,0 +1,14 @@
+% Standalone build for tight figure PDF (not a full page / not appended)
+% pdflatex architecture-standalone.tex
+% Uses boxing + pdf primitives to set page size to content (portable, no extra cls).
+\documentclass{article}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,backgrounds,decorations.pathreplacing}
+\pagestyle{empty}
+\begin{document}
+  \newsavebox{\figbox}
+  \sbox{\figbox}{\input{architecture.tex}}
+  \pdfpagewidth=\dimexpr\wd\figbox + 3bp\relax
+  \pdfpageheight=\dimexpr\ht\figbox + \dp\figbox + 3bp\relax
+  \noindent\usebox{\figbox}
+\end{document}

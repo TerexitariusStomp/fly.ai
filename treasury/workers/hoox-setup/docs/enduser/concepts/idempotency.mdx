@@ -1,0 +1,153 @@
+<!--
+  Copyright (c) 2026 HOOX · jango-blockchained (hoox-sh)
+  SPDX-License-Identifier: CC-BY-4.0
+-->
+
+---
+title: "idempotency"
+---
+
+# 🔒 Idempotency & Durable Objects
+
+How Hoox uses Cloudflare Durable Objects for **at-most-once acceptance** at the gateway (two-phase reserve/commit/release) so webhook retries cannot double-dispatch orders during network dropouts.
+
+---
+
+## ⚠️ The Danger: How Webhook Retries Lead to Double-Ordering
+
+Gateway **two-phase** flow (v0.13+): **reserve** the key as `pending` before queue/service work, **commit** only when the trade truly succeeds (including soft-fail HTTP 2xx with `success: false` → **release**), so failed attempts can retry. Auto fingerprints include a **per-minute time bucket** so intentional same-size trades later are not blocked for the full TTL. Prefer a client `idempotencyKey` / `Idempotency-Key` header when you need cross-minute uniqueness.
+
+Without idempotency, a typical signal failure sequence looks like this:
+
+```text
+[TradingView® Webhook] ─── (Signal Post) ───> [Gateway Node] ─── (Submit Order) ───> [Exchange API]
+                                                                                            │
+                                                                                    (Order Filled!)
+                                                                                            │
+[TradingView® Webhook] <── (TLS/TCP Dropout) ── [Gateway Node] <── (Send Success) ─── (Connection drops)
+         │
+(No response: Retries!)
+         │
+[TradingView® Webhook] ─── (Signal Post) ───> [Gateway Node] ─── (Submit Order) ───> [Exchange API]
+                                                                                            │
+                                                                                   (DOUBLE-FILLED! ❌)
+```
+
+---
+
+## 🛡️ The Hoox Solution: Durable Objects Mutex Locking
+
+To enforce at-most-once acceptance within the TTL, Hoox implements an **atomic two-phase dedup** inside `workers/hoox-worker` utilizing **Cloudflare Durable Objects**.
+
+A Durable Object is a unique, single-threaded compute isolate managed by Cloudflare that maintains its own highly optimized, in-memory state and persistent on-disk SQLite storage. Because access to a specific Durable Object instance is single-threaded, it acts as an absolute **distributed lock** (mutex).
+
+### The Idempotency Workflow (two-phase)
+
+```text
+[Incoming Webhook Payload]
+         │
+         ▼
+[Resolve key: Idempotency-Key | body.idempotencyKey | auto fingerprint]
+         │  auto = trade:{ex}:{sym}:{action}:{qty}:{live|test}:{minuteBucket}
+         ▼
+[IdempotencyStore DO — fail-closed if binding missing]
+         │
+ ┌───────┴──────────────────────────────────────────┐
+ │ Phase 1: reserve(key) under blockConcurrencyWhile│
+ │  · committed / pending in TTL → reject (409)     │
+ │  · new → store status=pending, schedule alarm    │
+ └───────┬──────────────────────────────────────────┘
+         │
+         ├─► [Duplicate / in-flight] ──► 409 Conflict (no exchange call)
+         │
+         └─► [Reserved] ──► queue and/or trade-worker
+                                    │
+                    ┌───────────────┴───────────────┐
+                    ▼                               ▼
+            true success                    soft-fail / hard error
+            (order path OK)                 (incl. HTTP 2xx success:false)
+                    │                               │
+                    ▼                               ▼
+            Phase 2: commit(key)            Phase 2: release(key)
+            (blocks retries for TTL)        (retry may reserve again)
+```
+
+---
+
+## 🔍 The Dedup & Cleanup Algorithm
+
+### 1. Key resolution
+
+Preference order:
+
+1. Body `idempotencyKey` or HTTP `Idempotency-Key` header (max 256 chars) — use this for cross-minute uniqueness.
+2. Auto fingerprint: `trade:{exchange}:{symbol}:{action}:{quantity}:{live|test}:{minuteBucket}` so intentional same-size trades in a later minute are not blocked for the full TTL. Live and test modes never share a key.
+
+### 2. Atomic two-phase evaluation
+
+Before any queue or service dispatch:
+
+<ol>
+  <li>
+    The gateway shards to an <code>IdempotencyStore</code> instance from the key.
+    Missing <code>IDEMPOTENCY_STORE</code> binding → <strong>fail-closed</strong>{" "}
+    (<code>503</code> / <code>IDEMPOTENCY_UNAVAILABLE</code>).
+  </li>
+  <li>
+    <strong>reserve</strong>: under single-threaded DO execution, pending or
+    committed keys in TTL return duplicate; new keys become{" "}
+    <code>pending</code> so concurrent retries cannot double-dispatch.
+  </li>
+  <li>
+    On pipeline <strong>success</strong>: <strong>commit</strong> so further
+    retries stay blocked for the TTL.
+  </li>
+  <li>
+    On soft-fail (<code>success: false</code> even with HTTP 2xx) or hard
+    error: <strong>release</strong> so a later retry can reserve again.
+  </li>
+</ol>
+
+### 3. Automatic TTL & Storage Alarms
+
+- Default window is on the order of **minutes** (configured TTL); alarms reclaim expired keys so storage does not grow without bound.
+- Sharded object names keep hot keys from serializing the entire gateway behind one DO instance.
+
+### 4. Cold-Start Resilience
+
+When a DO instance has been idle (no requests for the TTL period), Cloudflare may evict it from memory. Upon the next request:
+
+<ol>
+  <li>
+    The DO is <strong>reconstructed</strong> from its persisted SQLite state on
+    disk.
+  </li>
+  <li>All previously recorded trace IDs are loaded back into memory.</li>
+  <li>
+    The dedup check continues seamlessly — no data loss, no duplicate risk.
+  </li>
+</ol>
+
+This means idempotency protection **survives worker restarts, cold starts, and infrastructure failovers** without any manual intervention.
+
+---
+
+## 📊 Performance Impact
+
+| Metric                  | Value        | Notes                            |
+| ----------------------- | ------------ | -------------------------------- |
+| DO ping overhead        | **\< 2ms**   | Per-request latency added        |
+| Lock acquisition        | **\< 1ms**   | Single-threaded, no contention   |
+| Dedup check (cache hit) | **\< 0.5ms** | In-memory SQLite query           |
+| Storage alarm cleanup   | **\< 5ms**   | Runs in background, non-blocking |
+
+<Warning>
+  Never disable idempotency check bindings in your `wrangler.jsonc` file in
+  production. The performance cost of pinging the DO is less than **2
+  milliseconds**, while the cost of a duplicate order could be catastrophic.
+</Warning>
+
+### 🔗 Next Steps
+
+- [**Signals & Trade Specifications**](/docs/enduser/concepts/signals-and-trades) — Learn how to configure your Pine Script™ webhook payloads to transmit unique idempotency keys.
+- [**Platform Security Guides**](/docs/enduser/guides/secrets-security) — Deepen your understanding of Zero Trust headers and edge firewall configurations.

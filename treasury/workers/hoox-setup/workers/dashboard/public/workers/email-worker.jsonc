@@ -1,0 +1,32 @@
+{
+  "display_name": "Email Worker",
+  "description": "Signal parse patterns (email-worker reads these from CONFIG_KV)",
+  "sections": {
+    "signal": {
+      "title": "Signal Extraction",
+      "description": "Regex / multiplier applied when parsing inbound email signals",
+      "icon": "search",
+      "priority": 10,
+      "fields": {
+        "coin_pattern": "BTC|ETH|SOL",
+        "action_pattern": "BUY|SELL|LONG|SHORT",
+        "quantity_multiplier": 1
+      },
+      "options": {
+        "quantity_multiplier": [
+          0.5,
+          0.75,
+          1,
+          1.25,
+          1.5,
+          2
+        ]
+      },
+      "descriptions": {
+        "coin_pattern": "Regex for tradable symbols in the email body.",
+        "action_pattern": "Regex for trade direction tokens.",
+        "quantity_multiplier": "Scale extracted quantities (1 = unchanged)."
+      }
+    }
+  }
+}

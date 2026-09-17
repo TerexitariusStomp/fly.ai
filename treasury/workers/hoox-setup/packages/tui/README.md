@@ -1,0 +1,266 @@
+# Hoox TUI
+
+**Terminal Operations Center** for the Hoox algorithmic trading framework.  
+A full-screen terminal dashboard built with [OpenTUI](https://github.com/anomalyco/opentui), [Bun](https://bun.sh), and [Zustand](https://zustand.docs.pmnd.rs/).
+
+---
+
+## Quick Start
+
+### Outside a monorepo (recommended for operators)
+
+```bash
+# CLI + TUI as global packages
+bun add -g @hoox-sh/hoox-cli @hoox-sh/hoox-tui
+# or after CLI is already installed:
+bun add -g @hoox-sh/hoox-tui
+
+hx tui
+```
+
+If the TUI package is missing, `hx tui` prints install instructions.  
+Full monorepo under `~/.hoox/repo` is optional (`hx doctor --fix-runtime`).
+
+### From this monorepo
+
+```bash
+# Install dependencies (from repo root)
+bun install
+
+# Launch via CLI (recommended) — LOCAL → http://localhost:8787
+hoox tui
+
+# Connect to remote management plane (REMOTE) — fail-closed auth
+# Server secret: wrangler secret put OPERATOR_API_KEY  (must match token)
+export HOOX_API_TOKEN=…   # required (or Access service-token env)
+# Optional Access: CF_ACCESS_CLIENT_ID + CF_ACCESS_CLIENT_SECRET
+# Optional: HOOX_TRANSPORT=access
+hoox tui --remote
+# or: hoox tui --api-url https://mgmt.example.com --token "$HOOX_API_TOKEN"
+# Escape hatch only: hoox tui --remote --allow-insecure
+# Management API: GET /v1/health, /v1/workers, SSE /v1/trades|logs/stream
+
+# Dev logging → $HOME/.hoox/.tui-state/debug.log (secrets redacted)
+hoox tui --debug
+# or: HOOX_DEBUG=1 / TUI_DEBUG=1
+
+# Or launch from package
+cd packages/tui
+bun run dev
+
+# Build bundle
+bun run build
+
+# Run the built bundle
+bun run start
+```
+
+**Prerequisites:**
+
+- [Bun](https://bun.sh) >= 1.2
+- Terminal with 256-color support (xterm-256color, kitty, iTerm2, Windows Terminal)
+- Minimum terminal size: 80 columns × 24 rows
+- OpenTUI packages (`@opentui/core`, `@opentui/react`) — installed via `bun install`
+
+Persistent UI state lives under `$HOME/.hoox/.tui-state/` (session, crash log, chat history, DB query history).
+
+---
+
+## Keyboard Shortcuts
+
+| Key                 | Action                                    |
+| ------------------- | ----------------------------------------- |
+| `Ctrl+1`            | Dashboard view                            |
+| `Ctrl+2`            | Workers Overview                          |
+| `Ctrl+3`            | Worker Detail                             |
+| `Ctrl+4`            | Trade Monitor                             |
+| `Ctrl+5`            | Logs Viewer                               |
+| `Ctrl+6`            | Service Manager                           |
+| `Ctrl+7`            | Config Editor                             |
+| `Ctrl+8`            | Setup Wizard                              |
+| `Ctrl+9`            | Settings                                  |
+| `Ctrl+0`            | Queue Depth                               |
+| `Ctrl+Alt+K`        | KV Viewer                                 |
+| `Ctrl+Alt+S`        | Secrets Viewer                            |
+| `Ctrl+Alt+C`        | AI Chat                                   |
+| `Ctrl+Alt+Q`        | DB Query                                  |
+| `Ctrl+Alt+E`        | Edge Topology                             |
+| `Ctrl+Alt+W`        | Worker Settings (dashboard.jsonc)         |
+| `Ctrl+P`            | Open Command Palette                      |
+| `Ctrl+B`            | Toggle Sidebar                            |
+| `Ctrl+R`            | Refresh data (force reconnect if offline) |
+| `Ctrl+Q`            | Quit (with confirmation)                  |
+| `Ctrl+Shift+D`      | Toggle status-bar error diagnostics       |
+| `Esc`               | Close palette / dismiss modal / go back   |
+| `↑` `↓`             | Navigate within active view               |
+| `Tab` / `Shift+Tab` | Cycle focus between interactive elements  |
+| `Enter`             | Select / confirm                          |
+| `Space`             | Toggle / pause (view-dependent)           |
+| `/`                 | Focus search (in searchable views)        |
+
+### Service Manager keys
+
+| Key               | Action                                 |
+| ----------------- | -------------------------------------- |
+| `↑` `↓`           | Select worker                          |
+| `d` / `r`         | Deploy / restart selected              |
+| `D` / `R` (Shift) | Deploy all / restart all               |
+| `Enter`           | Open worker detail                     |
+| `k` / `e` / `u`   | Kill-switch refresh / engage / release |
+
+### Dashboard keys
+
+| Key                   | Action                                   |
+| --------------------- | ---------------------------------------- |
+| `←` `→`               | Focus worker health card                 |
+| `Enter`               | Open focused worker detail               |
+| `↑` `↓` / Enter / `x` | Alerts: navigate / acknowledge / dismiss |
+
+---
+
+## Views
+
+| View                 | Description                                                                                        |
+| -------------------- | -------------------------------------------------------------------------------------------------- |
+| **Dashboard**        | System health overview: service grid, alerts, quick stats, agent health, and **PYNE** edge health. |
+| **Workers Overview** | List of all Cloudflare Workers with status, uptime, CPU, memory, and request metrics.              |
+| **Worker Detail**    | Detailed view of a single worker — logs, metrics, Durable Objects, and deployment info.            |
+| **Trade Monitor**    | Live trade stream with symbol, side, price, quantity, and P&L per trade.                           |
+| **Logs Viewer**      | Scrollable log stream with level filtering, worker selection, and full-text search.                |
+| **Service Manager**  | Start, stop, restart, and deploy workers. View deployment history and rollback.                    |
+| **Config Viewer**    | Browse/format/validate project config (free-text edit via external editor; secrets files blocked). |
+| **Setup Wizard**     | Prerequisites + exchange flags + deploy; secrets set via CLI (`hoox config secrets set …`).        |
+| **Settings**         | Display preferences, dark theme, notification toggles, import/export, connection readout.          |
+| **Queue Depth**      | Queue backlog visualization across workers.                                                        |
+| **KV Viewer**        | Read-only Cloudflare KV key browser.                                                               |
+| **Secrets Viewer**   | Read-only secret names/metadata (values never shown).                                              |
+| **AI Chat**          | Streaming chat with the agent worker.                                                              |
+| **DB Query**         | Read-only D1 SQL panel (`SELECT` / `WITH` / `EXPLAIN` only).                                       |
+| **Edge Topology**    | Worker mesh / service-binding graph.                                                               |
+| **Worker Settings**  | Same settings as the web dashboard — fields from `workers/*/dashboard.jsonc` backed by CONFIG_KV.  |
+
+---
+
+## Tech Stack
+
+| Component            | Technology                                                                   |
+| -------------------- | ---------------------------------------------------------------------------- |
+| **TUI Framework**    | OpenTUI — `@opentui/core` + `@opentui/react` (JSX-based terminal rendering)  |
+| **Runtime**          | [Bun](https://bun.sh) — fast all-in-one JS runtime                           |
+| **State Management** | [Zustand](https://zustand.docs.pmnd.rs/) with Immer middleware               |
+| **Language**         | TypeScript (strict mode)                                                     |
+| **Testing**          | Bun test runner (`bun test`)                                                 |
+| **Build**            | `bun build` — bundles entry to `dist/main.js` (OpenTUI packages external)    |
+| **Shared Module**    | `@hoox-sh/hoox-shared` — API client, SSE streaming, color tokens, formatters |
+
+---
+
+## Running Tests
+
+```bash
+# From package
+cd packages/tui
+bun test
+
+# From monorepo root (recommended — includes preload)
+bun run test:tui
+
+# Scoped foundation suite (stores / utils / integration / registry)
+bun test --preload ./packages/tui/src/test-setup.ts \
+  packages/tui/src/stores packages/tui/src/utils \
+  packages/tui/test packages/tui/src/view-registry.test.ts
+
+# Typecheck
+bun run typecheck
+
+# E2E smoke (requires interactive TTY + OpenTUI)
+bun test test/e2e/
+```
+
+---
+
+## Troubleshooting
+
+### "Cannot find module @opentui/core"
+
+OpenTUI packages must be installed. Ensure `bun install` completed successfully.  
+If the packages are in a local path, verify the workspace configuration in the root `package.json`.
+
+### API unreachable (OFFLINE in status bar)
+
+**Local:** HTTP first, then CLI `monitorStatus` fallback.  
+**Remote:** fail-closed HTTP only (no CLI fallback). Auth requires `HOOX_API_TOKEN`, Access env, or `--allow-insecure`.
+
+1. Is a local dev mesh / API reachable? (`HOOX_API_URL`, default `http://localhost:8787`)
+2. Remote: is `HOOX_API_TOKEN` set and matching server `OPERATOR_API_KEY`?
+3. Is the `hoox` CLI on `PATH` for local fallback? (`bun add -g @hoox-sh/hoox-cli`)
+4. Are you on the correct network / VPN?
+
+### Terminal too small
+
+The TUI requires at least **80 columns × 24 rows**. Resize your terminal window.  
+If you see garbled output, try: `export TERM=xterm-256color`
+
+### Garbled screen after exit
+
+If the alternate screen buffer isn't cleaned up, run: `reset` or `tput reset`
+
+### Ctrl+Q not working
+
+Some terminal emulators intercept Ctrl+Q for flow control (XON/XOFF).  
+Disable flow control in your terminal settings, or use `stty -ixon` before launching.  
+You can also open the command palette (`Ctrl+P`) and run **QUIT HOOX**.
+
+### Build fails with missing dependencies
+
+The `bun build` command bundles TypeScript sources with OpenTUI marked external. If dependencies aren't resolved:
+
+```bash
+bun install
+bun run build
+```
+
+Ensure `@hoox-sh/hoox-shared` is linked as a workspace dependency.
+
+### Colors look wrong
+
+The TUI uses 256-color ANSI escape sequences. Ensure:
+
+- `TERM=xterm-256color` (or `kitty`, `screen-256color`)
+- Your terminal supports 256 colors
+- No conflicting terminal color schemes
+
+---
+
+## Project Structure
+
+```
+packages/tui/
+├── src/
+│   ├── main.tsx                   # Entry point — OpenTUI renderer setup
+│   ├── app.tsx                    # Root component — layout, keyboard, crash recovery
+│   ├── components/
+│   │   ├── views/                 # Dashboard, workers, trades, logs, queues, …
+│   │   ├── layout/                # Sidebar + status bar
+│   │   ├── shared/                # Palette, crash screen, error boundary, …
+│   │   └── ui/                    # Dialog / toast wrappers
+│   ├── services/
+│   │   ├── cli-bridge/            # Spawns `hoox` CLI with typed results
+│   │   ├── hoox-path-service.ts   # $HOME/.hoox path helpers
+│   │   └── tui-storage.ts         # File-backed JSON state (no localStorage)
+│   ├── hooks/                     # Keyboard, polling, renderer ref
+│   └── stores/                    # Store unit tests (stores live in hoox-shared)
+├── test/
+│   ├── e2e/smoke.test.ts
+│   └── integration/navigation.test.tsx
+├── package.json
+└── README.md
+```
+
+---
+
+## Design
+
+Near-black canvas (`#050508`), cool indigo accent (`#818CF8`) + cyan highlight,
+static accent brackets on chrome (no rainbow animation), squared edges.
+Follows the Hoox landing page design DNA. No CSS, no DOM — pure terminal rendering via OpenTUI's JSX intrinsics (`<box>`, `<text>`, `<input>`, `<scrollbox>`). UI persistence uses the filesystem under `$HOME/.hoox/.tui-state/` (Bun has no `localStorage`).

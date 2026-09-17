@@ -1,0 +1,318 @@
+<!--
+  Copyright (c) 2026 HOOX · jango-blockchained (hoox-sh)
+  SPDX-License-Identifier: CC-BY-4.0
+-->
+
+---
+title: "agent-worker Isolate Profile"
+description: "Comprehensive engineering specification for the Hoox Agent Cron Worker, covering multi-provider AI Gateway configurations, vision analysis, and risk protection loops."
+---
+
+**Last Updated:** May 2026 (Post-Enhancement)
+
+The `agent-worker` serves as the proactive intelligence layer of the Hoox trading ecosystem. Rather than waiting for webhooks, it runs on a **configurable Cloudflare Cron schedule (1–1440 minutes)** to monitor portfolio health, enforce risk limits, and optimize position exits. The default in this repo is every **15 minutes** (`*/15 * * * *`).
+
+## Core Capabilities
+
+| Feature                        | Description                                                                                                                                   |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| ⏱️ **Cron-Driven Observation** | Runs on a configurable interval (1–1440 minutes via `triggers.crons`; default `*/15 * * * *`) to fetch live market data from Binance, Bybit, and MEXC. |
+| 🛡️ **Global Kill Switch**      | Calculates total account PnL and instantly locks out the `hoox` gateway from new entries if the `max_daily_drawdown_percent` is breached.     |
+| 🎯 **Dynamic Trailing Stops**  | Stores watermark prices in `CONFIG_KV` and automatically triggers `CLOSE` payloads if the market reverses.                                    |
+| 💸 **Scale-Out Take Profits**  | Detects when a position reaches a specific profit target and automatically sends partial close commands to secure gains.                      |
+| 🤖 **AI System Summarization** | Periodically fetches `system_logs` from the `d1-worker`, analyzes them via LLAMA 3 8B, and sends natural language health reports to Telegram. |
+| 🌐 **Multi-Provider AI**       | Seamlessly switches between Workers AI, OpenAI, Anthropic, Google AI, and Azure OpenAI with automatic fallbacks.                              |
+| 🧠 **Advanced Models**         | Supports vision, embeddings, reasoning (extended thinking), and code generation models.                                                       |
+
+## Architecture & Flow
+
+1. **Trigger:** Cloudflare® Cron triggers the worker (interval set in `wrangler.jsonc` → `triggers.crons`, 1–1440 minutes).
+2. **State Sync:** Fetches active `OPEN` positions via the `d1-worker`.
+3. **Market Pulse:** Pings public exchange APIs for the latest `markPrice`.
+4. **Risk Evaluation:** Cross-references current price with KV-stored watermarks and global drawdown limits.
+5. **AI Processing:** Uses configured AI provider with automatic fallback chain.
+6. **Execution:** Dispatches actions to `trade-worker` (closing positions) and `telegram-worker` (alerts) via internal Service Bindings.
+
+> **Test trading note:** The agent closes **live** positions only. At routine start it filters out any OPEN position whose `id` contains `-testnet-` (trade-worker writes those for `test: true` fills). Testnet rows never enter trailing-stop, take-profit, or drawdown math, so sandbox fills cannot trip the live kill switch or issue live closes. Use `test: true` on webhook/email signals for sandbox rehearsal; close testnet exposure via a follow-up signal with `test: true` (or the Dashboard Positions **Close** action, which sets `test` automatically). See [Test Trading](/docs/enduser/guides/test-trading).
+
+## Endpoints & Interactions
+
+> **Note:** For the canonical endpoint directory with full request/response examples across all workers, see [`/docs/devops/api/endpoints`](/docs/devops/api/endpoints).
+
+### Management Endpoints
+
+#### `GET /agent/config`
+
+Returns current agent configuration including provider settings.
+
+```json
+{
+  "success": true,
+  "config": {
+    "defaultProvider": "workers-ai",
+    "fallbackChain": ["workers-ai", "openai"],
+    "modelMap": { ... },
+    "trailingStopPercent": 0.05,
+    "takeProfitPercent": 0.10
+  }
+}
+```
+
+#### `POST /agent/config`
+
+Update agent configuration at runtime.
+
+```json
+{
+  "defaultProvider": "openai",
+  "fallbackChain": ["openai", "workers-ai", "anthropic", "google", "azure"],
+  "modelMap": {
+    "workers-ai": "@cf/meta/llama-3.1-8b-instruct-fp8",
+    "openai": "gpt-4o-mini-2024-07-18",
+    "anthropic": "claude-3-haiku-20240307",
+    "google": "gemini-1.5-flash-002",
+    "azure": "gpt-4o-mini"
+  },
+  "timeoutMs": 30000,
+  "retryCount": 3
+}
+```
+
+#### `GET /agent/models`
+
+Returns all available models from Cloudflare Workers AI and external providers.
+
+#### `POST /agent/test-model`
+
+Test a specific AI model.
+
+```json
+{
+  "prompt": "Say hello",
+  "model": "@cf/meta/llama-3.1-8b-instruct-fp8",
+  "provider": "workers-ai"
+}
+```
+
+#### `GET /agent/health`
+
+Returns health status of all configured AI providers.
+
+```json
+{
+  "success": true,
+  "providers": {
+    "workers-ai": { "healthy": true, "latency": 150 },
+    "openai": { "healthy": true, "latency": 200 }
+  }
+}
+```
+
+### AI Interaction Endpoints
+
+#### `POST /agent/chat`
+
+Send a chat request with automatic provider fallback and **SSE streaming support**.
+
+**Request:**
+
+```json
+{
+  "messages": [{ "role": "user", "content": "Analyze BTC market sentiment" }],
+  "systemPrompt": "You are a professional crypto trading analyst.",
+  "temperature": 0.7,
+  "maxTokens": 500,
+  "stream": true
+}
+```
+
+**Streaming Response (SSE):**
+
+```
+data: {"content": "Based on current market conditions..."}
+data: {"content": " technical indicators suggest..."}
+data: [DONE]
+```
+
+#### `POST /agent/vision`
+
+Analyze images with AI vision models (Workers AI). Supports base64 (preferred) or a **public https** `imageUrl` (private/metadata hosts and non-HTTPS URLs are rejected for SSRF safety).
+
+```json
+{
+  "imageUrl": "https://example.com/chart.png",
+  "prompt": "Analyze this price chart and identify key support/resistance levels",
+  "model": "@cf/meta/llama-3.2-11b-vision-instruct"
+}
+```
+
+Or with base64:
+
+```json
+{
+  "imageBase64": "iVBORw0KGgoAAAANSUhEUgAA...",
+  "prompt": "What pattern do you see in this chart?"
+}
+```
+
+#### Planned / not yet shipped
+
+The following endpoints appear in earlier design notes but are **not implemented** in the current isolate. Prefer `/agent/chat` with a reasoning model id, and track usage via Cloudflare AI Gateway dashboards until these land:
+
+| Endpoint | Status |
+| -------- | ------ |
+| `POST /agent/reasoning` | Not shipped — use `/agent/chat` with a reasoning model |
+| `GET /agent/usage` | Not shipped — use AI Gateway / provider dashboards |
+| `GET /agent/prompts` | Not shipped — system prompts are request-scoped |
+| SSE streaming on `/agent/chat` | Not shipped — responses are JSON only |
+
+#### `POST /agent/embedding`
+
+Generate text embeddings using Workers AI embedding models.
+
+```json
+{
+  "text": "Bitcoin price analysis for position sizing",
+  "provider": "workers-ai"
+}
+```
+
+### Legacy Endpoints
+
+#### `POST /agent/risk-override`
+
+Manually enforce or release risk locks, and/or adjust trailing-stop percent.
+
+```json
+{
+  "action": "engage_kill_switch",
+  "reason": "Manual override from dashboard"
+}
+```
+
+Supported `action` values: `engage_kill_switch`, `release_kill_switch`, `set_trailing_stop`.
+You may also pass `trailingStopPercent` (0–1) alone or with `set_trailing_stop`.
+
+```json
+{
+  "action": "set_trailing_stop",
+  "trailingStopPercent": 0.03,
+  "reason": "Tighter stops into FOMC"
+}
+```
+
+#### `GET /agent/status`
+
+Retrieve the real-time health of the agent and active trailing stops.
+
+## Configuration
+
+### Cron schedule (1–1440 minutes)
+
+The schedule is **not** hard-coded to 5 minutes. Set `triggers.crons` in `workers/agent-worker/wrangler.jsonc` (or the example file) to any interval from 1 to 1440 minutes:
+
+| Minutes | Example cron        |
+| ------- | ------------------- |
+| 1       | `* * * * *`         |
+| 15      | `*/15 * * * *` (default) |
+| 60      | `0 * * * *`         |
+| 1440    | `0 0 * * *`         |
+
+- Align `dashboard.jsonc` → `cron.interval_minutes` (free number, validated 1–1440) with your wrangler expression for operator docs.
+- Disable scheduled runs with `"crons": []`; manual `POST /agent/housekeeping` still works.
+- Redeploy after changing the schedule.
+
+See the [agent-worker README](https://github.com/hoox-sh/agent-worker) for the full mapping table.
+
+### KV Keys
+
+All configuration is stored in `CONFIG_KV` for real-time adjustments.
+
+| KV Key                                       | Default     | Description                             |
+| -------------------------------------------- | ----------- | --------------------------------------- |
+| `agent:config`                               | JSON object | Main provider configuration             |
+| `agent:openai_key`                           | -           | OpenAI API key                          |
+| `agent:anthropic_key`                        | -           | Anthropic API key                       |
+| `agent:google_key`                           | -           | Google AI API key                       |
+| `agent:azure_api_key`                        | -           | Azure OpenAI API key                    |
+| `agent:azure_endpoint`                       | -           | Azure OpenAI endpoint URL               |
+| `trade:max_daily_drawdown_percent`           | `-5`        | Account PnL % that triggers Kill Switch |
+| `trade:kill_switch`                          | `false`     | When `true`, halts all new trades       |
+| `trade:watermark:{exchange}:{symbol}:{side}` | N/A         | High/low watermark                      |
+
+### Default Agent Config
+
+```json
+{
+  "defaultProvider": "workers-ai",
+  "fallbackChain": ["workers-ai", "openai", "anthropic", "google", "azure"],
+  "modelMap": {
+    "workers-ai": "@cf/meta/llama-3.1-8b-instruct-fp8",
+    "openai": "gpt-4o-mini-2024-07-18",
+    "anthropic": "claude-3-haiku-20240307",
+    "google": "gemini-1.5-flash-002",
+    "azure": "gpt-4o-mini"
+  },
+  "timeoutMs": 30000,
+  "retryCount": 3,
+  "maxDailyDrawdownPercent": -5,
+  "trailingStopPercent": 0.05,
+  "takeProfitPercent": 0.1
+}
+```
+
+### Supported Models
+
+#### Workers AI Models
+
+| Task          | Workers AI Model                               |
+| ------------- | ---------------------------------------------- |
+| Chat          | `@cf/meta/llama-3.1-8b-instruct-fp8`               |
+| Vision        | `@cf/meta/llama-3.2-11b-vision-instruct`       |
+| Reasoning     | `@cf/deepseek-ai/deepseek-r1-distill-qwen-32b` |
+| Code          | `@cf/qwen/qwen2.5-coder-32b-instruct`          |
+| Embeddings    | `@cf/baai/bge-base-en-v1.5`                    |
+| Summarization | `@cf/facebook/bart-large-cnn`                  |
+
+#### External Providers
+
+| Provider  | Models                                  |
+| --------- | --------------------------------------- |
+| OpenAI    | GPT-4o, GPT-4o-mini, GPT-4 Turbo, o1    |
+| Anthropic | Claude 3 Haiku, Sonnet, Opus            |
+| Google    | Gemini 1.5 Flash, Gemini 1.5 Pro        |
+| Azure     | GPT-4o, GPT-4o-mini (custom deployment) |
+
+### AI Gateway Features
+
+The AI Gateway provides:
+
+- **Fallback Chain**: Automatically tries providers in order on failure
+- **Health Checks**: Providers self-report health status on each cron tick
+- **Retry Logic**: Exponential backoff with configurable max retries
+- **Timeout Protection**: Configurable per-request timeout (default 30s)
+- **Usage Tracking**: Automatic token and request counting per provider
+
+## Internal Service Bindings
+
+The `agent-worker` requires the following bindings to operate:
+
+- `D1_SERVICE`: To fetch open positions and system logs.
+- `TRADE_SERVICE`: To execute trailing stops and profit-taking.
+- `TELEGRAM_SERVICE`: To broadcast AI summaries and emergency alerts.
+- `CONFIG_KV`: For dynamic configuration and state.
+- `AI`: Workers AI binding for inference.
+
+## Testing
+
+Run from the monorepo root:
+
+```bash
+bun test workers/agent-worker
+```
+
+Coverage targets the isolate under `workers/agent-worker/src` and `test/` (providers, routine, housekeeping, prompt-sanitizer, HTTP routes).
+
+---
+
+_Cloudflare® and the Cloudflare logo are trademarks and/or registered trademarks of Cloudflare, Inc. in the United States and other jurisdictions._

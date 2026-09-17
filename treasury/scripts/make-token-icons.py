@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 """Generate SYM/stSYM/wstSYM token icons from the circuit-poop base image.
 
-Reads the base image from frontend/public/pictures/symbient/sym-poop.png
+Reads the base image from frontend/public/pictures/sym/sym-icon.png
 (the AI-generated circuit poop emoji) and writes hue-shifted variants:
 
-  - sym-poop.png        → SYM    (original colors: purple body, orange smile)
-  - sym-poop-green.png  → stSYM  (hue +60: green-shifted)
-  - sym-poop-blue.png   → wstSYM (hue +180: blue-shifted)
+  - sym-icon.png        → SYM    (original colors: purple body, orange smile)
+  - sym-icon-green.png  → stSYM  (hue +60: green-shifted)
+  - sym-icon-blue.png   → wstSYM (hue +180: blue-shifted)
 
 Outputs:
   frontend/icons/token-SYM.png
   frontend/icons/token-stSYM.png
   frontend/icons/token-wstSYM.png
-  frontend/public/pictures/symbient/sym-poop{,-green,-blue}.png
+  frontend/public/pictures/sym/sym-icon{,-green,-blue}.png
 
 Usage:
   python3 scripts/make-token-icons.py [path/to/base.png]
@@ -65,10 +65,10 @@ def crop_to_content(img: Image.Image, pad_frac: float = 0.04) -> Image.Image:
 
 
 def main() -> None:
-    src_path = Path(sys.argv[1]) if len(sys.argv) > 1 else PUBLIC_DIR / "sym-poop.png"
+    src_path = Path(sys.argv[1]) if len(sys.argv) > 1 else PUBLIC_DIR / "sym-icon.png"
     if not src_path.exists():
         sys.exit(f"Base image not found: {src_path}\n"
-                 f"Save the circuit-poop image to {PUBLIC_DIR}/sym-poop.png first.")
+                 f"Save the circuit-poop image to {PUBLIC_DIR}/sym-icon.png first.")
 
     base = Image.open(src_path)
     cropped = crop_to_content(base)
@@ -82,8 +82,8 @@ def main() -> None:
 
     for suffix, deg in VARIANTS.items():
         variant = square if deg == 0 else hue_shift(square, deg)
-        # Public copy (used by SHITLogo + pages)
-        pub = PUBLIC_DIR / f"sym-poop{suffix}.png"
+        # Public copy (used by SYMLogo + pages)
+        pub = PUBLIC_DIR / f"sym-icon{suffix}.png"
         variant.save(pub)
         # Icon copy (used by <Icon name="...TokenIcon">)
         icon_size = ICON_SIZES[suffix]

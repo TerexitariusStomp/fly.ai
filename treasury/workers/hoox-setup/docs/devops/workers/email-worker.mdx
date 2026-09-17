@@ -1,0 +1,353 @@
+<!--
+  Copyright (c) 2026 HOOX · jango-blockchained (hoox-sh)
+  SPDX-License-Identifier: CC-BY-4.0
+-->
+
+---
+title: "📧 email-worker Isolate Profile"
+description: "Engineering specification for the Hoox email parsing worker, covering Mailgun webhook ingestion, direct JSON signal parsing, KV-configured regex patterns, and service bindings."
+---
+
+The **`email-worker`** ingests trading signals from email sources, parses them, and forwards them to `trade-worker` for execution. It receives emails via Mailgun webhook (`POST /webhook`) or direct JSON POST (`POST /email-signal`). No IMAP/SMTP polling — Cloudflare Workers edge runtime does not support the Node.js `net`/`tls` modules required for IMAP.
+
+The worker also tracks signal ingestion metrics by forwarding event data to `analytics-worker` via service binding.
+
+---
+
+## ⚡ 1. Endpoints
+
+> **Note:** For the canonical endpoint directory with full request/response examples across all workers, see [`/docs/devops/api/endpoints`](/docs/devops/api/endpoints).
+
+| Endpoint        | Method | Auth                            | Purpose                                      |
+| --------------- | ------ | ------------------------------- | -------------------------------------------- |
+| `/webhook`      | POST   | Mailgun signature (HMAC-SHA256) | Inbound Mailgun webhook for forwarded emails |
+| `/email-signal` | POST   | `X-Internal-Auth-Key` header    | Direct JSON signal ingestion                 |
+| `/health`       | GET    | None                            | Health check                                 |
+
+<Note>
+  The Mailgun webhook endpoint is `/webhook`, not `/webhook/mailgun`. The direct
+  JSON endpoint is `/email-signal`, not `/process`.
+</Note>
+
+---
+
+## 🔐 2. Mailgun Signature Verification
+
+When a POST arrives at `/webhook`, the worker validates the Mailgun signature **and timestamp freshness** before processing the email body (fail-closed):
+
+1. Reads `Mailgun-Signature`, `Mailgun-Timestamp`, `Mailgun-Token` from request headers
+2. Rejects if any header is missing → `401 Unauthorized`
+3. Rejects if `MAILGUN_API_KEY` is unset → `500` (service misconfiguration; never open)
+4. **Replay protection**: rejects timestamps outside a ±15 minute window of wall clock
+5. Computes HMAC-SHA256 hex digest of `timestamp + token` using `MAILGUN_API_KEY`
+6. Compares digests with **`timingSafeEqual`** (constant-time) against `Mailgun-Signature`
+7. Returns `401 Unauthorized` on mismatch or stale timestamp
+
+```typescript
+// verifyMailgunSignature() — exported for unit tests
+const verified = await verifyMailgunSignature({
+  signature,
+  timestamp,
+  token,
+  apiKey,
+  // default tolerance: MAILGUN_TIMESTAMP_TOLERANCE_SEC = 15 * 60
+});
+if (!verified.ok) {
+  return Errors.unauthorized(verified.reason);
+}
+// Comparison uses timingSafeEqual(signature, expectedSignature)
+```
+
+On success, the worker extracts the email body from the `body-plain` or `stripped-text` field of the Mailgun form-data payload and passes it to the signal parser.
+
+---
+
+## 📨 3. Signal Extraction
+
+Two-phase parsing: JSON first, plaintext fallback.
+
+### Phase 1: JSON Parsing
+
+`parseEmailSignal()` calls `JSON.parse()` on the body text. If the result contains `exchange`, `action`, and `symbol` fields, it returns a structured signal immediately:
+
+```typescript
+{
+  exchange: "binance",     // normalized lowercase
+  action: "LONG",          // buy/long → LONG | sell/short → SHORT
+  symbol: "BTCUSDT",       // uppercased
+  quantity: 100,           // multiplied by quantityMultiplier from KV
+  price?: 45000,           // optional
+  leverage?: 3,            // optional
+  test?: true              // optional — forward testnet flag to trade-worker
+}
+```
+
+JSON bodies may include `"test": true` to request exchange testnet execution (Binance/Bybit). The flag is forwarded on the `TRADE_SERVICE` webhook call. **Plaintext extraction does not set `test`** (always live) — use structured JSON email bodies for sandbox trades. See [Test Trading](/docs/enduser/guides/test-trading).
+
+### Phase 2: Plaintext Fallback
+
+If the body does not look like JSON (`{` / `[`), or JSON parse fails, `extractFromPlaintext()` uses keyword matching:
+
+- `extractField()` scans for `keyword:` prefixes (e.g. `exchange:`, `symbol:`, `action:`)
+- Coin symbols and action keywords matched via regex from KV config (`coinPattern`, `actionPattern`)
+- Optional `quantity:` / `qty:` / `size:` via `extractNumericField()` (default **100** when absent)
+- `normalizeExchange()` resolves exchanges: `binance`, `mexc`, `bybit`
+- `normalizeAction()` maps: `buy`/`long` → `LONG`, `sell`/`short` → `SHORT`
+
+Example plaintext email body:
+
+```
+exchange: binance
+symbol: BTCUSDT
+action: buy
+quantity: 1.5
+```
+
+### Zod Validation
+
+Incoming JSON payloads are validated using Zod schemas:
+
+- `EmailSignalSchema` validates the signal structure:
+  - exchange (string), action as enum (`buy|sell|long|short|LONG|SHORT`)
+  - symbol (min length 2 after alnum strip), quantity **positive finite** (default 100, max 1e12)
+  - optional price (positive), leverage (positive, max 125), `test` boolean
+- `WebhookPayloadSchema` validates the wrapper payload (subject, text, body — all optional)
+- Invalid payloads return `400 Bad Request` with structured error
+- Extra fields are stripped via `.strip()`
+- KV-sourced regex patterns are compiled with `compileSafePattern()` (ReDoS guard)
+
+### Forwarding
+
+Once parsed, the signal is sent to `trade-worker` via:
+
+```typescript
+const response = await serviceFetch(env.TRADE_SERVICE, "/webhook", signal, {
+  headers: {
+    "X-Internal-Auth-Key": internalKey,
+    "X-Source": "email-worker",
+  },
+});
+```
+
+Analytics events are sent non-blocking via `ctx.waitUntil()`:
+
+```typescript
+ctx.waitUntil(
+  trackAnalytics(env, "/track/signal", {
+    data: {
+      source: "email-worker",
+      type: signal.action,
+      symbol: signal.symbol,
+      confidence: 0.5,
+    },
+  })
+);
+```
+
+### Cloudflare Email Routing
+
+The worker also exposes an `email()` handler that processes incoming emails via Cloudflare Email Routing. When an email arrives, `postal-mime` parses the raw MIME content, extracts the text body, and feeds it through the same `parseEmailSignal()` pipeline. Validated signals are forwarded to `trade-worker` with analytics tracking.
+
+---
+
+## 🔗 4. Bindings
+
+### Service Bindings
+
+| Binding             | Target Worker    | Purpose                                      |
+| ------------------- | ---------------- | -------------------------------------------- |
+| `TRADE_SERVICE`     | trade-worker     | Forward parsed trading signals for execution |
+| `ANALYTICS_SERVICE` | analytics-worker | Track signal ingestion metrics               |
+
+### Send Email Binding
+
+| Binding | Purpose                                           |
+| ------- | ------------------------------------------------- |
+| `EMAIL` | Cloudflare Email Routing — receive inbound emails |
+
+### KV Namespaces
+
+| Binding     | ID                                 | Purpose                      |
+| ----------- | ---------------------------------- | ---------------------------- |
+| `CONFIG_KV` | `c5917667a21745e390ff969f32b1847d` | Signal pattern configuration |
+
+---
+
+## 🔑 5. Secrets
+
+All secrets are set via `wrangler secret put <name>`:
+
+| Secret                 | Purpose                                               |
+| ---------------------- | ----------------------------------------------------- |
+| `INTERNAL_KEY_BINDING` | Shared internal auth key for service-to-service calls |
+| `MAILGUN_API_KEY`      | Mailgun webhook signature verification (HMAC-SHA256)  |
+| `EMAIL_HOST_BINDING`   | Reserved for future email host configuration          |
+| `EMAIL_USER_BINDING`   | Reserved for future email user configuration          |
+| `EMAIL_PASS_BINDING`   | Reserved for future email password configuration      |
+
+---
+
+## ⚙️ 6. Environment Variables (Vars)
+
+| Variable            | Value          | Purpose                                       |
+| ------------------- | -------------- | --------------------------------------------- |
+| `TRADE_WORKER_NAME` | `trade-worker` | Service name of trade-worker (reference only) |
+
+---
+
+## 🗄️ 7. KV Configuration Keys
+
+The worker loads signal parsing patterns from `CONFIG_KV` via `loadSignalPatterns()`:
+
+| KV Key                      | Default                  | Purpose                                        |
+| --------------------------- | ------------------------ | ---------------------------------------------- |
+| `email:coin_pattern`        | `BTC\|ETH\|SOL`          | Regex for matching asset symbols in email body |
+| `email:action_pattern`      | `buy\|sell\|long\|short` | Regex for matching trade action direction      |
+| `email:quantity_multiplier` | `1`                      | Coefficient applied to parsed quantity values  |
+
+```typescript
+import { KVKeys } from "@hoox-sh/hoox-shared/kvKeys";
+
+const [coinPattern, actionPattern, quantityMultiplier] = await Promise.all([
+  env.CONFIG_KV?.get(KVKeys.KV_EMAIL_COIN_PATTERN).then(
+    (v) => v || "BTC|ETH|SOL"
+  ),
+  env.CONFIG_KV?.get(KVKeys.KV_EMAIL_ACTION_PATTERN).then(
+    (v) => v || "buy|sell|long|short"
+  ),
+  env.CONFIG_KV?.get(KVKeys.KV_EMAIL_QUANTITY_MULTIPLIER).then((v) =>
+    v ? parseFloat(v) : 1
+  ),
+]);
+```
+
+---
+
+## 📊 8. Observability
+
+Full observability enabled with 100% head sampling:
+
+```jsonc
+{
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "persist": true,
+      "invocation_logs": true,
+    },
+  },
+}
+```
+
+- **Head sampling rate**: 1 (all requests sampled)
+- **Log persistence**: Enabled — logs stored for debugging and audit
+- **Invocation logs**: Enabled — full invocation records available
+- **Smart Placement**: Enabled for 30-60% latency reduction
+
+---
+
+## 🛠️ 9. Configuration (wrangler.jsonc)
+
+```jsonc
+{
+  "name": "email-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-04-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "account_id": "debc6545e63bea36be059cbc82d80ec8",
+  "placement": {
+    "mode": "smart",
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "persist": true,
+      "invocation_logs": true,
+    },
+  },
+  "vars": {
+    "TRADE_WORKER_NAME": "trade-worker",
+  },
+  "kv_namespaces": [
+    {
+      "binding": "CONFIG_KV",
+      "id": "c5917667a21745e390ff969f32b1847d",
+    },
+  ],
+  "services": [
+    {
+      "binding": "TRADE_SERVICE",
+      "service": "trade-worker",
+    },
+    {
+      "binding": "ANALYTICS_SERVICE",
+      "service": "analytics-worker",
+    },
+  ],
+  "send_email": [
+    {
+      "name": "EMAIL",
+    },
+  ],
+}
+```
+
+Secrets (`INTERNAL_KEY_BINDING`, `MAILGUN_API_KEY`, `EMAIL_HOST_BINDING`, `EMAIL_USER_BINDING`, `EMAIL_PASS_BINDING`) are set via `wrangler secret put <name>` and are not present in the checked-in wrangler.jsonc.
+
+---
+
+## 🧪 10. Development
+
+```bash
+# Run email-worker unit tests
+bun test workers/email-worker/
+
+# Start local dev server
+hoox dev worker email-worker
+
+# Deploy
+hoox deploy worker email-worker
+```
+
+Config tracking: `wrangler.jsonc` is tracked in git.
+
+---
+
+## 🏗️ 11. Architecture Context
+
+The email-worker is one of the mesh workers in the Hoox service binding topology (11 compute surfaces including pyne tooling + dashboard):
+
+```mermaid
+flowchart LR
+  classDef worker fill:#2196F3,color:#fff,stroke:#1565C0
+  classDef storage fill:#FF9800,color:#fff,stroke:#E65100
+  classDef external fill:#4CAF50,color:#fff,stroke:#2E7D32
+
+  Mailgun{{"Mailgun Webhook"}}:::external --> EW["email-worker"]:::worker
+  Direct("Direct JSON POST"):::external --> EW
+  CFEmail("Cloudflare Email Routing"):::external --> EW
+  EW --> TW["trade-worker"]:::worker
+  EW --> AW["analytics-worker"]:::worker
+  EW --> KV[("CONFIG_KV")]:::storage
+```
+
+- **Mailgun flow**: Inbound email → Mailgun webhook POST → email-worker `/webhook` → trade-worker
+- **Direct flow**: Internal tooling → `POST /email-signal` (authenticated) → email-worker → trade-worker
+- **Email Routing flow**: Cloudflare Email Routing → `email()` handler → email-worker → trade-worker
+- **Analytics**: Every parsed signal sends `{ source, type, symbol, confidence }` to analytics-worker
+
+All active signal ingestion is via webhook, direct POST, or Cloudflare Email Routing.
+
+---
+
+### Next Steps
+
+- **[trade-worker Profile](/docs/devops/workers/trade-worker)** — How parsed signals become execution orders
+- **[analytics-worker Profile](/docs/devops/workers/analytics-worker)** — Signal tracking and observability
+- **[Architecture Overview](/docs/devops/architecture/overview)** — Full system architecture and data flow

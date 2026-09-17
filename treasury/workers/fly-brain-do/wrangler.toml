@@ -2,20 +2,22 @@ name = "fly-brain-do"
 main = "src/worker.py"
 compatibility_date = "2026-09-12"
 compatibility_flags = ["python_workers"]
-account_id = "f6aff821e92502a4c148dfdcbc082a14"
+account_id = "23738a036108482feac164d7eee10a30"
 
 # D1 database
 [[d1_databases]]
 binding = "DB"
-database_name = "symbient-token"
-database_id = "7ec0a323-997d-44cc-9a84-ba4092e501c4"
+database_name = "sym-protocol"
+database_id = "c8180dd7-0f8b-40b0-bc23-0ccae5260ca3"
 
-# R2 bucket for connectome weights
-[[r2_buckets]]
-binding = "WEIGHTS"
-bucket_name = "symbient-token-weights"
+# Weights live in D1 (`weights` / `weight_chunks` tables) — R2 not enabled
+# on this account.
 
-# Durable Object for connectome brains (supports 16 connectomes)
+# Workers AI — LLM adjudication layer (persona-influenced decisions)
+[ai]
+binding = "AI"
+
+# Durable Object for connectome brains (supports 7 connectomes)
 [[durable_objects.bindings]]
 name = "FLY_BRAIN"
 class_name = "ConnectomeDO"
@@ -34,9 +36,10 @@ SELL_THRESHOLD_HZ = "3.0"
 # API worker URL — DOs fetch token candidates through the edge-cached
 # endpoint instead of scanning D1 directly (16 DOs × 1min scans would
 # exhaust the free-tier daily row-read limit).
-API_BASE_URL = "https://api-worker.hardwoodstablecoin.workers.dev"
+API_BASE_URL = "https://api-worker.symbient.workers.dev"
 
-# Cron trigger — kick all 16 connectome DOs every 1 minute
-# This ensures DOs restart even if their alarms stop (crash, memory limit, etc.)
+# Watchdog cron — DO alarms self-reschedule every 60s, but if the chain
+# dies (deploy/crash), this re-kicks all 7 DOs every 5 min. Free tier
+# limit is 5 crons/account; this is #2 (enrichment uses #1).
 [triggers]
-crons = ["* * * * *"]
+crons = ["*/5 * * * *"]

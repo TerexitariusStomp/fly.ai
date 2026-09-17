@@ -1,0 +1,13 @@
+% Standalone build for tight figure PDF (not a full page / not appended)
+% pdflatex latency-taxonomy-standalone.tex
+\documentclass{article}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,decorations.pathreplacing,backgrounds}
+\pagestyle{empty}
+\begin{document}
+  \newsavebox{\figbox}
+  \sbox{\figbox}{\input{latency-taxonomy.tex}}
+  \pdfpagewidth=\dimexpr\wd\figbox + 3bp\relax
+  \pdfpageheight=\dimexpr\ht\figbox + \dp\figbox + 3bp\relax
+  \noindent\usebox{\figbox}
+\end{document}

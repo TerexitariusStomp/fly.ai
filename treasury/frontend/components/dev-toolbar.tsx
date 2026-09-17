@@ -3,7 +3,6 @@ import { useMockControls } from "@/lib/mock-provider";
 import { SCENARIOS } from "@/lib/mock-scenarios";
 import { ChevronUp, ChevronDown, FlaskConical, Coins } from "lucide-react";
 import { MintTestnetSymbientModal } from "@/components/mint-testnet-symbient-modal";
-import { MintTestnetUsdsModal } from "@/components/mint-testnet-usds-modal";
 import { TokenName } from "@/lib/tokens";
 import { isTestnetMode, baseSepolia } from "@/lib/chains";
 import { useChainId } from "wagmi";
@@ -103,12 +102,12 @@ export function DevToolbar() {
                   isOnSepolia ? "bg-amber-600" : "bg-zinc-600"
                 }`}
               >
-                {isOnSepolia ? "Base Sepolia" : "Mainnet"}
+                {isOnSepolia ? "Arc Testnet" : "Arc"}
               </span>
             </div>
             {isTestnetMode && !isOnSepolia && (
               <p className="text-[10px] text-zinc-500">
-                Switch to Base Sepolia in your wallet to use faucets
+                Switch to Arc testnet in your wallet to use faucets
               </p>
             )}
 
@@ -126,17 +125,6 @@ export function DevToolbar() {
                       >
                         <Coins className="size-3" />
                         SYM
-                      </button>
-                    }
-                  />
-                  <MintTestnetUsdsModal
-                    trigger={
-                      <button
-                        type="button"
-                        className="flex-1 flex items-center justify-center gap-1 rounded bg-zinc-800 border border-zinc-600 px-2 py-1.5 text-zinc-200 hover:bg-zinc-700"
-                      >
-                        <Coins className="size-3" />
-                        USDC
                       </button>
                     }
                   />

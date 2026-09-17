@@ -23,7 +23,7 @@ export function ErrorScreen({ error, onReset }: ErrorScreenProps) {
         {/* SYM Logo and Branding */}
         <div className="flex flex-col items-center gap-4">
           <div className="flex items-center gap-x-[10px]">
-            <Icon name="SHITTokenIcon" className="text-primary-t" size={40} />
+            <Icon name="SYMTokenIcon" className="text-primary-t" size={40} />
             <div className="text-3xl font-bold text-primary-t">SYM</div>
           </div>
         </div>

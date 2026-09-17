@@ -1,0 +1,21 @@
+{
+  "lexicon": 1,
+  "id": "symbient.connectome.profile",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "Connectome agent public identity — links DID ↔ EVM wallet",
+      "key": "literal:self",
+      "record": {
+        "type": "object",
+        "required": ["species", "neuronCount", "evmAddress", "personalityHash"],
+        "properties": {
+          "species": { "type": "string" },
+          "neuronCount": { "type": "integer" },
+          "evmAddress": { "type": "string" },
+          "personalityHash": { "type": "string" }
+        }
+      }
+    }
+  }
+}

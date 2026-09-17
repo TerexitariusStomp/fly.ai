@@ -1,0 +1,83 @@
+# Manual npm registry publish for @hoox-sh/* packages.
+# Use after creating/rotating NPM_TOKEN or renaming the npm account/scope.
+#
+# Prerequisites:
+#   - GitHub secret NPM_TOKEN = automation token for the hoox-sh npm user/org
+#   - Package versions in packages/*/package.json must not already exist on npm
+
+name: Publish packages to npm
+
+on:
+  workflow_dispatch:
+    inputs:
+      packages:
+        description: "Comma-separated package dirs under packages/ (default: shared,cli,tui)"
+        required: false
+        default: "shared,cli,tui"
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Setup Node.js for npm
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Diagnose npm auth (whoami)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "::error::NPM_TOKEN secret is empty. Create an automation token on npmjs.com and set it as the NPM_TOKEN repo secret."
+            exit 1
+          fi
+          echo "Token length: ${#NODE_AUTH_TOKEN}"
+          if ! npm whoami; then
+            echo "::error::npm whoami failed. After renaming the npm account to hoox-sh, regenerate an automation token and update the NPM_TOKEN secret."
+            exit 1
+          fi
+
+      - name: Build packages
+        run: bun run build:packages
+
+      - name: Publish selected packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          PACKAGE_LIST: ${{ inputs.packages }}
+        run: |
+          set -euo pipefail
+          IFS=',' read -ra PKGS <<< "$PACKAGE_LIST"
+          for pkg in "${PKGS[@]}"; do
+            pkg="$(echo "$pkg" | xargs)"
+            [ -n "$pkg" ] || continue
+            dir="packages/$pkg"
+            if [ ! -f "$dir/package.json" ]; then
+              echo "::error::Missing $dir/package.json"
+              exit 1
+            fi
+            name=$(jq -r .name "$dir/package.json")
+            version=$(jq -r .version "$dir/package.json")
+            echo "📦 Publishing $name@$version from $dir"
+            bun scripts/prepare-publish.ts "$dir"
+            if [ "$pkg" = "tui" ]; then
+              (cd packages/tui && bun run build)
+            fi
+            (cd "$dir" && npm publish --access public --ignore-scripts)
+            echo "✅ Published $name@$version"
+          done

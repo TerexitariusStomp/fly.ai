@@ -1,0 +1,15 @@
+/** Privy app ID – hardcoded so production always has a valid ID. */
+export const PRIVY_APP_ID = 'cmmkr8zge00b00eky502lv0kn';
+
+export const LANDING_URL = 'https://neurosim.fun';
+
+export function getApiBase(): string {
+  const envBase =
+    typeof import.meta !== 'undefined' &&
+    (import.meta as { env?: { VITE_API_BASE?: string } }).env?.VITE_API_BASE?.trim();
+  if (envBase) return envBase.replace(/\/$/, '');
+  if (typeof window === 'undefined') return 'http://localhost:3001';
+  const isLocal =
+    window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  return isLocal ? 'http://localhost:3001' : 'https://cuda.neurosim.fun';
+}

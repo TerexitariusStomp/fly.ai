@@ -4,6 +4,8 @@
  * Reads from D1, returns JSON. Also handles POST for betting actions.
  */
 
+import { safeDb } from "./safe-db";
+
 interface Env {
   DB: D1Database;
   BRAIN_BUCKET?: R2Bucket;
@@ -63,6 +65,7 @@ async function fetchTokenPrices(tokenAddresses: string[]): Promise<Record<string
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
+    env = { ...env, DB: safeDb(env.DB) };
     const url = new URL(request.url);
 
     // CORS headers for frontend

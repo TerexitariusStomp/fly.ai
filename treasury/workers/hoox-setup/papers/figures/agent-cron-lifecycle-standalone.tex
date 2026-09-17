@@ -1,0 +1,13 @@
+% Standalone build for tight figure PDF (not a full page / not appended)
+% pdflatex agent-cron-lifecycle-standalone.tex
+\documentclass{article}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric}
+\pagestyle{empty}
+\begin{document}
+  \newsavebox{\figbox}
+  \sbox{\figbox}{\input{agent-cron-lifecycle.tex}}
+  \pdfpagewidth=\dimexpr\wd\figbox + 3bp\relax
+  \pdfpageheight=\dimexpr\ht\figbox + \dp\figbox + 3bp\relax
+  \noindent\usebox{\figbox}
+\end{document}

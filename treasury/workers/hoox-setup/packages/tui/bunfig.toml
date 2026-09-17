@@ -1,0 +1,9 @@
+# TUI unit tests require the package preload (cli-bridge + network doubles).
+# Without this, parent bunfig only loads packages/test-utils and store/view
+# mocks never attach when running `cd packages/tui && bun test`.
+[test]
+preload = ["./src/test-setup.ts"]
+timeout = 60000
+
+[test.env]
+NODE_ENV = "test"

@@ -9,7 +9,7 @@ const EPOCHS_PER_YEAR = (EPOCHS_PER_WEEK / 7) * 365;
 export function useStakingAPY() {
   const chainId = useChainId();
   const stakingAddress = getContractAddress(ContractName.STAKING, chainId);
-  const stSymbientAddress = getContractAddress(ContractName.stsym, chainId);
+  const stSymbientAddress = getContractAddress(ContractName.STSYM, chainId);
 
   const { data: epochData, isLoading: epochLoading } = useReadContract({
     address: stakingAddress,

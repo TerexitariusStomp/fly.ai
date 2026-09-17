@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "noUncheckedIndexedAccess": true,
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "jsxImportSource": "@opentui/react",
+    "types": ["bun", "react", "@cloudflare/workers-types"],
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "paths": {
+      "@/*": ["./src/*"],
+      "@hoox-sh/hoox-shared": ["../shared/src/index.ts"],
+      "@hoox-sh/hoox-shared/*": ["../shared/src/*"],
+      "@hoox/test-utils": ["../test-utils/src"],
+      "@hoox/test-utils/*": ["../test-utils/src/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts", "test/**/*.tsx"],
+  "exclude": ["node_modules", "dist"]
+}

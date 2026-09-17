@@ -1,5 +1,5 @@
 import { parseUnits } from "viem";
-import { base } from "@/lib/chains";
+import { baseSepolia } from "@/lib/chains";
 import type { MultiChainBalanceResult, ChainBalance } from "@/hooks/use-multi-chain-balance";
 
 function bal(chainId: number, chainName: string, amount: string, decimals: number): ChainBalance {
@@ -27,42 +27,23 @@ const EMPTY: MultiChainBalanceResult = {
   error: null,
 };
 
-// Whale: big balances on Base
+// Whale: big balances on Arc testnet
 export const WHALE_BALANCES: Record<string, MultiChainBalanceResult> = {
-  SYM: result([bal(base.id, "Base", "14.245", 9)]),
-  sSHIT: result([bal(base.id, "Base", "2.125", 9)]),
-  wstSYM: result([bal(base.id, "Base", "14.245", 18)]),
-  wsSHIT: EMPTY,
-  "SYM v1": EMPTY,
-  "sSHIT v1": EMPTY,
+  SYM: result([bal(baseSepolia.id, "Arc Testnet", "14245", 18)]),
+  stSYM: result([bal(baseSepolia.id, "Arc Testnet", "2125", 18)]),
+  wstSYM: result([bal(baseSepolia.id, "Arc Testnet", "1424.5", 18)]),
 };
 
 // Empty: connected but no balances
 export const EMPTY_BALANCES: Record<string, MultiChainBalanceResult> = {
   SYM: EMPTY,
-  sSHIT: EMPTY,
+  stSYM: EMPTY,
   wstSYM: EMPTY,
-  wsSHIT: EMPTY,
-  "SYM v1": EMPTY,
-  "sSHIT v1": EMPTY,
 };
 
-// Legacy: wallet with old v1 tokens needing migration
-export const LEGACY_BALANCES: Record<string, MultiChainBalanceResult> = {
-  SYM: EMPTY,
-  sSHIT: EMPTY,
-  wstSYM: EMPTY,
-  wsSHIT: result([bal(base.id, "Base", "5.0", 18)]),
-  "SYM v1": result([bal(base.id, "Base", "125.0", 9)]),
-  "sSHIT v1": result([bal(base.id, "Base", "50.0", 9)]),
-};
-
-// Multi-chain: wstSYM on Base
-export const MULTI_CHAIN_BALANCES: Record<string, MultiChainBalanceResult> = {
-  SYM: result([bal(base.id, "Base", "5.0", 9)]),
-  sSHIT: EMPTY,
-  wstSYM: result([bal(base.id, "Base", "5.9", 18)]),
-  wsSHIT: EMPTY,
-  "SYM v1": EMPTY,
-  "sSHIT v1": EMPTY,
+// Staker: mostly staked/wrapped positions
+export const STAKER_BALANCES: Record<string, MultiChainBalanceResult> = {
+  SYM: result([bal(baseSepolia.id, "Arc Testnet", "500", 18)]),
+  stSYM: result([bal(baseSepolia.id, "Arc Testnet", "1200", 18)]),
+  wstSYM: result([bal(baseSepolia.id, "Arc Testnet", "340", 18)]),
 };

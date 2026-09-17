@@ -1,7 +1,7 @@
 import type { MultiChainBalanceResult } from "@/hooks/use-multi-chain-balance";
 
 export type MockPrices = {
-  shitPrice: number;
+  symPrice: number;
   gsymPrice: number;
   currentIndex: number;
 };

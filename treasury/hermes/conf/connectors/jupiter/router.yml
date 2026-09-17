@@ -1,6 +1,0 @@
-name: jupiter
-networks:
-  - mainnet-beta
-defaultNetwork: mainnet-beta
-apiKey: 'YOUR_JUPITER_API_KEY_HERE'
-timeout: 10000

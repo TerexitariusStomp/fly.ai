@@ -1,18 +1,21 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.24;
 
-import {PRICEv1} from "@symbient-v3/modules/PRICE/PRICE.v1.sol";
-import {Kernel, Module, Keycode, toKeycode} from "@symbient-v3/Kernel.sol";
+import {PRICEv1} from "@olympus-v3/modules/PRICE/PRICE.v1.sol";
+import {Kernel, Module, Keycode, toKeycode} from "@olympus-v3/Kernel.sol";
 import {ITwapPriceFeed} from "./ITwapPriceFeed.sol";
-import {MultisigGuard} from "./MultisigGuard.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
 /// @title SymbientPrice
-/// @notice Fork of SYM ProtocolPrice that uses a TWAP price feed instead of Chainlink dual-oracle.
-/// @dev Replaces the two Chainlink feeds (SYM/ETH and Reserve/ETH) with a single TWAP source
+/// @notice Fork of OlympusPrice that uses a TWAP price feed instead of Chainlink dual-oracle.
+/// @dev Replaces the two Chainlink feeds (OHM/ETH and Reserve/ETH) with a single TWAP source
 ///      that directly returns the SYM/Reserve price in 1e18 decimals.
-///      All moving average and observation logic is inherited from PRICEv1/SYM ProtocolPrice.
+///      All moving average and observation logic is inherited from PRICEv1/OlympusPrice.
 
-contract SymbientPrice is PRICEv1, MultisigGuard {
+contract SymbientPrice is PRICEv1, AccessControl {
+    bytes32 public constant MULTISIG_ROLE = keccak256("MULTISIG_ROLE");
+    error ZeroAddress();
+
     /// @notice TWAP price feed that returns SYM/Reserve price in 1e18
     ITwapPriceFeed public twapPriceFeed;
 
@@ -25,7 +28,9 @@ contract SymbientPrice is PRICEv1, MultisigGuard {
         uint48 movingAverageDuration_,
         uint256 minimumTargetPrice_,
         address _multisig
-    ) Module(kernel_) MultisigGuard(_multisig) {
+    ) Module(kernel_) AccessControl() {
+        _grantRole(DEFAULT_ADMIN_ROLE, _multisig);
+        _grantRole(MULTISIG_ROLE, _multisig);
         if (movingAverageDuration_ == 0 || movingAverageDuration_ % observationFrequency_ != 0)
             revert Price_InvalidParams();
 
@@ -45,7 +50,7 @@ contract SymbientPrice is PRICEv1, MultisigGuard {
         emit MinimumTargetPriceChanged(minimumTargetPrice_);
     }
 
-    function setTwapPriceFeed(address _newFeed) external onlyMultisig {
+    function setTwapPriceFeed(address _newFeed) external onlyRole(MULTISIG_ROLE) {
         if (_newFeed == address(0)) revert ZeroAddress();
         twapPriceFeed = ITwapPriceFeed(_newFeed);
         initialized = false;
@@ -155,12 +160,12 @@ contract SymbientPrice is PRICEv1, MultisigGuard {
     /// @inheritdoc PRICEv1
     /// @dev No-op: TWAP price feed does not have Chainlink-style update thresholds.
     function changeUpdateThresholds(
-        uint48 shitEthUpdateThreshold_,
+        uint48 ohmEthUpdateThreshold_,
         uint48 reserveEthUpdateThreshold_
     ) external override permissioned {
-        shitEthUpdateThreshold = shitEthUpdateThreshold_;
+        ohmEthUpdateThreshold = ohmEthUpdateThreshold_;
         reserveEthUpdateThreshold = reserveEthUpdateThreshold_;
-        emit UpdateThresholdsChanged(shitEthUpdateThreshold_, reserveEthUpdateThreshold_);
+        emit UpdateThresholdsChanged(ohmEthUpdateThreshold_, reserveEthUpdateThreshold_);
     }
 
     /// @inheritdoc PRICEv1

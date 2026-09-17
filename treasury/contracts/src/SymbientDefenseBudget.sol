@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.24;
 
-import {Kernel, Policy, Keycode, toKeycode, Permissions} from "@symbient-v3/Kernel.sol";
-import {ROLESv1} from "@symbient-v3/modules/ROLES/ROLES.v1.sol";
-import {IPeriodicTask} from "@symbient-v3/interfaces/IPeriodicTask.sol";
+import {Kernel, Policy, Keycode, toKeycode, Permissions} from "@olympus-v3/Kernel.sol";
+import {ROLESv1} from "@olympus-v3/modules/ROLES/ROLES.v1.sol";
+import {IPeriodicTask} from "@olympus-v3/interfaces/IPeriodicTask.sol";
 import {IERC165} from "@openzeppelin-4.8.0/interfaces/IERC165.sol";
-import {IOperator} from "@symbient-v3/policies/interfaces/IOperator.sol";
+import {IOperator} from "@olympus-v3/policies/interfaces/IOperator.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {MultisigGuard} from "./MultisigGuard.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {SymbientCircuitBreaker} from "./SymbientCircuitBreaker.sol";
 
 /// @title SymbientDefenseBudget
 /// @notice Per-epoch treasury defense budget for RBS wall operations
-/// @dev The SYM Protocol V3 Operator has capacity + regen, but no hard cap on total
+/// @dev The Olympus V3 Operator has capacity + regen, but no hard cap on total
 ///      treasury drawdown per epoch/day. Under sustained one-directional pressure,
 ///      the treasury could keep defending the wall until reserves are meaningfully
 ///      drawn down (Frax AMO lesson).
@@ -26,7 +26,10 @@ import {SymbientCircuitBreaker} from "./SymbientCircuitBreaker.sol";
 ///      - Per-epoch budget (default: 2% of liquid treasury value)
 ///      - When budget exhausted, blocks further operate() calls until next epoch
 ///      - Multisig can adjust budget or emergency override
-contract SymbientDefenseBudget is Policy, IPeriodicTask, MultisigGuard {
+contract SymbientDefenseBudget is Policy, IPeriodicTask, AccessControl {
+    bytes32 public constant MULTISIG_ROLE = keccak256("MULTISIG_ROLE");
+    error ZeroAddress();
+
     error BudgetExhausted();
     error InvalidParams();
     error OperatorNotSet();
@@ -35,9 +38,9 @@ contract SymbientDefenseBudget is Policy, IPeriodicTask, MultisigGuard {
     uint256 public constant BPS_DENOMINATOR = 10_000;
     uint256 public constant EPOCH_LENGTH = 8 hours;
 
-    IOperator public operator; // SYM Protocol V3 Operator
+    IOperator public operator; // Olympus V3 Operator
     address public treasury; // Treasury address (SYM source for defense)
-    address public shitToken;
+    address public symbientToken;
 
     uint256 public budgetBps = 200; // 2% of liquid treasury per epoch
     uint256 public epochStart;
@@ -46,7 +49,7 @@ contract SymbientDefenseBudget is Policy, IPeriodicTask, MultisigGuard {
 
     bool public budgetOverride; // Multisig can disable budget enforcement
 
-    // Circuit breaker integration — when set, defense spending halts if Bucky depegs
+    // Circuit breaker integration — defense spending halts if SYM spot breaks floor
     SymbientCircuitBreaker public circuitBreaker;
 
     ROLESv1 internal ROLES;
@@ -63,16 +66,18 @@ contract SymbientDefenseBudget is Policy, IPeriodicTask, MultisigGuard {
         Kernel kernel_,
         address _operator,
         address _treasury,
-        address _shitToken,
+        address _symbientToken,
         address _multisig
-    ) Policy(kernel_) MultisigGuard(_multisig) {
-        if (_treasury == address(0) || _shitToken == address(0) || _multisig == address(0))
+    ) Policy(kernel_) AccessControl() {
+        _grantRole(DEFAULT_ADMIN_ROLE, _multisig);
+        _grantRole(MULTISIG_ROLE, _multisig);
+        if (_treasury == address(0) || _symbientToken == address(0) || _multisig == address(0))
             revert ZeroAddress();
         if (_operator != address(0)) {
             operator = IOperator(_operator);
         }
         treasury = _treasury;
-        shitToken = _shitToken;
+        symbientToken = _symbientToken;
         epochStart = block.timestamp;
     }
 
@@ -107,8 +112,8 @@ contract SymbientDefenseBudget is Policy, IPeriodicTask, MultisigGuard {
 
         if (address(operator) == address(0)) revert OperatorNotSet();
 
-        // Halt defense spending if circuit breaker is tripped (Bucky depeg)
-        if (address(circuitBreaker) != address(0) && circuitBreaker.tripped())
+        // Halt defense spending if circuit breaker is tripped (SYM below floor)
+        if (address(circuitBreaker) != address(0) && circuitBreaker.paused())
             revert CircuitBreakerTripped();
 
         if (!budgetOverride && epochSpent >= currentBudget()) {
@@ -117,12 +122,12 @@ contract SymbientDefenseBudget is Policy, IPeriodicTask, MultisigGuard {
         }
 
         // Measure treasury outflow before and after
-        uint256 balanceBefore = IERC20(shitToken).balanceOf(treasury);
+        uint256 balanceBefore = IERC20(symbientToken).balanceOf(treasury);
 
         // Call Operator.operate() — this contract has the "heart" role granted by RolesAdmin
         operator.operate();
 
-        uint256 balanceAfter = IERC20(shitToken).balanceOf(treasury);
+        uint256 balanceAfter = IERC20(symbientToken).balanceOf(treasury);
         if (balanceBefore > balanceAfter) {
             epochSpent += (balanceBefore - balanceAfter);
             emit SpendingRecorded(balanceBefore - balanceAfter, epochSpent);
@@ -130,46 +135,46 @@ contract SymbientDefenseBudget is Policy, IPeriodicTask, MultisigGuard {
     }
 
     /// @notice Checks if the contract supports an interface
-    function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
-        return interfaceId == type(IPeriodicTask).interfaceId
-            || interfaceId == type(IERC165).interfaceId;
+    function supportsInterface(bytes4 interfaceId) public view override(AccessControl, IPeriodicTask) returns (bool) {
+        return AccessControl.supportsInterface(interfaceId)
+            || interfaceId == type(IPeriodicTask).interfaceId;
     }
 
     //============================================================================================//
     //                                   ADMIN FUNCTIONS                                           //
     //============================================================================================//
 
-    function setOperator(address _operator) external onlyMultisig {
+    function setOperator(address _operator) external onlyRole(MULTISIG_ROLE) {
         if (_operator == address(0)) revert ZeroAddress();
         operator = IOperator(_operator);
         emit OperatorUpdated(_operator);
     }
 
     /// @notice Update liquid treasury value (multisig only)
-    function updateLiquidTreasuryValue(uint256 _value) external onlyMultisig {
+    function updateLiquidTreasuryValue(uint256 _value) external onlyRole(MULTISIG_ROLE) {
         liquidTreasuryValue = _value;
     }
 
     /// @notice Set per-epoch budget in bps of liquid treasury
-    function setBudgetBps(uint256 _bps) external onlyMultisig {
+    function setBudgetBps(uint256 _bps) external onlyRole(MULTISIG_ROLE) {
         if (_bps > 5000) revert InvalidParams(); // Max 50% per epoch
         budgetBps = _bps;
         emit BudgetUpdated(_bps);
     }
 
     /// @notice Toggle budget enforcement (emergency override)
-    function setOverride(bool _override) external onlyMultisig {
+    function setOverride(bool _override) external onlyRole(MULTISIG_ROLE) {
         budgetOverride = _override;
         emit OverrideToggled(_override);
     }
 
-    function setCircuitBreaker(address _breaker) external onlyMultisig {
+    function setCircuitBreaker(address _breaker) external onlyRole(MULTISIG_ROLE) {
         circuitBreaker = SymbientCircuitBreaker(_breaker);
         emit CircuitBreakerSet(_breaker);
     }
 
     /// @notice Record spending from treasury defense (manual accounting)
-    function recordSpending(uint256 amount) external onlyMultisig {
+    function recordSpending(uint256 amount) external onlyRole(MULTISIG_ROLE) {
         _resetEpochIfNeeded();
         epochSpent += amount;
         emit SpendingRecorded(amount, epochSpent);

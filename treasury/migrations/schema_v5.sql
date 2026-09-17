@@ -1,4 +1,4 @@
--- SYM Token D1 Schema v5 — YES/NO prediction sides + query indexes
+-- SHIT Token D1 Schema v5 — YES/NO prediction sides + query indexes
 -- Adds side column to user_prediction_bets so users can pick YES or NO
 -- on each connectome (not just "which brain wins")
 
@@ -7,7 +7,7 @@ CREATE INDEX IF NOT EXISTS idx_pred_side ON user_prediction_bets(round_id, conne
 
 -- Critical for D1 free-tier read limits: the fly-brain DOs run
 -- "WHERE ignored = 0 AND score > 30 ORDER BY score DESC LIMIT 3"
--- every minute × 16 connectomes. Without this index each scan reads
+-- every minute × 7 connectomes. Without this index each scan reads
 -- the whole tokens table (millions of row-reads/day).
 CREATE INDEX IF NOT EXISTS idx_tokens_score ON tokens(ignored, score DESC);
 CREATE INDEX IF NOT EXISTS idx_signals_created ON signals(created_at DESC);

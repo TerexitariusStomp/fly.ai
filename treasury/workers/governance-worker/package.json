@@ -1,0 +1,13 @@
+{
+  "name": "governance-worker",
+  "private": true,
+  "dependencies": {
+    "isomorphic-git": "^1.42.2",
+    "viem": "^2.46.3",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20251014.0",
+    "typescript": "^5.9.0"
+  }
+}

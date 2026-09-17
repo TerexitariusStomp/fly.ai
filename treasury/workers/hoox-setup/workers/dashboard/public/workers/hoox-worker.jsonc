@@ -1,0 +1,53 @@
+{
+  "display_name": "Gateway",
+  "description": "Live webhook ingress controls only (settings workers actually read)",
+  "sections": {
+    "global": {
+      "title": "Kill Switch",
+      "description": "OR'd with trade:kill_switch by checkKillSwitch — either trips the breaker",
+      "icon": "shield",
+      "priority": 10,
+      "fields": {
+        "kill_switch": false
+      },
+      "descriptions": {
+        "kill_switch": "global:kill_switch. Prefer engaging the breaker from Agent / Trade risk UI (trade:kill_switch); this is the gateway-side twin."
+      }
+    },
+    "webhook": {
+      "title": "Webhook Security & Queue",
+      "description": "TradingView IP allowlist and queue delivery mode",
+      "icon": "shield",
+      "priority": 20,
+      "fields": {
+        "tradingview_ip_check_enabled": true,
+        "tradingview_allowed_ips": "[\"52.89.214.238\", \"34.212.75.30\", \"54.218.53.128\", \"52.32.178.7\"]",
+        "queue_mode": "queue_failover"
+      },
+      "options": {
+        "queue_mode": [
+          "queue_failover",
+          "queue_everywhere",
+          "queue_disabled"
+        ]
+      },
+      "descriptions": {
+        "tradingview_ip_check_enabled": "Enforce CF-Connecting-IP allowlist for TradingView webhooks.",
+        "tradingview_allowed_ips": "JSON array of extra allowed IPs (merged with built-in TradingView ranges).",
+        "queue_mode": "queue_failover (default): Service Binding first, queue on failure. queue_everywhere: always enqueue. queue_disabled: binding only."
+      }
+    },
+    "notify": {
+      "title": "Notify Allowlist",
+      "description": "Gateway fail-closed chatId allowlist (union with TELEGRAM_ALLOWED_CHAT_IDS secret)",
+      "icon": "bell",
+      "priority": 30,
+      "fields": {
+        "allowed_chat_ids": "[]"
+      },
+      "descriptions": {
+        "allowed_chat_ids": "JSON array written to telegram:allowed_chat_ids. Empty + no env secret → notify rejected. Prefer also: hoox secrets set hoox TELEGRAM_ALLOWED_CHAT_IDS"
+      }
+    }
+  }
+}

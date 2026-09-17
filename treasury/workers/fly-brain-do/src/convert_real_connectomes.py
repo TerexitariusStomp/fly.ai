@@ -1,12 +1,9 @@
-"""Convert 16 real connectomes to the NPZ format expected by the worker.
+"""Convert the 7 governing connectomes to the NPZ format expected by the worker.
 
 Sources (all real published connectome data):
-  - netneurotools.datasets.fetch_famous_gmat: celegans, drosophila, human,
-    macaque_markov, macaque_modha, mouse, rat
-  - ChrisWLynn/Heavy_tailed_connectivity: hemibrain, medulla, mouse_retina,
-    platynereis (edge-list CSVs)
-  - Netzschleuder (networks.skewed.de): ciona, larva, celegans_herm, celegans_male
-  - Existing MaleCNS: malecns (Berg et al. 2025)
+  - netneurotools.datasets.fetch_famous_gmat: drosophila, rat, mouse,
+    macaque_modha, human
+  - Netzschleuder (networks.skewed.de): ciona, celegans_male
 
 Output: /home/terex/fly-data/connectomes/<id>/{weights.npz,brain.npz}
 """
@@ -20,24 +17,15 @@ from pathlib import Path
 OUT = Path(os.environ.get("FLY_DATA", str(Path.home() / "fly-data"))) / "connectomes"
 SRC = Path(__file__).parent
 
-# 16 real connectomes
+# The 7 governing connectomes (quorum: 3 of 7 on-chain)
 CONNECTOMES = [
     # (id, species, source_type, description)
-    ("celegans",       "C. elegans",         "netneurotools", "Varshney et al. 2011"),
     ("drosophila",     "D. melanogaster",    "netneurotools", "Chiang et al. 2011"),
-    ("human",          "H. sapiens",         "netneurotools", "Griffa et al. 2019 (scale125)"),
-    ("macaque",        "M. mulatta",         "netneurotools", "Markov et al. 2013"),
-    ("macaque_modha",  "M. mulatta",         "netneurotools", "Modha & Singh 2010"),
-    ("mouse",          "M. musculus",        "netneurotools", "Rubinov et al. 2015"),
     ("rat",            "R. norvegicus",      "netneurotools", "Bota et al. 2015"),
-    ("malecns",        "D. melanogaster",    "existing",      "Berg et al. 2025 MaleCNS v1.0"),
-    ("hemibrain",      "D. melanogaster",    "edgelist",      "Scheffer et al. 2020 hemibrain"),
-    ("medulla",        "D. melanogaster",    "edgelist",      "Takemura et al. 2013 medulla"),
-    ("mouse_retina",   "M. musculus",        "edgelist",      "Helmstaedter et al. 2013 retina"),
-    ("platynereis",    "P. dumerilii",       "edgelist",      "Randel et al. 2014"),
+    ("mouse",          "M. musculus",        "netneurotools", "Rubinov et al. 2015"),
     ("ciona",          "C. intestinalis",    "netzschleuder", "Ryan et al. 2016"),
-    ("larva",          "D. melanogaster",    "netzschleuder", "Drosophila larva 2023"),
-    ("celegans_herm",  "C. elegans",         "netzschleuder", "Cook et al. 2019 hermaphrodite"),
+    ("macaque_modha",  "M. mulatta",         "netneurotools", "Modha & Singh 2010"),
+    ("human",          "H. sapiens",         "netneurotools", "Griffa et al. 2019 (scale125)"),
     ("celegans_male",  "C. elegans",         "netzschleuder", "Cook et al. 2019 male"),
 ]
 
@@ -205,23 +193,13 @@ def save_connectome(cid, W, labels, cell_types=None, species="", seed=42):
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
-    print("Converting 16 real connectomes to NPZ format...")
+    print("Converting 7 governing connectomes to NPZ format...")
 
     for i, (cid, species, source_type, desc) in enumerate(CONNECTOMES):
         seed = hash(cid) % (2**32)
-        print(f"\n[{i+1}/16] {cid} ({species}) — {desc}")
+        print(f"\n[{i+1}/7] {cid} ({species}) — {desc}")
 
         try:
-            if cid == "malecns":
-                # Copy existing MaleCNS data
-                out_dir = OUT / "malecns"
-                out_dir.mkdir(parents=True, exist_ok=True)
-                if not (out_dir / "weights.npz").exists():
-                    shutil.copy2(str(Path.home() / "fly-data" / "weights.npz"), str(out_dir / "weights.npz"))
-                    shutil.copy2(str(Path.home() / "fly-data" / "brain.npz"), str(out_dir / "brain.npz"))
-                print(f"  malecns: copied from existing data")
-                continue
-
             if source_type == "netneurotools":
                 # Map our IDs to netneurotools dataset names
                 nn_name = {
@@ -236,21 +214,9 @@ def main():
                 W, labels, dist = load_from_netneurotools(nn_name)
                 save_connectome(cid, W, labels, species=species, seed=seed)
 
-            elif source_type == "edgelist":
-                csv_map = {
-                    "hemibrain": SRC / "heavy_tailed_connectivity" / "Drosophila_central_brain.csv",
-                    "medulla": SRC / "heavy_tailed_connectivity" / "Drosophila_optic_medulla.csv",
-                    "mouse_retina": SRC / "heavy_tailed_connectivity" / "Mouse_retina.csv",
-                    "platynereis": SRC / "heavy_tailed_connectivity" / "Platynereis_sensory_motor.csv",
-                }
-                W, labels, _ = load_from_edgelist(csv_map[cid])
-                save_connectome(cid, W, labels, species=species, seed=seed)
-
             elif source_type == "netzschleuder":
                 data_map = {
                     "ciona": SRC / "ciona_data",
-                    "larva": SRC / "fly_larva_data",
-                    "celegans_herm": SRC / "celegans_2019_data",
                     "celegans_male": SRC / "celegans_male_data",
                 }
                 W, labels, cell_types = load_from_netzschleuder(data_map[cid])

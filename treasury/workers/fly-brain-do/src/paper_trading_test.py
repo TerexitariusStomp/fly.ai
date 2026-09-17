@@ -1,7 +1,7 @@
 """Local paper trading smoke test — simulates the full connectome trading loop.
 
 Tests:
-1. Load each of the 16 real connectomes from NPZ files
+1. Load each of the 7 governing connectomes from NPZ files
 2. Run LIF simulation on each with sample market data
 3. Produce BUY/SELL/HOLD decisions
 4. Update paper balances
@@ -26,22 +26,14 @@ from flyreservoir import Trace
 DATA = Path(os.environ.get("FLY_DATA", str(Path.home() / "fly-data"))) / "connectomes"
 
 CONNECTOMES = [
-    ("celegans",       "C. elegans",         302),
-    ("drosophila",     "D. melanogaster",    49),
-    ("human",          "H. sapiens",         234),
-    ("macaque",        "M. mulatta",         93),
-    ("macaque_modha",  "M. mulatta",         242),
-    ("mouse",          "M. musculus",        112),
-    ("rat",            "R. norvegicus",      73),
-    ("malecns",        "D. melanogaster",    166700),
-    ("hemibrain",      "D. melanogaster",    21636),
-    ("medulla",        "D. melanogaster",    40000),
-    ("mouse_retina",   "M. musculus",        1124),
-    ("platynereis",    "P. dumerilii",       5000),
-    ("ciona",          "C. intestinalis",    205),
-    ("larva",          "D. melanogaster",    3016),
-    ("celegans_herm",  "C. elegans",         453),
-    ("celegans_male",  "C. elegans",         575),
+    # (id, species, n_neurons)
+    ("drosophila",    "D. melanogaster",    49),
+    ("rat",           "R. norvegicus",      73),
+    ("mouse",         "M. musculus",        112),
+    ("ciona",         "C. intestinalis",    205),
+    ("macaque_modha", "M. mulatta",         242),
+    ("human",         "H. sapiens",         234),
+    ("celegans_male", "C. elegans",         575),
 ]
 
 SIMULATION_STEPS = 200
@@ -193,9 +185,9 @@ def main():
 
     # Sample token data (simulating a discovered token)
     tokens = [
-        {"symbol": "PEPE2", "score": 85, "address": "0x1234...", "launchpad": "Pons"},
-        {"symbol": "DOGE3", "score": 30, "address": "0x5678...", "launchpad": "Pons"},
-        {"symbol": "SYM",  "score": 50, "address": "0x9abc...", "launchpad": "Pons"},
+        {"symbol": "PEPE2", "score": 85, "address": "0x1234...", "launchpad": "dex"},
+        {"symbol": "DOGE3", "score": 30, "address": "0x5678...", "launchpad": "dex"},
+        {"symbol": "SYM",  "score": 50, "address": "0x9abc...", "launchpad": "dex"},
     ]
 
     # Initialize paper balances
@@ -289,7 +281,7 @@ def main():
     for rank, (cid, w) in enumerate(sorted_wallets, 1):
         print(f"  #{rank:2d} {cid:15s}  P&L=${w['pnl']:+.4f}  trades={w['trades']}  balance=${w['balance']:.4f}")
 
-    print(f"\nSmoke test complete. All 16 connectomes produced trading decisions.")
+    print(f"\nSmoke test complete. All 7 connectomes produced trading decisions.")
 
 
 if __name__ == "__main__":

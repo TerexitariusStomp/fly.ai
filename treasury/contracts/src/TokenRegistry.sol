@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import {AccessControlEnumerable} from "@openzeppelin/contracts/access/extensions/AccessControlEnumerable.sol";
 
 /// @title TokenRegistry
-/// @notice Whitelist registry for tokens approved for use in the SYM Protocol protocol
+/// @notice Whitelist registry for tokens approved for use in the SYM protocol
 /// @dev OZ AccessControlEnumerable with WHITELISTED role per token and MANAGER_ROLE for multisig
 contract TokenRegistry is AccessControlEnumerable {
     error TokenNotWhitelisted(address token);

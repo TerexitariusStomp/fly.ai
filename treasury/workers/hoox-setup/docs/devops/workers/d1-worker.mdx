@@ -1,0 +1,219 @@
+<!--
+  Copyright (c) 2026 HOOX · jango-blockchained (hoox-sh)
+  SPDX-License-Identifier: CC-BY-4.0
+-->
+
+---
+title: "d1-worker Isolate Profile"
+description: "Comprehensive engineering specification for the Hoox D1 SQLite Database Proxy Worker, covering SQL query interfaces, batch operations, and dashboard statistics aggregation."
+---
+
+The **`d1-worker`** is the data routing hub of the Hoox trading platform. Deployed as an isolated, private micro-worker, it acts as a centralized SQL execution proxy. By encapsulating database interactions behind secure Service Bindings, it allows other lightweight compute workers to execute parameterized queries, trigger transactional batch operations, and retrieve structured dashboard telemetry without direct database driver overhead.
+
+---
+
+## ⚡ 1. Declared Wrangler Configurations & Bindings
+
+The `d1-worker` binds directly to the production SQLite database (`trade-data-db`) and does not expose any public endpoints:
+
+```jsonc
+{
+  "name": "d1-worker",
+  "account_id": "debc6545e63bea36be059cbc82d80ec8",
+  "main": "src/index.ts",
+  "alias": {
+    "@hoox-sh/hoox-shared/errors": "../../packages/shared/src/errors.ts",
+    "@hoox-sh/hoox-shared/middleware": "../../packages/shared/src/middleware/index.ts",
+    "@hoox-sh/hoox-shared/router": "../../packages/shared/src/router.ts",
+    "@hoox-sh/hoox-shared/types": "../../packages/shared/src/types.ts",
+    "@hoox-sh/hoox-shared/analytics": "../../packages/shared/src/analytics.ts",
+    "@hoox-sh/hoox-shared/health": "../../packages/shared/src/health.ts",
+    "@hoox-sh/hoox-shared/types/router": "../../packages/shared/src/types/router.ts",
+  },
+  "compatibility_date": "2026-06-08",
+  "compatibility_flags": ["nodejs_compat"],
+  "placement": {
+    "mode": "smart",
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 0.1,
+    "logs": { "enabled": true, "head_sampling_rate": 1 },
+    "traces": { "enabled": true, "head_sampling_rate": 0.01 },
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "trade-data-db",
+      "database_id": "a682f084-594e-4bd8-be2d-40ea5f8cf42e",
+    },
+  ],
+  "vars": {
+    "INTERNAL_KEY_BINDING": "__SECRET__",
+  },
+  "kv_namespaces": [
+    {
+      "binding": "CONFIG_KV",
+      "id": "c5917667a21745e390ff969f32b1847d",
+    },
+  ],
+  "services": [
+    {
+      "binding": "ANALYTICS_SERVICE",
+      "service": "analytics-worker",
+    },
+  ],
+}
+```
+
+---
+
+## 🔌 2. Internal REST API Specification
+
+> **Note:** For the canonical endpoint directory with full request/response examples across all workers, see [`/docs/devops/api/endpoints`](/docs/devops/api/endpoints).
+
+Every endpoint is secured via `requireInternalAuth` and expects the `X-Internal-Auth-Key` header.
+
+### A. Named RPC (preferred for hot paths)
+
+Prefer fixed-template RPCs over free-form SQL. All require internal **read** or **write** auth as indicated.
+
+| Method | Path | Auth | Notes |
+| ------ | ---- | ---- | ----- |
+| `GET`/`POST` | `/rpc/list-signals` | Read | `limit` (default 10, max 100), `offset` |
+| `GET`/`POST` | `/rpc/list-system-logs` | Read | `limit` (default 20, max 100), `offset` |
+| `GET`/`POST` | `/rpc/list-open-positions` | Read | Optional `exchange` filter (sanitized id) |
+| `POST` | `/rpc/insert-trade` | Write | Bound insert |
+| `POST` | `/rpc/upsert-position` | Write | REPLACE positions row |
+| `POST` | `/rpc/insert-signal` | Write | trade_signals |
+| `POST` | `/rpc/insert-system-log` | Write | system_logs |
+
+Example open positions:
+
+```http
+POST /rpc/list-open-positions
+X-Internal-Auth-Key: <read key>
+Content-Type: application/json
+
+{ "exchange": "binance" }
+```
+
+Response includes both `results` and `positions` arrays for compatibility with reconcile/dashboard clients.
+
+---
+
+### B. Execute Single SQL Query (SELECT-only free-form)
+
+- **Endpoint**: `/query`
+- **Method**: `POST`
+- **Notes**: **SELECT only**. Free-form writes are rejected — use named `/rpc/*` mutations.
+- **JSON Payload**:
+  ```json
+  {
+    "query": "SELECT created_at, symbol, action, price FROM trades WHERE symbol = ? ORDER BY created_at DESC LIMIT ?",
+    "params": ["BTCUSDT", 5]
+  }
+  ```
+- **SELECT Success Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "results": [
+      {
+        "created_at": 1779261050000,
+        "symbol": "BTCUSDT",
+        "action": "LONG",
+        "price": 68425.5
+      }
+    ]
+  }
+  ```
+
+---
+
+### C. Execute Transactional Batch Operations
+
+Allows running multiple statements atomically in a single network trip, reducing latency.
+
+- **Endpoint**: `/batch`
+- **Method**: `POST`
+- **JSON Payload**:
+  ```json
+  {
+    "statements": [
+      {
+        "query": "INSERT INTO trades (id, symbol, price) VALUES (?, ?, ?)",
+        "params": ["trade-1", "BTCUSDT", 68000]
+      },
+      {
+        "query": "UPDATE positions SET size = size + ? WHERE symbol = ?",
+        "params": [0.005, "BTCUSDT"]
+      }
+    ]
+  }
+  ```
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "results": [
+      { "success": true, "meta": { "last_row_id": 1, "changes": 1 } },
+      { "success": true, "meta": { "changes": 1 } }
+    ]
+  }
+  ```
+
+---
+
+### C. Dashboard Telemetry Statistics
+
+Calculates aggregated win ratios, active positions size, and time-series P&L.
+
+- **Endpoint**: `/api/dashboard/stats`
+- **Method**: `GET`
+- **Live-only aggregates**: counts exclude test trading ledger noise:
+  - Trades with `status = 'TEST_EXECUTED'` are omitted from total/daily trade counts.
+  - Positions whose `id` matches `%-testnet-%` are omitted from open/closed position counts.
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "stats": {
+      "totalTrades": 1048,
+      "winRate": 64.2,
+      "totalPnlUSDT": 18340.5,
+      "activePositionsCount": 2,
+      "dailyTradesCount": 14
+    }
+  }
+  ```
+
+Raw `/api/dashboard/positions` still returns all OPEN rows (including testnet). The dashboard Positions UI filters by mode; the agent skips `*-testnet-*` ids.
+
+---
+
+## 🛡️ 3. Security & SQL Injection Protection
+
+To protect financial transaction ledgers and portfolios against SQL injection attacks, `d1-worker` enforces strict development rules:
+
+- **Parameterized Bindings**: All inputs must utilize parameterized placeholders (`?`) mapped to `env.DB.prepare().bind()`. **Never** concatenate raw request strings directly into SQL statements. Free-form SQL with string literals is rejected (`400`).
+- **Table allowlist**: Only `trade_signals`, `trades`, `positions`, `balances`, `system_logs`, `trade_requests`, `trade_responses`.
+- **Keyword firewall**: `DROP`, `PRAGMA`, `ALTER`, `TRUNCATE`, `VACUUM`, `ATTACH`, `DETACH`, `CREATE`, and related schema verbs → `403`.
+- **Multi-statement rejection**: Semicolon chaining is blocked (`403`).
+- **Read-only free-form API**: `POST /query` and `POST /batch` accept **SELECT only**. Mutations use named RPC routes (`/rpc/insert-trade`, `/rpc/upsert-position`, `/rpc/insert-signal`, `/rpc/insert-system-log`) with fixed SQL templates.
+- **Batch / size limits**: Max 50 batch statements, 64 bind params per statement, 8 KiB SQL, 1 MiB JSON body.
+- **Fail-closed auth**: Missing internal key → `401`. Prefer scoped `D1_READ_KEY_BINDING` / `D1_WRITE_KEY_BINDING`.
+- **Access Isolation**: The database is not public. D1 is bound only to this worker and reached via V8 Service Bindings.
+
+---
+
+<Tip>
+  If you are extending schemas or adding tables, generate migration scripts
+  locally using Drizzle: `hoox db migrate --remote`. This keeps edge schema
+  histories atomic and securely tracked.
+</Tip>
+
+### 🔗 Next Steps
+
+- **[System Storage Architecture](/docs/devops/architecture/storage)** — Review SQLite properties and R2 bucketing pipelines.
+- **[Database Operations Manual](/docs/enduser/guides/database-ops)** — Learn commands to run query ledgers and restore backups.

@@ -30,7 +30,7 @@ export function formatPeriodDisplayName(months: number): string {
 }
 
 /**
- * Creates a display name for a token with term suffix (e.g., "USDS-3m", "cdUSDS-6m")
+ * Creates a display name for a token with a term suffix (e.g., "SYM-3m")
  */
 export function createTokenDisplayName(baseSymbol: string, periodMonths: number): string {
   const termSuffix = formatTermSuffix(periodMonths);

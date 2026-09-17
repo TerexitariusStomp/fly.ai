@@ -1,4 +1,4 @@
--- SYM Token D1 Schema v2 — self-improvement tables
+-- SHIT Token D1 Schema v2 — self-improvement tables
 -- Adds training data and model version tracking for the reservoir readout
 
 -- Training data: links fly brain signals to trade outcomes

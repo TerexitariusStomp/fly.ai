@@ -23,7 +23,7 @@ const client = createPublicClient({ chain: baseSepolia, transport: http() });
 async function monitorLiquidity(): Promise<void> {
   const chainId = baseSepolia.id;
   const polManager = (CONTRACTS[ContractName.YIELD_ROUTER]?.[chainId] ?? "0x0") as Address;
-  const shitToken = (CONTRACTS[ContractName.SYM]?.[chainId] ?? "0x0") as Address;
+  const symbientToken = (CONTRACTS[ContractName.SYM]?.[chainId] ?? "0x0") as Address;
 
   const ERC20_ABI = [{ type: "function", name: "totalSupply", inputs: [], outputs: [{ type: "uint256" }], stateMutability: "view" }] as const;
   const POL_ABI = [
@@ -31,12 +31,12 @@ async function monitorLiquidity(): Promise<void> {
     { type: "function", name: "getTotalValue", inputs: [], outputs: [{ type: "uint256" }], stateMutability: "view" },
   ] as const;
 
-  let totalPOLValue = 0n, poolCount = 0, shitSupply = 0n;
-  try { shitSupply = await client.readContract({ address: shitToken, abi: ERC20_ABI, functionName: "totalSupply" }); } catch (e) { console.warn("Failed to read SYM supply:", e); }
+  let totalPOLValue = 0n, poolCount = 0, symbientSupply = 0n;
+  try { symbientSupply = await client.readContract({ address: symbientToken, abi: ERC20_ABI, functionName: "totalSupply" }); } catch (e) { console.warn("Failed to read SYM supply:", e); }
   try { poolCount = Number(await client.readContract({ address: polManager, abi: POL_ABI, functionName: "getPoolCount" })); } catch (e) { console.warn("Failed to read pool count:", e); }
   try { totalPOLValue = await client.readContract({ address: polManager, abi: POL_ABI, functionName: "getTotalValue" }); } catch (e) { console.warn("Failed to read POL value:", e); }
 
-  const polRatio = shitSupply > 0n ? Number((totalPOLValue * 10000n) / shitSupply) / 100 : 0;
+  const polRatio = symbientSupply > 0n ? Number((totalPOLValue * 10000n) / symbientSupply) / 100 : 0;
   console.log("═══════════════════════════════════════════════════");
   console.log("  Liquidity Monitoring Report");
   console.log("═══════════════════════════════════════════════════");
@@ -44,7 +44,7 @@ async function monitorLiquidity(): Promise<void> {
   console.log(`  Chain ID:      ${chainId}`);
   console.log(`  Total POL:     $${formatUnits(totalPOLValue, 18)}`);
   console.log(`  Pool Count:    ${poolCount}`);
-  console.log(`  SYM Supply:  ${formatUnits(shitSupply, 18)}`);
+  console.log(`  SYM Supply:  ${formatUnits(symbientSupply, 18)}`);
   console.log(`  POL Ratio:     ${polRatio.toFixed(2)}%`);
   if (polRatio < 0.5) console.warn("WARNING: POL ratio below 0.5%");
   console.log("═══════════════════════════════════════════════════");
@@ -54,7 +54,7 @@ async function monitorLiquidity(): Promise<void> {
 
 async function monitorEmissions(): Promise<void> {
   const chainId = baseSepolia.id;
-  const treasuryPolicy = (CONTRACTS[ContractName.SHIT_TREASURY_POLICY]?.[chainId] ?? "0x0") as Address;
+  const treasuryPolicy = (CONTRACTS[ContractName.SYM_TREASURY_POLICY]?.[chainId] ?? "0x0") as Address;
   const voteMarketRouter = (CONTRACTS[ContractName.VOTE_MARKET_ROUTER]?.[chainId] ?? "0x0") as Address;
 
   const TREASURY_ABI = [
@@ -116,8 +116,8 @@ async function deployTestnet(): Promise<void> {
   const walletClient = createWalletClient({ chain: baseSepolia, transport: http(), account });
 
   const MARKET_FACTORY = "0x92150D8F1A767298f0B135dD6B1fC2c5578a79A6" as Address;
-  const SHIT_BONDING = "0xf5a0E63B83De370BB8bafE97EfA38FaB603C0cCF" as Address;
-  const SHIT_TOKEN = "0x4ecC60673196C702D7380f1f176dF5BF3773239B" as Address;
+  const SYM_BONDING = "0xf5a0E63B83De370BB8bafE97EfA38FaB603C0cCF" as Address;
+  const SYM_TOKEN = "0x4ecC60673196C702D7380f1f176dF5BF3773239B" as Address;
   const TREASURY = "0xCfd4CDBdfFC220b53D71659Baa8Ba79A18c765de" as Address;
 
   const IMPACT_TOKENS: { symbol: string; address: Address }[] = [
@@ -154,13 +154,13 @@ async function deployTestnet(): Promise<void> {
 
   console.log("\n--- Checking Bond Markets ---");
   const BOND_ABI = [{ type: "function", name: "liveMarkets", inputs: [], outputs: [{ type: "uint256[]" }], stateMutability: "view" }] as const;
-  const liveBonds = await publicClient.readContract({ address: SHIT_BONDING, abi: BOND_ABI, functionName: "liveMarkets" });
+  const liveBonds = await publicClient.readContract({ address: SYM_BONDING, abi: BOND_ABI, functionName: "liveMarkets" });
   console.log(`Live bond markets: ${liveBonds.length}`);
 
   console.log("\n--- SYM Balance ---");
   const ERC20_ABI = [{ type: "function", name: "balanceOf", inputs: [{ name: "account", type: "address" }], outputs: [{ type: "uint256" }], stateMutability: "view" }] as const;
-  const shitBal = await publicClient.readContract({ address: SHIT_TOKEN, abi: ERC20_ABI, functionName: "balanceOf", args: [account.address] });
-  console.log(`SYM balance: ${shitBal / 10n ** 18n}`);
+  const symbientBal = await publicClient.readContract({ address: SYM_TOKEN, abi: ERC20_ABI, functionName: "balanceOf", args: [account.address] });
+  console.log(`SYM balance: ${symbientBal / 10n ** 18n}`);
   console.log("\n=== Deployment Complete ===");
 }
 

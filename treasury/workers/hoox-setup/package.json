@@ -1,0 +1,115 @@
+{
+  "name": "hoox",
+  "version": "0.13.1",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "workers/*",
+    "pages/*",
+    "packages/test-utils"
+  ],
+  "scripts": {
+    "test": "bun run scripts/test-with-table.ts --isolate --path-ignore-patterns 'tests/live/**'",
+    "test:live": "bun run scripts/test-with-table.ts tests/live/ --jobs 1",
+    "test:cli": "bun run scripts/test-with-table.ts --isolate packages/cli/",
+    "test:tui": "bun run scripts/test-with-table.ts --preload ./packages/tui/src/test-setup.ts packages/tui/",
+    "test:shared": "bun run scripts/test-with-table.ts --isolate packages/shared/",
+    "test:workers": "bun run scripts/test-with-table.ts --isolate workers/",
+    "test:trade-worker": "bun test workers/trade-worker",
+    "test:integration": "bun run scripts/test-with-table.ts --isolate tests/integration/",
+    "test:e2e": "bun run scripts/test-with-table.ts --isolate tests/e2e/",
+    "test:load": "k6 run tests/load/webhook-flow.js && k6 run tests/load/d1-query-load.js && k6 run tests/load/system-mixed.js && k6 run tests/load/agent-cron-sim.js",
+    "test:security": "bun run scripts/test-with-table.ts --isolate tests/security/",
+    "test:all": "bun run lint && bun run typecheck && bun run test && bun run test:live",
+    "build": "bun run sync-dashboard-configs && bun run build:packages && bun run typecheck",
+    "sync-dashboard-configs": "bun run scripts/sync-dashboard-configs.ts",
+    "build:packages": "bun run build:shared && bun run build:cli && bun run build:tui",
+    "build:shared": "cd packages/shared && bun run build",
+    "build:cli": "cd packages/cli && bun run build",
+    "build:tui": "cd packages/tui && bun run build",
+    "build:dashboard": "cd workers/dashboard && bun run build",
+    "typecheck": "bun scripts/typecheck-all.ts",
+    "typecheck:root": "tsc --noEmit",
+    "typecheck:prod": "tsc -p tsconfig.prod.json --noEmit",
+    "graph": "bun scripts/extract-graph.ts",
+    "coverage:check": "bun scripts/check-coverage.ts",
+    "generate-types": "tsc -p tsconfig.prod.json --declaration --emitDeclarationOnly --outDir types",
+    "tui": "bun run --cwd packages/tui src/main.tsx",
+    "dev": "bun run --cwd packages/tui src/main.tsx",
+    "manage": "hoox",
+    "hoox": "hoox",
+    "hx": "hoox",
+    "lint": "eslint packages/ packages/test-utils/ workers/*/src workers/*/test workers/dashboard/src --no-error-on-unmatched-pattern",
+    "lint:fix": "eslint packages/ packages/test-utils/ workers/agent-worker/src workers/agent-worker/test workers/analytics-worker/src workers/analytics-worker/test workers/d1-worker/src workers/d1-worker/test workers/email-worker/src workers/email-worker/test workers/hoox-worker/src workers/hoox-worker/test workers/report-worker/src workers/report-worker/test workers/telegram-worker/src workers/telegram-worker/test workers/trade-worker/src workers/trade-worker/test workers/web3-wallet-worker/src workers/web3-wallet-worker/test workers/dashboard/src --fix --no-error-on-unmatched-pattern",
+    "format": "prettier --write .",
+    "migrate:tracking": "bun run ./scripts/migrate-tracking.sh",
+    "docker:dev": "docker compose --profile full up --build",
+    "docker:dev:build": "docker buildx bake dev --load",
+    "docker:prod:build": "docker buildx bake prod --load",
+    "docker:prod": "docker buildx bake prod --load && docker run --rm -e HOOX_SERVER_API_KEY=dev -e NODE_ENV=production -p 8080:8080 hoox:prod",
+    "docker:publish": "docker buildx bake prod --push",
+    "docker:down": "docker compose --profile full down",
+    "prepare": "husky",
+    "lint-staged": "lint-staged",
+    "lint:scripts": "bun run ./scripts/check-script-paths.ts",
+    "check:worker-submodules": "bun run ./scripts/check-worker-submodules.ts",
+    "start": "bun run server.js"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260708.1",
+    "@eslint/js": "^10.0.1",
+    "@tailwindcss/vite": "^4.3.0",
+    "@types/node": "^26.1.1",
+    "@types/react": "^19.2.15",
+    "@typescript-eslint/eslint-plugin": "^8.59.3",
+    "@typescript-eslint/parser": "^8.59.3",
+    "bun-types": "^1.3.14",
+    "eslint": "^10.4.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "globals": "^17.6.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.4",
+    "prettier": "^3.8.3",
+    "shadcn": "^4.7.0",
+    "tailwindcss": "^4.3.0",
+    "ts-morph": "^28.0.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.14",
+    "wrangler": "^4.98.0",
+    "yaml": "^2.9.0"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
+  "description": "HOOX — ultra-low-latency edge trading framework on Cloudflare Workers. Stack: hoox + pyne + axis (hoox.sh)",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hoox-sh/hoox.git"
+  },
+  "keywords": [],
+  "author": "jango-blockchained (hoox-sh)",
+  "license": "Apache-2.0",
+  "licenses": [
+    {
+      "type": "Apache-2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0"
+    },
+    {
+      "type": "CC-BY-4.0",
+      "url": "https://creativecommons.org/licenses/by/4.0/"
+    }
+  ],
+  "bugs": {
+    "url": "https://github.com/hoox-sh/hoox/issues"
+  },
+  "overrides": {
+    "@radix-ui/react-slot": "^1.2.4",
+    "@cloudflare/workers-types": "^5.20260708.1"
+  },
+  "homepage": "https://hoox.sh"
+}

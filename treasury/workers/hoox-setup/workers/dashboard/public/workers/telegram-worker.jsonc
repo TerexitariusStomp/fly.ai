@@ -1,0 +1,28 @@
+{
+  "display_name": "Telegram Worker",
+  "description": "Outbound chat defaults and allowlists are secrets (TG_CHAT_ID_BINDING, AUTHORIZED_CHAT_IDS) — not CONFIG_KV. No live bot:* toggles.",
+  "sections": {
+    "bot": {
+      "title": "Secrets (CLI)",
+      "description": "There are no runtime bot:* KV toggles. Configure via wrangler secrets.",
+      "icon": "send",
+      "priority": 10,
+      "fields": {
+        "default_chat_id": "Requires CLI Setup",
+        "authorized_chat_ids": "Requires CLI Setup"
+      },
+      "descriptions": {
+        "default_chat_id": "TG_CHAT_ID_BINDING — default chat when callers omit chatId.",
+        "authorized_chat_ids": "AUTHORIZED_CHAT_IDS — comma-separated outbound/inbound allowlist (fail-closed when unset for commands)."
+      },
+      "secrets": {
+        "default_chat_id": true,
+        "authorized_chat_ids": true
+      },
+      "secret_commands": {
+        "default_chat_id": "hoox secrets set telegram-worker TG_CHAT_ID_BINDING",
+        "authorized_chat_ids": "hoox secrets set telegram-worker AUTHORIZED_CHAT_IDS"
+      }
+    }
+  }
+}

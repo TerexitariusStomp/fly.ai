@@ -1,0 +1,30 @@
+{
+  "display_name": "Web3 Wallet",
+  "description": "Runtime config is a single wallet:config JSON document (not flat wallet:* keys). Private keys are secrets.",
+  "sections": {
+    "wallet": {
+      "title": "Wallet Config",
+      "description": "Stored as wallet:config — shape: { enabled, defaultChain, dex, security }",
+      "icon": "wallet",
+      "priority": 10,
+      "fields": {
+        "config": "{ \"enabled\": true, \"defaultChain\": \"ethereum\", \"dex\": { \"slippageTolerance\": 0.5, \"gasMultiplier\": 1.2, \"maxApprovalAmount\": \"1000000\" }, \"security\": { \"maxTransactionValueUsd\": 10000, \"requireConfirmation\": true, \"whitelistedContractsOnly\": true } }",
+        "private_key": "Requires CLI Setup",
+        "mnemonic": "Requires CLI Setup"
+      },
+      "descriptions": {
+        "config": "Full WalletConfig JSON (wallet:config). Matches web3-wallet-worker getConfig() schema.",
+        "private_key": "WALLET_PK_SECRET / WEB3 private key binding.",
+        "mnemonic": "WALLET_MNEMONIC_SECRET."
+      },
+      "secrets": {
+        "private_key": true,
+        "mnemonic": true
+      },
+      "secret_commands": {
+        "private_key": "hoox secrets set web3-wallet-worker WALLET_PK_SECRET",
+        "mnemonic": "hoox secrets set web3-wallet-worker WALLET_MNEMONIC_SECRET"
+      }
+    }
+  }
+}

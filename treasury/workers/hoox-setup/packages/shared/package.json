@@ -1,0 +1,117 @@
+{
+  "name": "@hoox-sh/hoox-shared",
+  "version": "1.4.0",
+  "description": "Shared utilities, types, and stores for HOOX CLI, TUI, and Cloudflare Workers",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./middleware": {
+      "types": "./dist/middleware/index.d.ts",
+      "import": "./dist/middleware/index.js",
+      "default": "./dist/middleware/index.js"
+    },
+    "./middleware/*": {
+      "types": "./dist/middleware/*.d.ts",
+      "import": "./dist/middleware/*.js",
+      "default": "./dist/middleware/*.js"
+    },
+    "./d1": {
+      "types": "./dist/d1/index.d.ts",
+      "import": "./dist/d1/index.js",
+      "default": "./dist/d1/index.js"
+    },
+    "./d1/*": {
+      "types": "./dist/d1/*.d.ts",
+      "import": "./dist/d1/*.js",
+      "default": "./dist/d1/*.js"
+    },
+    "./schemas": {
+      "types": "./dist/schemas/index.d.ts",
+      "import": "./dist/schemas/index.js",
+      "default": "./dist/schemas/index.js"
+    },
+    "./schemas/*": {
+      "types": "./dist/schemas/*.d.ts",
+      "import": "./dist/schemas/*.js",
+      "default": "./dist/schemas/*.js"
+    },
+    "./wizard": {
+      "types": "./dist/wizard/index.d.ts",
+      "import": "./dist/wizard/index.js",
+      "default": "./dist/wizard/index.js"
+    },
+    "./wizard/*": {
+      "types": "./dist/wizard/*.d.ts",
+      "import": "./dist/wizard/*.js",
+      "default": "./dist/wizard/*.js"
+    },
+    "./exchanges": {
+      "types": "./dist/exchanges/index.d.ts",
+      "import": "./dist/exchanges/index.js",
+      "default": "./dist/exchanges/index.js"
+    },
+    "./exchanges/*": {
+      "types": "./dist/exchanges/*.d.ts",
+      "import": "./dist/exchanges/*.js",
+      "default": "./dist/exchanges/*.js"
+    },
+    "./stores/*": {
+      "types": "./dist/stores/*.d.ts",
+      "import": "./dist/stores/*.js",
+      "default": "./dist/stores/*.js"
+    },
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "import": "./dist/*.js",
+      "default": "./dist/*.js"
+    }
+  },
+  "scripts": {
+    "build": "bun run scripts/build.ts",
+    "prepublishOnly": "bun run build && bun run typecheck",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "peerDependencies": {
+    "zod": "^4.0.0"
+  },
+  "dependencies": {
+    "jsonc-parser": "^3.3.1",
+    "zustand": "^5.0.0",
+    "immer": "^11.1.8"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hoox-sh/hoox.git"
+  },
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "trading",
+    "crypto",
+    "automation",
+    "hoox"
+  ],
+  "author": "jango-blockchained (hoox-sh)",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260708.1",
+    "typescript": "^6.0.3"
+  },
+  "engines": {
+    "bun": ">=1.0"
+  }
+}

@@ -1,5 +1,5 @@
 /**
- * Gelato Automate Task Setup for SYM Protocol
+ * Gelato Automate Task Setup for SYM
  *
  * Creates two automated keeper tasks on Base mainnet (chain ID 8453):
  *   1. Heart.beat() — every 4 hours (epoch heartbeat)
@@ -19,8 +19,8 @@
  *   GELATO_API_KEY       — Gelato API key (1Balance account)
  *   KEEPER_PRIVATE_KEY   — Private key for the keeper EOA (funded via Gelato 1Balance)
  *   BASE_RPC_URL         — Base mainnet RPC URL
- *   HEART_ADDRESS        — SYM ProtocolHeart contract address
- *   CIRCUIT_BREAKER_ADDRESS — shitCircuitBreaker contract address
+ *   HEART_ADDRESS        — OlympusHeart contract address
+ *   CIRCUIT_BREAKER_ADDRESS — RootsCircuitBreaker contract address
  */
 
 import { AutomateSDK, TaskTransaction } from "@gelatonetwork/automate-sdk";
@@ -56,7 +56,7 @@ async function main() {
   // Task 1: Heart.beat() — every 4 hours
   console.log("Creating task: Heart.beat() every 4 hours...");
   const heartTask: TaskTransaction = {
-    name: "SYM Protocol — Heart Beat",
+    name: "SYM — Heart Beat",
     execAddress: heartAddress,
     execSelector: automate.encodeExecSelector("beat()"),
     execData: "0x",
@@ -74,7 +74,7 @@ async function main() {
   // Task 2: CircuitBreaker.check() — every 8 hours
   console.log("Creating task: CircuitBreaker.check() every 8 hours...");
   const cbTask: TaskTransaction = {
-    name: "SYM Protocol — Circuit Breaker Check",
+    name: "SYM — Circuit Breaker Check",
     execAddress: circuitBreakerAddress,
     execSelector: automate.encodeExecSelector("check()"),
     execData: "0x",

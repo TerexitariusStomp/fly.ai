@@ -1,0 +1,28 @@
+{
+  "display_name": "PYNE Worker",
+  "description": "Auth and alert webhooks are secrets. Cron / TRADE_SERVICE wiring is wrangler — not CONFIG_KV.",
+  "sections": {
+    "pyne": {
+      "title": "Secrets (CLI)",
+      "description": "Runtime auth and alert destination",
+      "icon": "key",
+      "priority": 10,
+      "fields": {
+        "api_key": "Requires CLI Setup",
+        "alert_webhook_url": "Requires CLI Setup"
+      },
+      "descriptions": {
+        "api_key": "API_KEY (X-API-Key for /run and related routes).",
+        "alert_webhook_url": "ALERT_WEBHOOK_URL default destination for alert()/alertcondition()."
+      },
+      "secrets": {
+        "api_key": true,
+        "alert_webhook_url": true
+      },
+      "secret_commands": {
+        "api_key": "hoox secrets set pyne-worker API_KEY",
+        "alert_webhook_url": "hoox secrets set pyne-worker ALERT_WEBHOOK_URL"
+      }
+    }
+  }
+}

@@ -1,102 +1,182 @@
-# AGENTS.md — SYM Token
+# AGENTS.md — SYM Protocol
 
 ## Project Overview
 
-SYM (Symbientcoin) is a treasury-backed token on Robinhood Chain (4663), forked from SYM Protocol (SYM Protocol V3, AGPL-3.0). The treasury is traded by a real fruit fly connectome (165K neurons) and holds FLYAI as a reserve asset. The entire system runs on Cloudflare Free Tier ($0/month).
+SYM is a single-token, treasury-backed protocol on **Arc** (testnet chain ID `5042002`, mainnet next). The treasury is governed and actively managed by **7 biological connectomes** running on-chain LIF inference via `FlyEngine`. The architecture is an Olympus V3 fork (Kernel / Modules / Policies / Heart / RBS) where the `ConnectomeGovernor` is the kernel executor — the connectomes operate the entire protocol themselves.
 
 ## Directory Structure
 
 ```
 symbient-token/
-├── contracts/              # Foundry Solidity (AGPL-3.0, forked from SYM Protocol)
-│   ├── src/Symbient*.sol       # Renamed from symbient*.sol
-│   ├── script/DeployAll.s.sol  # FLYAI registration added
+├── contracts/                  # Foundry Solidity (AGPL-3.0)
+│   ├── src/                    # Core: SymbientToken, SymbientStaking, wstSYM, valuation,
+│   │                           #   price feeds, inverse bond, circuit breaker
+│   ├── src/fly/                # FlyEngine, ConnectomeGovernor, GovernorPolicy,
+│   │                           #   TreasuryAllocator, ArcLaunchpadAdapter,
+│   │                           #   DecisionLedger, PerformanceBridge, StakingVault
+│   ├── src/fly/strategies/     # RBSStrategy, MemecoinStrategy, YieldFarmingStrategy,
+│   │                           #   SafeHavenStrategy (thin IStrategy adapters)
+│   ├── script/DeploySimplified.s.sol   # full protocol deploy (governor = executor)
+│   ├── script/DeployPhase2.s.sol       # fly-system-only deploy
+│   ├── scripts/deploy_fly.py           # FlyEngine + governor + 7 connectomes (web3.py)
+│   ├── scripts/pack_connectomes.py     # NPZ → int4/uint16 CSR for SSTORE2
 │   └── foundry.toml
-├── workers/                # Cloudflare Workers (all free tier)
-│   ├── fly-brain-do/       # Python Durable Object (imports flycoinrh)
-│   ├── discovery-worker/   # TS Cron (polls launchpads)
-│   ├── trade-worker/       # TS (viem + Discord webhook)
-│   ├── api-worker/         # TS (API endpoints)
-│   └── enrichment-worker/  # Python Worker (imports hermes)
-├── migrations/schema.sql   # D1 schema
-├── frontend/               # Forked from SYM Protocol (AGPL-3.0)
-│   └── lib/chains.ts       # Updated for Robinhood Chain (4663)
-├── flycoinrh/              # Fly brain (MIT, alextitonis/fly.ai)
-├── loxley/                  # Trading patterns (MIT, shmidtqq65/loxley)
-├── hermes/                  # Token screener (MIT, TerexitariusStomp)
-├── wrangler.toml            # Root CF config
-└── README.md
+├── workers/                    # Cloudflare Workers (free tier)
+│   ├── fly-brain-do/           # Connectome Durable Object
+│   ├── governance-worker/      # Drives on-chain propose → vote → execute
+│   ├── discovery-worker/       # Cron: poll launchpads / DexScreener
+│   ├── trade-worker/           # Bounded autonomous trading (viem + loxley)
+│   ├── api-worker/             # REST API + on-chain treasury reads
+│   └── enrichment-worker/      # Token scoring
+├── migrations/schema.sql       # D1 schema (treasury_snapshots, wallets, …)
+└── frontend/                   # SYM dashboard (treasury, connectomes, ops)
 ```
+
+## Architecture
+
+```
+                    ┌────────────────────────────────┐
+                    │   ConnectomeGovernor (UUPS)    │  kernel executor + all roles
+                    │  propose / vote / execute      │  quorum = 3 of 7 (≥1/3)
+                    └──────────────┬─────────────────┘
+                                   │ passed proposals
+                    ┌──────────────▼─────────────────┐
+                    │        GovernorPolicy          │  Kernel Policy, bridges to modules
+                    │  executeModule(target, data)   │  approveToken() for buyback float
+                    └──────────────┬─────────────────┘
+            ┌──────────────────────┼─────────────────────────┐
+            ▼                      ▼                         ▼
+      Olympus Kernel        TreasuryAllocator         ArcLaunchpadAdapter
+      MINTR/TRSRY/PRICE     (strategy targets,        (token whitelist,
+      /RANGE + Heart          rebalances, harvests)    bounded trades)
+            │
+            ▼
+   TreasuryValuation ──► SymbientInverseBond (buyback at floor × 0.985, burns SYM)
+   (RFV, NAV, floorPrice)      ▲
+                               └── SymbientCircuitBreaker (trips when spot < floor×0.98)
+```
+
+## The 7 Connectomes
+
+| ID | Neurons |
+|---|---|
+| drosophila | 49 |
+| rat | 73 |
+| mouse | 112 |
+| ciona | 205 |
+| macaque_modha | 242 |
+| human | 234 |
+| celegans_male | 575 |
+
+Quorum = `ceil(7 × 1/3) = 3`. A proposal executes when `forVotes ≥ 3` and `forVotes > againstVotes`. Votes run on-chain inference (`FlyEngine.analyze`): action `+1` = for, `−1` = against, `0` = abstain. Optional per-connectome bound-voter EOAs gate who can trigger each vote.
+
+## Governance model
+
+**Governance-controlled (proposals, infrequent):**
+- Whitelist/remove tradeable tokens, set trade/position bounds
+- Strategy registration + target allocations
+- Risk parameters: buyback spread/capacity, valuation haircuts, price feeds
+- Olympus params: RANGE spreads/capacity/prices, TRSRY approvals, MINTR
+- Emergency pause/restart, kernel module installs/upgrades
+- Funding floats (e.g. inverse bond payout approval)
+
+**Autonomous (no vote needed):**
+- Heart beats → rebases, periodic tasks
+- Trades within bounds (`KEEPER_ROLE`)
+- Treasury rebalances/harvests within targets
+- Buybacks within epoch capacity at floor price
+- Circuit-breaker checks (permissionless)
 
 ## Build & Test
 
-### Contracts
 ```bash
 cd contracts
 forge build
 forge test
 ```
 
-### Workers
-```bash
-# TS Workers
-cd workers/api-worker && npx wrangler dev
-cd workers/discovery-worker && npx wrangler dev
-cd workers/trade-worker && npx wrangler dev
+## Deploy (Arc testnet)
 
-# Python Workers
-cd workers/enrichment-worker && uv run pywrangler dev
-cd workers/fly-brain-do && uv run pywrangler dev
+```bash
+cd contracts
+export PRIVATE_KEY=...                  # deployer (env only — never commit)
+export SAFE_MULTISIG_ADDRESS=...        # backstop admin (veto/upgrades)
+export RESERVE_TOKEN=0x...              # USDC on Arc
+export UNISWAP_V2_ROUTER=0x...
+export CONNECTOME_VOTERS=0x..,0x..,..   # 7 bound voter EOAs (optional)
+
+forge script script/DeploySimplified.s.sol \
+  --rpc-url https://rpc.testnet.arc.io --broadcast
+
+# Then deploy fly brain + register connectomes:
+python3 scripts/pack_connectomes.py     # pack 7 connectomes → SSTORE2
+python3 scripts/deploy_fly.py           # FlyEngine + governor + connectomes
 ```
 
-### Frontend
-```bash
-cd frontend
-pnpm install
-pnpm dev
-pnpm build
-```
+Post-deploy (if SAFE ≠ deployer): the Safe must grant the governor `MULTISIG_ROLE`/`GOVERNANCE_ROLE` on the standalone contracts (script prints the list), and call `symbientToken.setAuthorizedMinter(MINTR)`.
 
-## Key Addresses
+## Contracts (custom LOC, all under `contracts/src/`)
 
-| Name | Address |
-|---|---|
-| Robinhood Chain | Chain ID 4663 |
-| Robinhood Testnet | Chain ID 46630 |
-| FLYAI Token | `0x0088CE7905025c4B5ea1d49aB6179B6aaADB3B9C` |
-| FLYAI/ NVDA Pair | `0x04f9f653f1692bbffeda87a5436aded3e9c0bc65e0bd929747a3a64b67c1312e` |
-| WETH | `0x0Bd7D308f3E1639FAb988df18A8011f41EAcAD73` |
-| RPC | `https://rpc.mainnet.chain.robinhood.com/` |
-| Explorer | `https://robinhoodchain.blockscout.com` |
-
-## Custom Code (<5%)
-
-| File | Lines | Purpose |
+| File | LOC | Purpose |
 |---|---|---|
-| workers/fly-brain-do/src/worker.py | ~20 | Thin wrapper: import flycoinrh, call step() |
-| workers/enrichment-worker/src/worker.py | ~30 | Thin wrapper: import hermes, call score() |
-| workers/discovery-worker/src/index.ts | ~50 | Cron: poll Pons + DexScreener |
-| workers/trade-worker/src/index.ts | ~880 | Paper + real trading (viem + loxley swap encoding) |
-| workers/trade-worker/src/loxley-swap.ts | ~240 | OSS copy from loxley (MIT) — pure swap functions |
-| workers/api-worker/src/index.ts | ~530 | API endpoints + on-chain treasury |
-| migrations/schema.sql | ~115 | D1 schema |
-| migrations/schema_v4.sql | ~20 | Real trading columns (tx_hash, is_real, flyai_buy_tx) |
-| wrangler.toml | ~20 | CF config |
-| FLYAI registration | ~18 | Treasury contract config |
-| TreasuryValuation keeper | ~25 | setRfvKeeper() + refreshValuationsFromKeeper() |
-| frontend/lib/chains.ts | ~5 | Chain ID |
-| **Total custom** | **~1,960** | **~3.3% of ~58K OSS** |
+| SymbientStaking.sol | 550 | Rebasing staking + warmup, rate-limit, smoothing, CB, `depositRewards` for external-token mode |
+| SymbientFeeRouter.sol | ~130 | Tolly LP fees → `routeToTreasury` consolidates into TRSRY (single treasury); `fundRewards` GOVERNANCE-gated SYM buy + `depositRewards` — rewards only by connectome vote |
+| FlyEngine.sol | 358 | On-chain LIF inference over SSTORE2 connectome data |
+| TreasuryValuation.sol | 285 | NAV/RFV/floorPrice with per-asset haircuts + TRSRY reads |
+| ArcLaunchpadAdapter.sol | 281 | Bounded token trading via UniV2 router |
+| StakingVault.sol | 255 | LP signal staking → signalScore |
+| ConnectomeGovernor.sol | 253 | propose/vote/execute consensus executor (was 776) |
+| SymbientDefenseBudget.sol | 205 | RBS defense budget gating (Olympus Policy) |
+| SymbientPrice.sol | 204 | PRICE module fork on TWAP feed |
+| TreasuryAllocator.sol | 194 | Multi-strategy treasury (Yearn-style IStrategy) |
+| SymbientCircuitBreaker.sol | 168 | Trips when SYM spot < floor×(1−2%) |
+| SymbientInverseBond.sol | 145 | Standing buyback at floor×0.985, burns SYM |
+| SymbientBondPricer.sol | 135 | Dynamic RBS bond discount |
+| GovernorPolicy.sol | 127 | Module bridge: executeModule + approveToken |
+| DecisionLedger.sol | 110 | On-chain decision/vote/execution audit trail |
+| StakingAdapter.sol | 109 | Olympus IStaking bridge for Heart |
+| strategies/ + misc | ~800 | Thin adapters, feeds, token, registry, distributor |
+
+**Total custom ~4,300 LOC**; everything else is vendored OSS (olympus-v3, openzeppelin, dss, solmate, bond-protocol, …).
+
+## OSS replacements done
+
+- `MultisigGuard` → OZ `AccessControl` (all contracts)
+- Custom pause flags → OZ `Pausable` (circuit breaker)
+- Tiered action registry → generic `target.call(data)` after consensus
+- Onboarding liquidity check → folded into `whitelistToken` (removed `TokenOnboardingManager`)
+- Manual NAV pushes → live `TreasuryValuation.floorPrice()`/`rfv()` reads
+- `wstSYM` denominator bug fixed: share-of-pool (`balanceOf(this)`) not global supply
+
+## Self-improving codebase loop
+
+The colony maintains its own code with no human in the loop (commit to `main` on the colony repo — deploys stay manual):
+
+```
+cycle → /ideate (rotating connectome picks file+task from repo tree)
+      → /code (persona+LLM writes full replacement content)
+      → constitutional gate on diff (always-on for code)
+      → /review × 7 connectomes (3-of-7 quorum, votes in governance_votes)
+      → commitFile → main on the CF git remote (the commit IS the merge)
+      → outcome → connectome_genome.pnl_score (merged +2 / rejected −1 / gate_blocked −2)
+```
+
+- Canonical repo: `git clone https://governance-worker.symbient.workers.dev/repo.git` — dumb-HTTP remote served from D1 `git_files` (loose objects + refs). Seeded with a baseline commit of colony-scope source (`scripts/seed_colony_repo.py`).
+- Radicle mirror: `git fetch https://governance-worker.symbient.workers.dev/repo.git && git push rad main` — run whenever the node is up.
+- Endpoints: `POST /code/propose`, `GET /code/status`, `POST /repo.git/import` (keyed) on governance-worker; `/ideate`, `/code`, `/review` on fly-brain DOs.
+- Kill switch: `UPDATE settings SET value='false' WHERE key='code_enabled'`; cap: `code_max_per_day` (default 8).
+- OSS used: isomorphic-git (MIT) for all git object/commit ops, zod (MIT) for LLM output validation, llama-3.3-70b via Workers AI, viem. Custom glue ~150 LOC (D1FS adapter + dumb-remote file server).
 
 ## Security
 
-- Private keys stored as CF Secrets (never in code)
-- Real trading mode requires `REAL_TRADING=true` secret + `EXECUTOR_PRIVATE_KEY` + `ROBINHOOD_RPC_URL`
-- Emergency stop: set `EMERGENCY_STOP=1` secret to halt real trading and fall back to paper mode
-- Cooldown between trades (COOLDOWN_SECONDS)
-- Safety checks before every buy (honeypot, tax, liquidity)
-- All decisions posted to Discord for auditability (real trades include Blockscout tx links)
-- Executor wallet holds both the shared trading fund and FLYAI reserves
-- Fly brain cannot sign transactions directly — only the trade worker signs
-- RFV keeper: `refreshValuationsFromKeeper()` on TreasuryValuation allows the executor wallet to auto-push floor price
-- Multisig still controls all admin functions (setRfvKeeper, registerAsset, refreshValuations, etc.)
-- Swap execution reuses loxley (MIT) Uniswap V4 encoding + viem (MIT) for signing
+- Private keys are env vars / CF secrets only — **never in code**. (Two old deploy shell scripts with a hardcoded testnet key were deleted; that key should be rotated.)
+- Governor proposals are bounded by on-chain consensus; Safe retains governor `admin` (veto + UUPS upgrades) only.
+- TRSRY withdrawals require explicit `increaseWithdrawApproval` via proposal — no arbitrary drain.
+- Buyback float is funded via `GovernorPolicy.approveToken` — bounded allowance, not custody transfer.
+- Scans (run before every deploy):
+
+```bash
+gitleaks detect --source .
+trivy fs --scanners secret,vuln,misconfig --severity HIGH,CRITICAL .
+semgrep scan --config p/owasp-top-10 .
+```

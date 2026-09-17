@@ -9,7 +9,7 @@ declare global {
   }
 }
 
-export const COOKIE_CONSENT_KEY = "symbient-cookie-consent";
+export const COOKIE_CONSENT_KEY = "sym-cookie-consent";
 export type CookieConsent = "accept_all" | "essential_only" | "reject_all";
 
 export function getStoredConsent(): CookieConsent | null {
@@ -118,8 +118,8 @@ function computeFirstTouchSource(utm: Record<string, string>, referrer: string):
   if (/twitter\.com|t\.co|x\.com/.test(referrer)) return "twitter";
   if (/discord/.test(referrer)) return "discord";
   if (/forum\.shitfinance/.test(referrer)) return "forum";
-  if (/app\.symbient\.finance/.test(referrer)) return "dapp-internal";
-  if (/symbient\.finance/.test(referrer)) return "website";
+  if (/app\.shit\.finance/.test(referrer)) return "dapp-internal";
+  if (/shit\.finance/.test(referrer)) return "website";
   if (/google\.|bing\.|duckduckgo\.|yahoo\./.test(referrer)) return "organic";
   return "referral-other";
 }
@@ -245,16 +245,16 @@ export function trackWalletDisconnect(): void {
 
 /** Wrap-page conversions (wrap / wrap_sshit / unwrap / unstake_sshit). */
 export function trackWrapFlow(params: { action: string; amount: string; txHash?: string }): void {
-  trackTransaction("symbient", params.action, { amount: params.amount, tx_hash: params.txHash });
+  trackTransaction("shit", params.action, { amount: params.amount, tx_hash: params.txHash });
 }
 
-export function trackBridgeSymbient(params: {
+export function trackBridgeShit(params: {
   amount: string;
   srcChain: string;
   dstChain: string;
   txHash?: string;
 }): void {
-  trackTransaction("symbient", "bridge", {
+  trackTransaction("shit", "bridge", {
     amount: params.amount,
     src_chain: params.srcChain,
     dst_chain: params.dstChain,
@@ -289,8 +289,8 @@ export function trackCoolerRepay(params: { repayAmount: string; txHash?: string 
 // already-identified users (who complete the tour AFTER connecting) get their
 // person record updated immediately, without waiting for a chain/wallet switch.
 
-const ONBOARDING_TOUR_KEY = "symbient-feature-tour"; // shared with useFeatureTour
-const ONBOARDING_FIRST_SEEN_KEY = "symbient-onboarding-first-seen";
+const ONBOARDING_TOUR_KEY = "shit-feature-tour"; // shared with useFeatureTour
+const ONBOARDING_FIRST_SEEN_KEY = "shit-onboarding-first-seen";
 
 type OnboardingOutcome = "skipped_modal" | "skipped_tour" | "completed";
 

@@ -1,0 +1,17 @@
+{
+  "canisters": {
+    "connectome_agent": {
+      "main": "src/lib.rs",
+      "type": "rust"
+    },
+    "llm": {
+      "type": "pull",
+      "id": "w36hm-eqaaa-aaaal-qr76a-cai"
+    }
+  },
+  "networks": {
+    "ic": {
+      "type": "persistent"
+    }
+  }
+}

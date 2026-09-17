@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.24;
 
-import {MultisigGuard} from "./MultisigGuard.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ITreasuryPolicy} from "./ITreasuryPolicy.sol";
 
 /// @title SymbientBondPricer
 /// @notice Dynamic bond discount tied to treasury/RFV growth ratio
 /// @dev Bond discounts that are static rather than dynamically shrinking as treasury/RFV
 ///      grows relative to supply risk becoming dilutive faster than the treasury backing
-///      them grows — the core mechanic behind SYM's "(3,3) to death spiral" failure
+///      them grows — the core mechanic behind OHM's "(3,3) to death spiral" failure
 ///      once bond demand outpaces real backing growth.
 ///
 ///      This contract computes a dynamic discount rate based on:
@@ -25,11 +25,14 @@ import {ITreasuryPolicy} from "./ITreasuryPolicy.sol";
 ///      - Can be called by the Operator or manually by the multisig
 ///
 ///      Formula:
-///      backingRatio = rfv / (shitSupply × floorPrice / 1e18)
+///      backingRatio = rfv / (symbientSupply × floorPrice / 1e18)
 ///      If backingRatio >= 1.5: maxDiscount (well-backed, bonds are accretive)
 ///      If backingRatio >= 1.0: scaled between minDiscount and maxDiscount
 ///      If backingRatio < 1.0: minDiscount (protect against dilution)
-contract SymbientBondPricer is MultisigGuard {
+contract SymbientBondPricer is AccessControl {
+    bytes32 public constant MULTISIG_ROLE = keccak256("MULTISIG_ROLE");
+    error ZeroAddress();
+
     error InvalidParams();
 
     uint256 public constant BPS_DENOMINATOR = 10_000;
@@ -48,18 +51,20 @@ contract SymbientBondPricer is MultisigGuard {
     event ParamsUpdated(uint256 minBps, uint256 maxBps, uint256 fullBackingBps);
     event TreasuryPolicyUpdated(address indexed policy);
 
-    constructor(address _treasuryPolicy, address _multisig) MultisigGuard(_multisig) {
+    constructor(address _treasuryPolicy, address _multisig) AccessControl() {
+        _grantRole(DEFAULT_ADMIN_ROLE, _multisig);
+        _grantRole(MULTISIG_ROLE, _multisig);
         if (_treasuryPolicy == address(0) || _multisig == address(0)) revert ZeroAddress();
         treasuryPolicy = ITreasuryPolicy(_treasuryPolicy);
     }
 
-    function setTreasuryPolicy(address _policy) external onlyMultisig {
+    function setTreasuryPolicy(address _policy) external onlyRole(MULTISIG_ROLE) {
         if (_policy == address(0)) revert ZeroAddress();
         treasuryPolicy = ITreasuryPolicy(_policy);
         emit TreasuryPolicyUpdated(_policy);
     }
 
-    function setParams(uint256 _minBps, uint256 _maxBps, uint256 _fullBackingBps) external onlyMultisig {
+    function setParams(uint256 _minBps, uint256 _maxBps, uint256 _fullBackingBps) external onlyRole(MULTISIG_ROLE) {
         if (_minBps > _maxBps || _maxBps > 5000 || _fullBackingBps < BPS_DENOMINATOR)
             revert InvalidParams();
         minDiscountBps = _minBps;
@@ -69,15 +74,15 @@ contract SymbientBondPricer is MultisigGuard {
     }
 
     /// @notice Compute current recommended bond discount in bps
-    /// @param shitSupply Current SYM total supply
+    /// @param symbientSupply Current SYM total supply
     /// @return discountBps Recommended discount rate in basis points
-    function computeDiscount(uint256 shitSupply) external returns (uint256 discountBps) {
+    function computeDiscount(uint256 symbientSupply) external returns (uint256 discountBps) {
         (uint256 rfv, uint256 floorPrice) = _getRfvAndFloor();
 
-        if (rfv == 0 || floorPrice == 0 || shitSupply == 0) {
+        if (rfv == 0 || floorPrice == 0 || symbientSupply == 0) {
             discountBps = minDiscountBps;
         } else {
-            uint256 requiredRfv = (shitSupply * floorPrice) / PRICE_DENOMINATOR;
+            uint256 requiredRfv = (symbientSupply * floorPrice) / PRICE_DENOMINATOR;
             uint256 backingRatioBps = (rfv * BPS_DENOMINATOR) / requiredRfv;
 
             lastBackingRatioBps = backingRatioBps;
@@ -103,14 +108,14 @@ contract SymbientBondPricer is MultisigGuard {
     }
 
     /// @notice View: compute discount without updating state
-    function previewDiscount(uint256 shitSupply) external view returns (uint256 discountBps) {
+    function previewDiscount(uint256 symbientSupply) external view returns (uint256 discountBps) {
         (uint256 rfv, uint256 floorPrice) = _getRfvAndFloor();
 
-        if (rfv == 0 || floorPrice == 0 || shitSupply == 0) {
+        if (rfv == 0 || floorPrice == 0 || symbientSupply == 0) {
             return minDiscountBps;
         }
 
-        uint256 requiredRfv = (shitSupply * floorPrice) / PRICE_DENOMINATOR;
+        uint256 requiredRfv = (symbientSupply * floorPrice) / PRICE_DENOMINATOR;
         uint256 backingRatioBps = (rfv * BPS_DENOMINATOR) / requiredRfv;
 
         if (backingRatioBps >= fullBackingRatioBps) {
