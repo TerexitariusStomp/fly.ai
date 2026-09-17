@@ -24,14 +24,16 @@ USDC_ADDRESS = "0x3600000000000000000000000000000000000000"
 FLYAI_TOKEN = "0x0088CE7905025c4B5ea1d49aB6179B6aaADB3B9C"
 # Uniswap V4 pool ID (FLYAI/NVDA) — bytes32, not an ERC20 pair contract
 FLYAI_POOL_ID = "0x04f9f653f1692bbffeda87a5436aded3e9c0bc65e0bd929747a3a64b67c1312e"
-# Protocol deployment — pending redeploy on Robinhood (was Arc 5042/5042002)
-GOVERNOR_ADDRESS = "0xca184c37a2af24b004319912c07976d119d09e97"
-GOVERNOR_POLICY = "0x01c33f3070c312f205035393595aa810599733fd"
-TRSRY_ADDRESS = "0x9db82d9b418eaab7d0106b6b1c0eae1f5200e9f0"
-FEE_ROUTER = "0x1bd2f20780efc916a6a886e6ee25644bc712024f"
-INVERSE_BOND = "0xf7046cacbf72f11f2d2b42207343a1af9d445054"
-STAKING = "0xcfd4cdbdffc220b53d71659baa8ba79a18c765de"
-RELAY_ENGINE = "0x9459c71bca66b1e39a53b6a96a51f1dae369ea4c"
+# Robinhood mainnet deployment (chain 4663, deployer 0xc6f12272...)
+GOVERNOR_ADDRESS = "0x6a7a1df72301e6a09dd43adf2fdd4487994e72a8"
+GOVERNOR_POLICY = "0x2257c925e5d6156cca11f0d7f9a69859d383099f"
+TRSRY_ADDRESS = "0x056518a55e60328ddeb8b7a1de844c8d390989e1"
+FEE_ROUTER = "0x0000000000000000000000000000000000000000"
+INVERSE_BOND = "0x73fcf57ea4bb78b103e9323fad27b54fd7aeccf2"
+STAKING = "0x60c11f1182b0313d17b96ff8f20a12611ab769c5"
+RELAY_ENGINE = "0x0000000000000000000000000000000000000000"
+# Not yet deployed on Robinhood: SymbientFeeRouter (needs V4 adapter),
+# DecisionRelayEngine, TreasuryAllocator is 0x6429b17f42c3f188595f24d0bd721079ba4329a3
 # Colony self-improvement loop — set to enable code ideation + PR auto-merge
 # GITHUB_REPO = "owner/repo"           # target repo for colony PRs
 # secret: npx wrangler secret put GITHUB_TOKEN   (fine-grained PAT, contents+pull-requests write)

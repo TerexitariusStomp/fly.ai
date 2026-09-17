@@ -29,7 +29,7 @@ export const TOKENS: Record<TokenName, TokenInfo> = {
   },
   STFLYAI: {
     addresses: {
-      [base.id]: "0x0000000000000000000000000000000000000000",
+      [base.id]: "0x60c11f1182b0313d17b96ff8f20a12611ab769c5",
       [baseSepolia.id]: "0x0000000000000000000000000000000000000000",
     },
     symbol: "stFLYAI",
@@ -38,7 +38,7 @@ export const TOKENS: Record<TokenName, TokenInfo> = {
   },
   WSTFLYAI: {
     addresses: {
-      [base.id]: "0x0000000000000000000000000000000000000000",
+      [base.id]: "0xc5fdf1d701cd8395564451cd89d940b5fd0c3600",
       [baseSepolia.id]: "0x0000000000000000000000000000000000000000",
     },
     symbol: "wstFLYAI",

@@ -10,22 +10,24 @@ import time
 from web3 import Web3
 from eth_account import Account
 
-RPC_URL = "https://rpc.testnet.arc.io"
-CHAIN_ID = 5042002
+RPC_URL = os.environ.get("RPC_URL", "https://rpc.mainnet.chain.robinhood.com")
+CHAIN_ID = int(os.environ.get("CHAIN_ID", "4663"))
 PACKED_DIR = os.path.expanduser("~/fly-data/packed")
 
-# Already deployed
-FLY_ENGINE = "0x3858ce51c8b0AEeC27E7042A4B104A69bAFB8eec"
-GOVERNOR = "0x02102F5313a17Bae8d0e8E6278D8690a0cF2e07e"
+# Already deployed (Robinhood mainnet proxies — override via env for other chains)
+FLY_ENGINE = os.environ.get("FLY_ENGINE", "0x07732db25b67fd0cee4625b062ee6e710921c132")
+GOVERNOR = os.environ.get("GOVERNOR", "0x6a7a1df72301e6a09dd43adf2fdd4487994e72a8")
 
-# Load private key from deploy script
-deploy_script = os.path.join(os.path.dirname(__file__), "deploy-arc.sh")
-PRIVATE_KEY = None
-with open(deploy_script) as f:
-    for line in f:
-        if line.startswith("export PRIVATE_KEY="):
-            PRIVATE_KEY = line.split("=", 1)[1].strip().strip('"')
-            break
+# Private key: env var first, then deploy script fallback
+PRIVATE_KEY = os.environ.get("PRIVATE_KEY")
+if not PRIVATE_KEY:
+    deploy_script = os.path.join(os.path.dirname(__file__), "deploy-arc.sh")
+    if os.path.exists(deploy_script):
+        with open(deploy_script) as f:
+            for line in f:
+                if line.startswith("export PRIVATE_KEY="):
+                    PRIVATE_KEY = line.split("=", 1)[1].strip().strip('"')
+                    break
 
 if not PRIVATE_KEY:
     print("ERROR: PRIVATE_KEY not found")
@@ -83,7 +85,7 @@ def sstore2_write(data):
         "data": "0x" + init_code.hex(),
         "nonce": w3.eth.get_transaction_count(account.address),
         "gas": gas,
-        "gasPrice": w3.eth.gas_price,
+        "gasPrice": int(w3.eth.gas_price * 3),
         "chainId": w3.eth.chain_id,
     }
     signed = account.sign_transaction(tx)
@@ -97,20 +99,25 @@ def sstore2_write(data):
 def send_tx(to, data, gas=2_000_000):
     tx = {
         "from": account.address,
-        "to": to,
+        "to": w3.to_checksum_address(to),
         "data": data,
         "nonce": w3.eth.get_transaction_count(account.address),
         "gas": gas,
-        "gasPrice": w3.eth.gas_price,
+        "gasPrice": int(w3.eth.gas_price * 3),
         "chainId": w3.eth.chain_id,
     }
     signed = account.sign_transaction(tx)
     tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
     return w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
 
+# The 7 governing connectomes (others in the pack are excluded)
+CONNECTOMES = {"drosophila", "rat", "mouse", "ciona", "macaque_modha",
+               "human", "celegans_male"}
+
 # Load metadata
 with open(os.path.join(PACKED_DIR, "all_connectomes.json")) as f:
-    all_meta = json.load(f)
+    all_meta = {k: v for k, v in json.load(f).items() if k in CONNECTOMES}
+assert len(all_meta) == 7, f"expected 7 connectomes, got {sorted(all_meta)}"
 
 # Deploy each connectome
 deployed = {}
