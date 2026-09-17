@@ -114,6 +114,7 @@ export default {
       if (url.pathname === "/api/trades") return json(await getTrades(env), corsHeaders);
       if (url.pathname === "/api/tokens") return json(await getTokens(env, url.searchParams), corsHeaders);
       if (url.pathname === "/api/health") return json({ status: "ok", time: Date.now() }, corsHeaders);
+      if (url.pathname === "/api/status/colony") return json(await getColonyStatus(env), corsHeaders);
       if (url.pathname === "/api/model-status") return json(await getModelStatus(env), corsHeaders);
       if (url.pathname === "/api/training-data") return json(await getTrainingData(env), corsHeaders);
       if (url.pathname === "/api/performance") return json(await getPerformance(env), corsHeaders);
@@ -151,8 +152,29 @@ export default {
       if (resp) return resp;
     }
 
-    // POST routes — betting actions
+    // POST routes — betting actions + admin
     if (request.method === "POST") {
+      // Brain-weight upload: POST /api/admin/weights?path=malecns/weights.bin&seq=N&total=M
+      // Raw binary body, keyed by COLONY_ADMIN_KEY. Chunks land in weight_chunks.
+      if (url.pathname === "/api/admin/weights") {
+        const key = request.headers.get("X-Colony-Key");
+        if (!env.COLONY_ADMIN_KEY || key !== env.COLONY_ADMIN_KEY)
+          return json({ error: "unauthorized" }, { ...corsHeaders, status: 401 });
+        const path = url.searchParams.get("path");
+        const seq = parseInt(url.searchParams.get("seq") ?? "0");
+        const total = parseInt(url.searchParams.get("total") ?? "0");
+        if (!path) return json({ error: "path required" }, { ...corsHeaders, status: 400 });
+        const bytes = new Uint8Array(await request.arrayBuffer());
+        // chunked base64 — slices must be multiples of 3 bytes so groups align
+        let b64 = "";
+        const SLICE = 3 * 2730;   // 8190
+        for (let i = 0; i < bytes.byteLength; i += SLICE)
+          b64 += btoa(String.fromCharCode(...bytes.subarray(i, i + SLICE)));
+        await env.DB.prepare(
+          "INSERT OR REPLACE INTO weight_chunks (path, seq, data_b64) VALUES (?, ?, ?)"
+        ).bind(path, seq, b64).run();
+        return json({ ok: true, path, seq, bytes: bytes.byteLength }, corsHeaders);
+      }
       const body = await request.json() as Record<string, any>;
       if (url.pathname === "/api/betting/place-bet") return json(await placeBet(env, body), corsHeaders);
       if (url.pathname === "/api/betting/stake") return json(await placeVaultStake(env, body), corsHeaders);
@@ -344,6 +366,63 @@ function computeSharpe(pnlReports: number[]): number {
   const variance = pnlReports.reduce((s, x) => s + Math.pow(x - mean, 2), 0) / pnlReports.length;
   const std = Math.sqrt(variance);
   return std > 0 ? mean / std : 0;
+}
+
+const CONNECTOME_IDS = ["drosophila","rat","mouse","ciona","macaque_modha","human","celegans_male"];
+const COLONY_EXECUTOR = "0xDd18b27067BEa45D06C1E80a69dcfEb7cc6fB084";
+
+async function getColonyStatus(env: Env) {
+  const rpcUrl = env.ARC_RPC_URL || "https://rpc.mainnet.chain.robinhood.com";
+
+  const lastSignals = await env.DB.prepare(
+    "SELECT connectome_id, MAX(created_at) AS last_signal, COUNT(*) AS total " +
+    "FROM signals GROUP BY connectome_id"
+  ).all().catch(() => ({ results: [] }));
+  const byConnectome: Record<string, any> = {};
+  for (const cid of CONNECTOME_IDS) byConnectome[cid] = { last_signal: null, total_signals: 0, stale: true };
+  const now = Date.now();
+  for (const r of (lastSignals.results || []) as any[]) {
+    const cid = r.connectome_id as string;
+    const raw = r.last_signal;
+    const ts = typeof raw === "number" ? raw * 1000
+      : raw ? Date.parse(String(raw).replace(" ", "T") + "Z") : null;
+    byConnectome[cid] = {
+      last_signal: r.last_signal,
+      total_signals: r.total,
+      stale: !ts || now - ts > 10 * 60 * 1000,  // stale if no signal in 10 min
+    };
+  }
+
+  const lastPost = await env.DB.prepare(
+    "SELECT MAX(created_at) AS last_post FROM social_posts"
+  ).first().catch(() => null);
+  const lastCycle = await env.DB.prepare(
+    "SELECT MAX(decided_at) AS last_cycle FROM governance_votes"
+  ).first().catch(() => null);
+
+  // Executor ETH balance on Robinhood (eth_getBalance)
+  let executor_balance_eth: number | null = null;
+  try {
+    const resp = await fetch(rpcUrl, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_getBalance", params: [COLONY_EXECUTOR, "latest"] }),
+    });
+    const j = await resp.json() as any;
+    executor_balance_eth = Number(BigInt(j.result || "0x0")) / 1e18;
+  } catch { /* leave null */ }
+
+  const staleCount = Object.values(byConnectome).filter((c: any) => c.stale).length;
+  return {
+    ok: staleCount === 0,
+    stale_connectomes: staleCount,
+    connectomes: byConnectome,
+    last_social_post: (lastPost as any)?.last_post ?? null,
+    last_governance_vote: (lastCycle as any)?.last_cycle ?? null,
+    executor: COLONY_EXECUTOR,
+    executor_balance_eth,
+    executor_low: executor_balance_eth !== null && executor_balance_eth < 0.0002,
+    checked_at: new Date().toISOString(),
+  };
 }
 
 async function getConnectomes(env: Env) {

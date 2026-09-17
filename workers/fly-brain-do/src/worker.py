@@ -32,6 +32,8 @@ from workers import DurableObject, Response, WorkerEntrypoint, fetch
 from fly_brain_pyodide import FlyBrain
 from fly_eyes import FeatureDetectors
 from flyreservoir import Readout, Trace, run, best_threshold, fit_ridge, project
+import minds  # vendored upstream — dopamine learning, memory, tubes
+import random as pyrandom  # minds.py uses random.Random, not numpy Generator
 
 # Decision neuron groups — configurable per connectome via metadata.
 # Fly connectomes use MaleCNS motor groups; others use cell_type lookup.
@@ -138,6 +140,33 @@ class ConnectomeDO(DurableObject):
         # each tick). Flushed to D1 every SIGNAL_FLUSH_EVERY ticks.
         self._signal_buffer = []
         self._tick_count = 0
+        self.mind = None          # minds.py state — dopamine learning, memory, tubes
+        self._mind_loaded = False
+        self._mind_rng = pyrandom.Random(64)
+
+    async def _load_mind(self):
+        """Load this connectome's trading mind (traits + learned gains/biases/tubes + memory)."""
+        if self._mind_loaded:
+            return
+        self._mind_loaded = True
+        try:
+            row = await self.env.DB.prepare(
+                "SELECT state FROM connectome_minds WHERE connectome_id = ?"
+            ).bind(self.connectome_id).first()
+            if row and row.get("state"):
+                self.mind = json.loads(row["state"])
+                self.mind = minds.ensure(self.mind, self.connectome_id, self._mind_rng)
+            else:
+                self.mind = minds.born(self.connectome_id, self._mind_rng)
+        except Exception:
+            self.mind = minds.born(self.connectome_id, self._mind_rng)
+
+    async def _save_mind(self):
+        if not self.mind or not self._d1_writable():
+            return
+        await self._safe_run(
+            "INSERT OR REPLACE INTO connectome_minds (connectome_id, state, updated_at) VALUES (?, ?, ?)",
+            (self.connectome_id, json.dumps(self.mind), int(time.time())))
 
     def _d1_writable(self) -> bool:
         """False while the D1 write breaker is tripped for the current UTC day."""
@@ -756,6 +785,7 @@ class ConnectomeDO(DurableObject):
         score > 50 → left hemisphere (approach/forward circuit),
         score < 50 → right hemisphere (retreat/escape circuit).
         Amplitude scales with |score - 50|.
+        Colony coupling: siblings' actions add drive (threat→right, target→left).
         """
         score = float(token.get("score", 50))
         strength = abs(score - 50.0) / 50.0 * 0.35  # 0..0.35
@@ -764,6 +794,17 @@ class ConnectomeDO(DurableObject):
             return inject_list
         target = self._left_cells if score > 50 else self._right_cells
         inject_list.append((target, strength))
+
+        # colony coupling — siblings' decoded actions as extra sensory drive
+        colony = getattr(self, "_colony_drive", {})
+        if colony.get("threat"):
+            inject_list.append((self._right_cells, min(0.3, colony["threat"] * 0.1)))
+        if colony.get("target"):
+            inject_list.append((self._left_cells, min(0.3, colony["target"] * 0.1)))
+        if colony.get("wind"):
+            # wind → both hemispheres weakly (chop)
+            inject_list.append((self._left_cells, min(0.15, colony["wind"] * 0.05)))
+            inject_list.append((self._right_cells, min(0.15, colony["wind"] * 0.05)))
         return inject_list
 
     def _resolve_hemispheres(self):
@@ -841,6 +882,9 @@ class ConnectomeDO(DurableObject):
             token["score"] = float(token.get("score", 50)) + float(genome["bias"])
 
         features = self._extract_features(token)
+
+        # Colony coupling: listen to siblings' last-tick actions before encoding
+        self._colony_drive = await self._colony_listen()
 
         # Scale simulation by connectome size to fit within CPU limit
         sim_steps, warmup_steps = get_simulation_params(brain.n)
@@ -923,6 +967,31 @@ class ConnectomeDO(DurableObject):
                 confidence = 0.0
                 reason = f"backward/mixed: fwd={fwd} esc={esc} bwd={bwd}"
 
+        # ---- minds.py: learned bias + memory veto on the neural decision ----
+        # The brain produced a raw action; the mind scales it by what it has learned.
+        await self._load_mind()
+        if self.mind:
+            bias_map = {"BUY": "buy", "SELL": "sell", "HOLD": "take_profit"}
+            mact = bias_map.get(action, "buy")
+            bias = float(self.mind["learned"]["bias"].get(mact, 1.0))
+            if bias < minds.BIAS_BLOCK:                      # learned: this action always loses
+                action, confidence = "HOLD", 0.0
+                reason += f" | mind veto (bias={bias:.2f})"
+            elif bias != 1.0:
+                confidence = min(1.0, confidence * bias)
+                reason += f" | mind bias ×{bias:.2f}"
+            # memory veto: same situation lost before → skip (20% explore override)
+            if action in ("BUY", "SELL") and self.mind["memory"]:
+                state = [float(features[2]), float(features[3]), float(features[4]), float(features[5])]
+                recall_reward, n = minds.recall(self.mind, state, mact)
+                if recall_reward is not None and n >= int(self.mind["traits"]["k"]) \
+                   and recall_reward < -self.mind["traits"]["caution"] \
+                   and self._mind_rng.random() > minds.EXPLORE:
+                    action, confidence = "HOLD", 0.0
+                    reason += f" | memory veto ({n} similar, mean reward {recall_reward:.3f})"
+                    self.mind["stats"]["vetoes"] += 1
+            await self._save_mind()
+
         # Exploration during recording (from sshfighter/fly_fighter.py EXPLORE_P)
         # 7% of decisions are random to gather diverse training data
         if self.rng.random() < EXPLORE_P:
@@ -932,6 +1001,20 @@ class ConnectomeDO(DurableObject):
 
         # Genome: risk_appetite scales expressed confidence (0 → timid, 1 → bold)
         confidence = float(confidence) * (0.5 + float(genome.get("risk_appetite", 0.5)))
+
+        # Colony coupling: speak — this connectome's action becomes a signal
+        # envelope that siblings read on their next tick (flytalk port).
+        await self._colony_speak(action, min(1.0, max(0.0, confidence)))
+
+        # Neuron-decoded output for social-worker: the raw group counts and the
+        # decoded action. The post is built from THIS, not invented — the LLM
+        # only formats it. truth = what actually happened (stimulus), word =
+        # what the brain decoded (may hallucinate — recorded honestly).
+        self._last_neural = {
+            "action": action, "confidence": float(confidence),
+            "counts": {k: int(v) for k, v in counts.items()},
+            "reason": reason,
+        }
 
         return {
             "action": action,
@@ -1251,6 +1334,24 @@ class ConnectomeDO(DurableObject):
             # Clear alarm — useful for stopping crash loops
             await self.ctx.storage.deleteAlarm()
             return Response.json({"status": "alarm_cleared"})
+        elif "/neural" in url:
+            # The last episode's raw neural decode — group counts + action.
+            # social-worker formats this into a post; it never invents content.
+            return Response.json(getattr(self, "_last_neural", None) or {"action": None})
+        elif "/learn" in url:
+            # Trade outcome report from trade-worker → minds.learn() dopamine update.
+            # body: {symbol, price_now, coin_flux?: {sym: Δ}} — judges trades HORIZON rounds old.
+            try:
+                body = await request.json()
+                await self._load_mind()
+                if self.mind:
+                    dop = minds.learn(self.mind, body.get("prices", {}),
+                                      body.get("coin_flux", {}), self.mind["learning"])
+                    await self._save_mind()
+                    return Response.json({"ok": True, "dopamine": dop})
+                return Response.json({"ok": False, "reason": "no mind"})
+            except Exception as e:
+                return Response.json({"ok": False, "error": str(e)})
         elif "/retrain" in url:
             result = await self._retrain()
             return Response.json(result)

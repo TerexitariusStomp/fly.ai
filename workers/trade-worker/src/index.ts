@@ -52,6 +52,7 @@ interface Env {
 
 const DEXSCREENER_API = "https://api.dexscreener.com/latest/dex";
 const FLY_BRAIN_RETRAIN_URL = "https://fly-brain-do.terexmaps.workers.dev/retrain";
+const FLY_BRAIN_BASE = "https://fly-brain-do.terexmaps.workers.dev";
 
 // Default paper trading config (overridden by learned settings when available)
 const STARTING_BALANCE = 1.0;
@@ -367,6 +368,17 @@ async function autoSellPositions(env: Env, isReal: boolean = false) {
       // Insert new BUY signal to re-enter the position (continuous trading cycle)
       await insertReentrySignal(env, position);
     }
+
+    // minds.py: report the outcome to the connectome's DO so its dopamine
+    // update can run (the trade's reward feeds back into learned biases).
+    const cid = position.connectome_id || "drosophila";
+    try {
+      await fetch(`${FLY_BRAIN_BASE}/${cid}/learn`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prices: { [position.token_address]: marketPrice },
+                               coin_flux: { [position.token_address]: pnlPct / 100 } }),
+      });
+    } catch { /* learning is best-effort */ }
   }
 }
 

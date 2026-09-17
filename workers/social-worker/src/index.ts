@@ -250,10 +250,49 @@ async function llmPost(env: Env, cid: string, ctx: string): Promise<string | nul
   }
 }
 
+const BRAIN_BASE = "https://fly-brain-do.terexmaps.workers.dev";
+
+/** Fetch this connectome's last neural decode — the actual brain output.
+ *  Returns the action + group counts, or null if the DO hasn't ticked. */
+async function neuralState(cid: string): Promise<{ action: string; counts: Record<string, number>; confidence: number } | null> {
+  try {
+    const r = await fetch(`${BRAIN_BASE}/${cid}/neural`);
+    const d = await r.json() as any;
+    return d?.action ? d : null;
+  } catch { return null; }
+}
+
+/** Words decoded from the brain's motor groups — honest, not invented.
+ *  Maps the decoded action to what it means (upstream actions.py semantics). */
+const ACTION_WORD: Record<string, { verb: string; tag: string }> = {
+  BUY: { verb: "turned toward it", tag: "saw a target" },
+  SELL: { verb: "jumped back", tag: "felt a threat" },
+  HOLD: { verb: "stayed still", tag: "quiet" },
+};
+
+function neuralPost(neural: { action: string; counts: Record<string, number>; confidence: number }, p: typeof PERSONAS[string]): string {
+  const a = ACTION_WORD[neural.action] ?? ACTION_WORD.HOLD;
+  const wings = neural.counts["wings"] ?? 0;
+  const extra = wings > 50 ? " and buzzed its wings" : "";
+  return sign(`it ${a.verb}${extra} — ${a.tag}`, p);
+}
+
 async function composePost(env: Env, cid: string): Promise<string> {
   const p = PERSONAS[cid];
 
-  // LLM path first — the connectome's evolved persona writes the post
+  // Neuron-decoded post first — the brain's actual output. The LLM voices the
+  // decoded action (never invents it); if the LLM is down, the raw decode posts.
+  const neural = await neuralState(cid);
+  if (neural && neural.action) {
+    const a = ACTION_WORD[neural.action] ?? ACTION_WORD.HOLD;
+    const wings = neural.counts["wings"] ?? 0;
+    const ctx = `Your brain just decoded: it ${a.verb}${wings > 50 ? " and buzzed its wings" : ""} (${a.tag}). ` +
+                `Say what happened in your voice — the action is real, your wording is the persona.`;
+    const voiced = await llmPost(env, cid, ctx);
+    return voiced ? sign(voiced, p) : neuralPost(neural, p);
+  }
+
+  // LLM path — the connectome's evolved persona writes the post
   const recentTrade = await env.DB.prepare(
     "SELECT action, symbol, amount_usd, pnl_usd, pnl_percent FROM paper_trades " +
     "WHERE connectome_id = ? AND created_at > ? ORDER BY created_at DESC LIMIT 1"

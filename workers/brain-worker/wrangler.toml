@@ -1,0 +1,13 @@
+name = "brain-worker"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Full MaleCNS brain (166,700 neurons) — weights loaded from D1, not R2
+[[d1_databases]]
+binding = "DB"
+database_name = "sym-protocol"
+database_id = "a494ae7e-4efd-49c6-8058-603179e3fd23"
+
+[vars]
+BRAIN_ID = "malecns-sub"
