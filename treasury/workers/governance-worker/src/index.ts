@@ -296,6 +296,30 @@ async function mergeCodeTask(env: Env, task: { id: number; task: string; file_pa
   });
 }
 
+// Repo map cache — listPaths walks the whole git tree via per-object D1
+// reads (~800 rows). Cache for 6h; invalidated implicitly when tasks merge.
+async function cachedRepoPaths(env: Env): Promise<string[]> {
+  const row = await env.DB.prepare(
+    "SELECT value FROM settings WHERE key = 'repo_map'"
+  ).first() as { value?: string } | null;
+  const at = await env.DB.prepare(
+    "SELECT value FROM settings WHERE key = 'repo_map_at'"
+  ).first() as { value?: string } | null;
+  if (row?.value && Number(at?.value ?? 0) > Date.now() - 6 * 3600_000) {
+    try { return JSON.parse(row.value) as string[]; } catch { /* rebuild */ }
+  }
+  const paths = (await listPaths(env))
+    .filter((p) => CODE_PATHS.test(p) && !CODE_PATH_DENY.test(p))
+    .slice(0, 200);
+  await env.DB.batch([
+    env.DB.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('repo_map', ?)")
+      .bind(JSON.stringify(paths)),
+    env.DB.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('repo_map_at', ?)")
+      .bind(String(Date.now())),
+  ]);
+  return paths;
+}
+
 // Self-directed ideation — one connectome picks a file + improvement each cycle
 async function runCodeIdeation(env: Env): Promise<Record<string, unknown>> {
   const enabled = await env.DB.prepare("SELECT value FROM settings WHERE key = 'code_enabled'").first();
@@ -312,10 +336,16 @@ async function runCodeIdeation(env: Env): Promise<Record<string, unknown>> {
   const todayCount = await env.DB.prepare("SELECT COUNT(*) c FROM code_tasks WHERE created_at >= ?").bind(today).first();
   if (Number(todayCount?.c ?? 0) >= cap) return { skipped: "daily cap" };
 
-  // Repo map — live from the CF git store (isomorphic-git listFiles)
-  const paths = (await listPaths(env))
-    .filter((p) => CODE_PATHS.test(p) && !CODE_PATH_DENY.test(p))
-    .slice(0, 200);
+  // Throttle — ideation (listPaths + LLM) is the heaviest leg of the cycle;
+  // running it every tick blows the CPU budget and takes governance down.
+  const lastIdeation = await env.DB.prepare("SELECT value FROM settings WHERE key = 'last_code_ideation'").first();
+  if (Number(lastIdeation?.value ?? 0) > Date.now() - 3_600_000) return { skipped: "ideated recently" };
+  await env.DB.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('last_code_ideation', ?)")
+    .bind(String(Date.now())).run();
+
+  // Repo map — cached in settings; the git-tree walk costs a D1 read per
+  // object, which is what pushed cycles past the CPU limit once seeded.
+  const paths = await cachedRepoPaths(env);
   if (paths.length === 0) return { skipped: "no source paths" };
 
   const recent = await env.DB.prepare(
@@ -554,6 +584,7 @@ async function runGovernanceCycle(env: Env): Promise<Record<string, unknown>> {
             proposer: codeTask.proposer || "unknown", new_content: codeTask.new_content,
           });
           await resolveCodeTask(env, codeTask.id, "merged", Math.floor(Date.now() / 1000));
+          await env.DB.prepare("DELETE FROM settings WHERE key IN ('repo_map','repo_map_at')").run().catch(() => {});
           await env.DB.prepare("UPDATE code_tasks SET commit_sha = ? WHERE id = ?")
             .bind(sha, codeTask.id).run().catch(() => {});
           await env.DB.prepare("UPDATE proposals_queue SET status = 'executed', tx_hash = ? WHERE id = ?")
