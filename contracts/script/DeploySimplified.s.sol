@@ -116,7 +116,7 @@ contract DeploySimplified is Script {
         // If set, SYM is an externally launched ERC20 (e.g. Tolly launch) —
         // fixed supply, no minting. SymbientToken + OlympusMinter are skipped and
         // staking rewards must be funded via SymbientStaking.depositRewards().
-        s_externalToken = vm.envOr("SYM_TOKEN", address(0));
+        s_externalToken = vm.envOr("FLYAI_TOKEN", address(0));
         s_reserveToken = vm.envAddress("RESERVE_TOKEN");
         address reserveToken = s_reserveToken;
         s_router = vm.envOr("UNISWAP_V2_ROUTER", address(0));
