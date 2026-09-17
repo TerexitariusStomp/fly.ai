@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS tokens (
   address TEXT PRIMARY KEY,
   symbol TEXT NOT NULL,
   name TEXT,
-  chain TEXT DEFAULT 'arc',
+  chain TEXT DEFAULT 'robinhood',
   launchpad TEXT,
   pair_address TEXT,
   factory_address TEXT,

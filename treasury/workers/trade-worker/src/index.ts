@@ -43,7 +43,7 @@ interface Env {
   ARC_RPC_URL?: string;
   REAL_TRADING?: string;
   EMERGENCY_STOP?: string;
-  SYM_TOKEN?: string;
+  FLYAI_TOKEN?: string;
   TREASURY_VALUATION?: string;
   // Tolly LP fee → staking rewards loop
   FEE_ROUTER?: string;
@@ -499,8 +499,8 @@ async function forceSellAll(env: Env) {
 
 function getClients(env: Env) {
   const chain = {
-    id: 5042002,
-    name: "Arc",
+    id: 4663,
+    name: "Robinhood",
     nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
     rpcUrls: { default: { http: [env.ARC_RPC_URL!] } },
   };
@@ -692,11 +692,11 @@ async function handleRealSell(env: Env, position: any, reason: string, action: s
 
 // Push RFV/floor price to on-chain TreasuryValuation contract
 async function pushRfvOnChain(env: Env) {
-  if (!env.TREASURY_VALUATION || !env.SYM_TOKEN) return;
+  if (!env.TREASURY_VALUATION || !env.FLYAI_TOKEN) return;
   const { pub, wc } = getClients(env);
   try {
     const symbientSupply = await pub.readContract({
-      address: getAddress(env.SYM_TOKEN) as Address,
+      address: getAddress(env.FLYAI_TOKEN) as Address,
       abi: ABI.erc20,
       functionName: "totalSupply",
     }) as bigint;
@@ -797,7 +797,7 @@ async function getTokenPrice(tokenAddress: string): Promise<any> {
 
   // Try GeckoTerminal first (more frequent updates)
   try {
-    const resp = await fetch(`https://api.geckoterminal.com/api/v2/networks/arc/tokens/${tokenAddress}`);
+    const resp = await fetch(`https://api.geckoterminal.com/api/v2/networks/robinhood/tokens/${tokenAddress}`);
     if (resp.ok) {
       const data = await resp.json() as any;
       basePrice = parseFloat(data?.data?.attributes?.price_usd || "0");

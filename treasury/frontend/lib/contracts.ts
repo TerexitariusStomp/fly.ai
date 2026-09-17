@@ -8,12 +8,12 @@ import {
 } from "@/lib/chains";
 
 /**
- * Registry of deployed contract names (single-token SYM system on Arc).
+ * Registry of deployed contract names (single-token FLYAI system on Arc).
  */
 export enum ContractName {
-  SYM = "SYM",
-  STSYM = "STSYM",
-  WSTSYM = "WSTSYM",
+  FLYAI = "FLYAI",
+  STFLYAI = "STFLYAI",
+  WSTFLYAI = "WSTFLYAI",
   STAKING = "STAKING",
   PRICE = "PRICE",
 }
@@ -27,17 +27,17 @@ type ContractAddresses = {
  * Populated post-deployment via DeploySimplified.s.sol.
  */
 export const CONTRACTS: ContractAddresses = {
-  [ContractName.SYM]: {
-    [base.id]: "0x0000000000000000000000000000000000000000",
-    [baseSepolia.id]: "0x823d5d44F9E647402c949376E54f709Ab3a9015b",
+  [ContractName.FLYAI]: {
+    [base.id]: "0x0088CE7905025c4B5ea1d49aB6179B6aaADB3B9C",
+    [baseSepolia.id]: "0x0000000000000000000000000000000000000000",
   },
-  [ContractName.STSYM]: {
+  [ContractName.STFLYAI]: {
     [base.id]: "0x0000000000000000000000000000000000000000",
-    [baseSepolia.id]: "0xdb3D61dEE55eF664412BcEBEd144981B2Fc11a34",
+    [baseSepolia.id]: "0x0000000000000000000000000000000000000000",
   },
-  [ContractName.WSTSYM]: {
+  [ContractName.WSTFLYAI]: {
     [base.id]: "0x0000000000000000000000000000000000000000",
-    [baseSepolia.id]: "0x933E4B8e744733FAaFD67aC99eD8987C9Aa5E533",
+    [baseSepolia.id]: "0x0000000000000000000000000000000000000000",
   },
   [ContractName.STAKING]: {
     [base.id]: "0x0000000000000000000000000000000000000000",

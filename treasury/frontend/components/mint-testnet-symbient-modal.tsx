@@ -19,10 +19,10 @@ import MockERC20Abi from "@/abis/MockERC20";
 
 interface MintTestnetSymbientModalProps {
   trigger: React.ReactElement;
-  token?: TokenName.SYM | TokenName.WSTSYM;
+  token?: TokenName.FLYAI | TokenName.WSTFLYAI;
 }
 
-export function MintTestnetSymbientModal({ trigger, token = TokenName.SYM }: MintTestnetSymbientModalProps) {
+export function MintTestnetSymbientModal({ trigger, token = TokenName.FLYAI }: MintTestnetSymbientModalProps) {
   const [amount, setAmount] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const { address } = useConnectedAddress();

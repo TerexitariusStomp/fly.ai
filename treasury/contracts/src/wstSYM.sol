@@ -18,7 +18,7 @@ contract WstSYM is ERC20Permit {
 
     IERC20 public immutable stSYM;
 
-    constructor(address _stSymbient) ERC20("Wrapped staked SYM", "wstSYM") ERC20Permit("Wrapped staked SYM") {
+    constructor(address _stSymbient) ERC20("Wrapped staked FLYAI", "wstFLYAI") ERC20Permit("Wrapped staked FLYAI") {
         if (_stSymbient == address(0)) revert ZeroAddress();
         stSYM = IERC20(_stSymbient);
     }

@@ -11,6 +11,6 @@ database_id = "c8180dd7-0f8b-40b0-bc23-0ccae5260ca3"
 # R2 not enabled on this account — brain endpoints return 404
 
 [vars]
-ARC_RPC_URL = "https://rpc.mainnet.arc.io"
+ARC_RPC_URL = "https://rpc.mainnet.chain.robinhood.com"
 TREASURY_VALUATION = "0x222e99b82f53cb8a11e02e0141cc0ed369d5a8b4"
 # Secret: npx wrangler secret put ARC_RPC_URL

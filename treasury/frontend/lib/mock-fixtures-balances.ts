@@ -29,21 +29,21 @@ const EMPTY: MultiChainBalanceResult = {
 
 // Whale: big balances on Arc testnet
 export const WHALE_BALANCES: Record<string, MultiChainBalanceResult> = {
-  SYM: result([bal(baseSepolia.id, "Arc Testnet", "14245", 18)]),
-  stSYM: result([bal(baseSepolia.id, "Arc Testnet", "2125", 18)]),
-  wstSYM: result([bal(baseSepolia.id, "Arc Testnet", "1424.5", 18)]),
+  FLYAI: result([bal(baseSepolia.id, "Arc Testnet", "14245", 18)]),
+  stFLYAI: result([bal(baseSepolia.id, "Arc Testnet", "2125", 18)]),
+  wstFLYAI: result([bal(baseSepolia.id, "Arc Testnet", "1424.5", 18)]),
 };
 
 // Empty: connected but no balances
 export const EMPTY_BALANCES: Record<string, MultiChainBalanceResult> = {
-  SYM: EMPTY,
-  stSYM: EMPTY,
-  wstSYM: EMPTY,
+  FLYAI: EMPTY,
+  stFLYAI: EMPTY,
+  wstFLYAI: EMPTY,
 };
 
 // Staker: mostly staked/wrapped positions
 export const STAKER_BALANCES: Record<string, MultiChainBalanceResult> = {
-  SYM: result([bal(baseSepolia.id, "Arc Testnet", "500", 18)]),
-  stSYM: result([bal(baseSepolia.id, "Arc Testnet", "1200", 18)]),
-  wstSYM: result([bal(baseSepolia.id, "Arc Testnet", "340", 18)]),
+  FLYAI: result([bal(baseSepolia.id, "Arc Testnet", "500", 18)]),
+  stFLYAI: result([bal(baseSepolia.id, "Arc Testnet", "1200", 18)]),
+  wstFLYAI: result([bal(baseSepolia.id, "Arc Testnet", "340", 18)]),
 };

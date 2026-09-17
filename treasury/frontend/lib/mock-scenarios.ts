@@ -9,7 +9,7 @@ import {
 export const SCENARIOS: Record<string, MockScenario> = {
   whale: {
     name: "whale",
-    description: "Large SYM + stSYM + wstSYM balances",
+    description: "Large FLYAI + stFLYAI + wstFLYAI balances",
     isConnected: true,
     prices: DEFAULT_PRICES,
     balances: WHALE_BALANCES,
@@ -23,7 +23,7 @@ export const SCENARIOS: Record<string, MockScenario> = {
   },
   staker: {
     name: "staker",
-    description: "Wallet mostly staked into stSYM / wstSYM",
+    description: "Wallet mostly staked into stFLYAI / wstFLYAI",
     isConnected: true,
     prices: DEFAULT_PRICES,
     balances: STAKER_BALANCES,

@@ -1,15 +1,15 @@
-# AGENTS.md — SYM Protocol
+# AGENTS.md — fly.ai Protocol
 
 ## Project Overview
 
-SYM is a single-token, treasury-backed protocol on **Arc** (testnet chain ID `5042002`, mainnet next). The treasury is governed and actively managed by **7 biological connectomes** running on-chain LIF inference via `FlyEngine`. The architecture is an Olympus V3 fork (Kernel / Modules / Policies / Heart / RBS) where the `ConnectomeGovernor` is the kernel executor — the connectomes operate the entire protocol themselves.
+FLYAI is a single-token, treasury-backed protocol on **Robinhood Chain** (mainnet chain ID `4663`, testnet `46630`). The primary token is the deployed FLYAI (fly.ai) at `0x0088CE7905025c4B5ea1d49aB6179B6aaADB3B9C`. The treasury is governed and actively managed by **7 biological connectomes** running on-chain LIF inference via `FlyEngine`. The architecture is an Olympus V3 fork (Kernel / Modules / Policies / Heart / RBS) where the `ConnectomeGovernor` is the kernel executor — the connectomes operate the entire protocol themselves.
 
 ## Directory Structure
 
 ```
 symbient-token/
 ├── contracts/                  # Foundry Solidity (AGPL-3.0)
-│   ├── src/                    # Core: SymbientToken, SymbientStaking, wstSYM, valuation,
+│   ├── src/                    # Core: SymbientToken, SymbientStaking, wstFLYAI, valuation,
 │   │                           #   price feeds, inverse bond, circuit breaker
 │   ├── src/fly/                # FlyEngine, ConnectomeGovernor, GovernorPolicy,
 │   │                           #   TreasuryAllocator, ArcLaunchpadAdapter,
@@ -29,7 +29,7 @@ symbient-token/
 │   ├── api-worker/             # REST API + on-chain treasury reads
 │   └── enrichment-worker/      # Token scoring
 ├── migrations/schema.sql       # D1 schema (treasury_snapshots, wallets, …)
-└── frontend/                   # SYM dashboard (treasury, connectomes, ops)
+└── frontend/                   # fly.ai dashboard (treasury, connectomes, ops)
 ```
 
 ## Architecture
@@ -51,7 +51,7 @@ symbient-token/
       /RANGE + Heart          rebalances, harvests)    bounded trades)
             │
             ▼
-   TreasuryValuation ──► SymbientInverseBond (buyback at floor × 0.985, burns SYM)
+   TreasuryValuation ──► SymbientInverseBond (buyback at floor × 0.985, burns FLYAI)
    (RFV, NAV, floorPrice)      ▲
                                └── SymbientCircuitBreaker (trips when spot < floor×0.98)
 ```
@@ -95,18 +95,18 @@ forge build
 forge test
 ```
 
-## Deploy (Arc testnet)
+## Deploy (Robinhood)
 
 ```bash
 cd contracts
 export PRIVATE_KEY=...                  # deployer (env only — never commit)
 export SAFE_MULTISIG_ADDRESS=...        # backstop admin (veto/upgrades)
-export RESERVE_TOKEN=0x...              # USDC on Arc
+export RESERVE_TOKEN=0x...              # USDC on Robinhood
 export UNISWAP_V2_ROUTER=0x...
 export CONNECTOME_VOTERS=0x..,0x..,..   # 7 bound voter EOAs (optional)
 
 forge script script/DeploySimplified.s.sol \
-  --rpc-url https://rpc.testnet.arc.io --broadcast
+  --rpc-url https://rpc.mainnet.chain.robinhood.com --broadcast
 
 # Then deploy fly brain + register connectomes:
 python3 scripts/pack_connectomes.py     # pack 7 connectomes → SSTORE2
@@ -120,7 +120,7 @@ Post-deploy (if SAFE ≠ deployer): the Safe must grant the governor `MULTISIG_R
 | File | LOC | Purpose |
 |---|---|---|
 | SymbientStaking.sol | 550 | Rebasing staking + warmup, rate-limit, smoothing, CB, `depositRewards` for external-token mode |
-| SymbientFeeRouter.sol | ~130 | Tolly LP fees → `routeToTreasury` consolidates into TRSRY (single treasury); `fundRewards` GOVERNANCE-gated SYM buy + `depositRewards` — rewards only by connectome vote |
+| SymbientFeeRouter.sol | ~130 | Tolly LP fees → `routeToTreasury` consolidates into TRSRY (single treasury); `fundRewards` GOVERNANCE-gated FLYAI buy + `depositRewards` — rewards only by connectome vote |
 | FlyEngine.sol | 358 | On-chain LIF inference over SSTORE2 connectome data |
 | TreasuryValuation.sol | 285 | NAV/RFV/floorPrice with per-asset haircuts + TRSRY reads |
 | ArcLaunchpadAdapter.sol | 281 | Bounded token trading via UniV2 router |
@@ -129,8 +129,8 @@ Post-deploy (if SAFE ≠ deployer): the Safe must grant the governor `MULTISIG_R
 | SymbientDefenseBudget.sol | 205 | RBS defense budget gating (Olympus Policy) |
 | SymbientPrice.sol | 204 | PRICE module fork on TWAP feed |
 | TreasuryAllocator.sol | 194 | Multi-strategy treasury (Yearn-style IStrategy) |
-| SymbientCircuitBreaker.sol | 168 | Trips when SYM spot < floor×(1−2%) |
-| SymbientInverseBond.sol | 145 | Standing buyback at floor×0.985, burns SYM |
+| SymbientCircuitBreaker.sol | 168 | Trips when FLYAI spot < floor×(1−2%) |
+| SymbientInverseBond.sol | 145 | Standing buyback at floor×0.985, burns FLYAI |
 | SymbientBondPricer.sol | 135 | Dynamic RBS bond discount |
 | GovernorPolicy.sol | 127 | Module bridge: executeModule + approveToken |
 | DecisionLedger.sol | 110 | On-chain decision/vote/execution audit trail |

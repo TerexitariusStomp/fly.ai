@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useReadContract, useChainId } from "wagmi";
 import { parseUnits, parseEther, formatUnits, formatEther } from "viem";
 import { getTokenAddress, TokenName } from "@/lib/tokens";
-import wstSYMAbi from "@/abis/wstSYM";
+import wstSYMAbi from "@/abis/wstFLYAI";
 
 /** Trim trailing zeros from a decimal string, keeping at least `minDecimals` places. */
 function trimDecimals(value: string, maxDecimals: number, minDecimals = 2): string {
@@ -15,10 +15,10 @@ function trimDecimals(value: string, maxDecimals: number, minDecimals = 2): stri
   return `${int}.${trimmed}`;
 }
 
-/** Read the wstSYM contract's stSymbientPerToken (the source of truth for conversions). */
+/** Read the wstFLYAI contract's stSymbientPerToken (the source of truth for conversions). */
 export function useGsymbientIndex({ enabled = true }: { enabled?: boolean } = {}) {
   const chainId = useChainId();
-  const gsymbientAddress = getTokenAddress(TokenName.WSTSYM, chainId);
+  const gsymbientAddress = getTokenAddress(TokenName.WSTFLYAI, chainId);
 
   const { data: index, isLoading } = useReadContract({
     address: gsymbientAddress,
@@ -33,9 +33,9 @@ export function useGsymbientIndex({ enabled = true }: { enabled?: boolean } = {}
 }
 
 /**
- * Compute the Wrap-page output amount for a given input. "wrap"/"unwrap" use the wstSYM
- * index with client-side bigint math (matches wstSYM.balanceTo / wstSYM.balanceFrom exactly).
- * "identity" is the 1:1 stSYM → SYM path: no index read, formatting only.
+ * Compute the Wrap-page output amount for a given input. "wrap"/"unwrap" use the wstFLYAI
+ * index with client-side bigint math (matches wstFLYAI.balanceTo / wstFLYAI.balanceFrom exactly).
+ * "identity" is the 1:1 stFLYAI → FLYAI path: no index read, formatting only.
  */
 export function useWstSymbientConversion(mode: "wrap" | "unwrap" | "identity", inputAmount: string) {
   const { index } = useGsymbientIndex({ enabled: mode !== "identity" });
@@ -47,12 +47,12 @@ export function useWstSymbientConversion(mode: "wrap" | "unwrap" | "identity", i
 
     try {
       if (mode === "wrap") {
-        // wstSYM.balanceTo: wstSYM = sSYM * 1e18 / index
+        // wstFLYAI.balanceTo: wstFLYAI = sSYM * 1e18 / index
         const symbientBigInt = parseUnits(inputAmount, 18);
         const gsymbientBigInt = (symbientBigInt * 10n ** 18n) / index;
         return trimDecimals(formatEther(gsymbientBigInt), 6);
       }
-      // wstSYM.balanceFrom: sSYM = wstSYM * index / 1e18
+      // wstFLYAI.balanceFrom: sSYM = wstFLYAI * index / 1e18
       const gsymbientBigInt = parseEther(inputAmount);
       const symbientBigInt = (gsymbientBigInt * index) / 10n ** 18n;
       return trimDecimals(formatUnits(symbientBigInt, 18), 4);
@@ -65,7 +65,7 @@ export function useWstSymbientConversion(mode: "wrap" | "unwrap" | "identity", i
 }
 
 /**
- * Conversion rates using the wstSYM index.
+ * Conversion rates using the wstFLYAI index.
  */
 export function useWstSymbientConversionRate() {
   const { index, isLoading } = useGsymbientIndex();
@@ -73,9 +73,9 @@ export function useWstSymbientConversionRate() {
   const rates = useMemo(() => {
     if (!index || index === 0n) return { symbientPerGsymbient: undefined, gsymbientPerSymbient: undefined };
 
-    // wstSYM index is stSYM per 1 wstSYM, scaled to 18 decimals.
+    // wstFLYAI index is stFLYAI per 1 wstFLYAI, scaled to 18 decimals.
     const symbientPerGsymbient = trimDecimals(formatUnits(index, 18), 3);
-    // 1 SYM (1e18) -> wstSYM: wstSYM = 1e18 * 1e18 / index
+    // 1 FLYAI (1e18) -> wstFLYAI: wstFLYAI = 1e18 * 1e18 / index
     const gsymbientBigInt = (10n ** 18n * 10n ** 18n) / index;
     const gsymbientPerSymbient = trimDecimals(formatEther(gsymbientBigInt), 6);
 
@@ -85,10 +85,10 @@ export function useWstSymbientConversionRate() {
   return { ...rates, isLoading };
 }
 
-/** Read the total supply of wstSYM from the contract (returns bigint in 18 decimals). */
+/** Read the total supply of wstFLYAI from the contract (returns bigint in 18 decimals). */
 export function useGsymbientTotalSupply() {
   const chainId = useChainId();
-  const gsymbientAddress = getTokenAddress(TokenName.WSTSYM, chainId);
+  const gsymbientAddress = getTokenAddress(TokenName.WSTFLYAI, chainId);
   const { data } = useReadContract({
     address: gsymbientAddress,
     abi: wstSYMAbi,

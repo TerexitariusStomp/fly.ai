@@ -10,7 +10,7 @@ export function DashboardActions({ className }: { className?: string }) {
           <div>
             <h3 className="font-semibold">Bonds</h3>
             <p className="text-sm text-secondary-t mt-1">
-              Buy SYM at a discount from the treasury.
+              Buy FLYAI at a discount from the treasury.
             </p>
           </div>
           <a href="#/bonds" className="mt-4">
@@ -24,7 +24,7 @@ export function DashboardActions({ className }: { className?: string }) {
           <div>
             <h3 className="font-semibold">Stake / Wrap</h3>
             <p className="text-sm text-secondary-t mt-1">
-              Stake or wrap SYM, stSYM, and more.
+              Stake or wrap FLYAI, stFLYAI, and more.
             </p>
           </div>
           <a href="#/stake-wrap" className="mt-4">
@@ -38,7 +38,7 @@ export function DashboardActions({ className }: { className?: string }) {
           <div>
             <h3 className="font-semibold">Borrow</h3>
             <p className="text-sm text-secondary-t mt-1">
-              Borrow USDC against wrapped staked SYM.
+              Borrow USDC against wrapped staked FLYAI.
             </p>
           </div>
           <a href="#/borrow" className="mt-4">

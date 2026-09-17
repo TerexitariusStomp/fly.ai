@@ -73,9 +73,9 @@ FLY_CONNECTOMES = {"drosophila"}
 REGION_CONNECTOMES = {"human", "macaque_modha", "mouse", "rat"}
 
 # The 7 governing connectome IDs (loaded from R2)
-# Live SYM token on Arc mainnet — governance proposals are evaluated against
-# this market (they all act on SYM protocol contracts).
-SYM_TOKEN = "0x7996827522B8e2459bBC8f17E48Abe0Cb65076f8"
+# Live FLYAI token on Robinhood mainnet — governance proposals are evaluated
+# against this market (they all act on the fly.ai protocol's treasury).
+FLYAI_TOKEN = "0x0088CE7905025c4B5ea1d49aB6179B6aaADB3B9C"
 
 ALL_CONNECTOMES = [
     "drosophila", "rat", "mouse", "ciona",
@@ -1259,11 +1259,11 @@ class ConnectomeDO(DurableObject):
                 signal = float((market or {}).get("signalScore", 50) or 50)
 
                 # Real SYM market data — same fields a discovery candidate carries
-                token = {"address": SYM_TOKEN, "score": signal,
+                token = {"address": FLYAI_TOKEN, "score": signal,
                          "score_reasons": json.dumps({"src": "governance"})}
                 try:
                     resp = await fetch(
-                        f"https://api.dexscreener.com/latest/dex/tokens/{SYM_TOKEN}")
+                        f"https://api.dexscreener.com/latest/dex/tokens/{FLYAI_TOKEN}")
                     dex = await resp.json()
                     pair = (dex.get("pairs") or [{}])[0]
                     token.update({

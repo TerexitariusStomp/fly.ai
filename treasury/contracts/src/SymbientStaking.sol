@@ -158,7 +158,7 @@ contract SymbientStaking is ERC20, AccessControl, ReentrancyGuard, Pausable {
         address _priceFeed,
         address _treasuryPolicy,
         address _multisig
-    ) ERC20("Staked SYM", "stSYM") AccessControl() {
+    ) ERC20("Staked FLYAI", "stFLYAI") AccessControl() {
         _grantRole(DEFAULT_ADMIN_ROLE, _multisig);
         _grantRole(MULTISIG_ROLE, _multisig);
         if (_symbientToken == address(0)) revert ZeroAddress();

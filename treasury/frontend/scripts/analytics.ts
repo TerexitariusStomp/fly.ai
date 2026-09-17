@@ -1,5 +1,5 @@
 /**
- * SYM Analytics Reports.
+ * FLYAI Analytics Reports.
  *
  * Pulls analytics from GA4, Microsoft Clarity, Cloudflare, PostHog, and Base Dashboard.
  * All credentials are loaded from environment variables (e.g. ~/.config/analytics/credentials.env).
@@ -344,7 +344,7 @@ async function main() {
     case "posthog": await posthogReport(args[0] ?? "events", args[1]); break;
     case "base": await baseReport(args[0] ?? "users", ...args.slice(1)); break;
     default:
-      console.error("SYM Analytics Reports");
+      console.error("FLYAI Analytics Reports");
       console.error("");
       console.error("Usage: node scripts/analytics.ts <source> [args...]");
       console.error("");

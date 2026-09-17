@@ -20,15 +20,15 @@ interface Env {
   CACHE: KVNamespace;
 }
 
-// Public Arc RPCs (fallback list)
+// Robinhood RPCs (fallback list)
 const RPCS = [
-  "https://rpc.mainnet.arc.io/",
-  "https://rpc.mainnet.arc.io",
-  "https://rpc.testnet.arc.io",
+  "https://rpc.mainnet.chain.robinhood.com",
+  "https://rpc.mainnet.chain.robinhood.com",
+  "https://rpc.testnet.chain.robinhood.com",
 ];
 
 const DEXSCREENER_API = "https://api.dexscreener.com/latest/dex";
-const ARC_CHAIN = "arc";
+const ARC_CHAIN = "robinhood";
 
 export default {
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {

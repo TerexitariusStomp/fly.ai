@@ -241,7 +241,7 @@ export function trackWalletDisconnect(): void {
   track("wallet_disconnected");
 }
 
-// ─── SYM ─────────────────────────────────────────────────────────────────────
+// ─── FLYAI ─────────────────────────────────────────────────────────────────────
 
 /** Wrap-page conversions (wrap / wrap_sshit / unwrap / unstake_sshit). */
 export function trackWrapFlow(params: { action: string; amount: string; txHash?: string }): void {

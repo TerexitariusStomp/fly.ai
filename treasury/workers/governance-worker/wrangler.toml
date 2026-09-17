@@ -18,11 +18,13 @@ script_name = "fly-brain-do"
 # no cron — driven by fly-brain-do alarm chain
 
 [vars]
-RPC_URL = "https://rpc.mainnet.arc.io"
+RPC_URL = "https://rpc.mainnet.chain.robinhood.com"
 USDC_ADDRESS = "0x3600000000000000000000000000000000000000"
-SYM_TOKEN = "0x7996827522B8e2459bBC8f17E48Abe0Cb65076f8"
-SYM_PAIR = "0xa1bE726cb2F4589d008ebD43453A650541C5C563"
-# Arc mainnet deployment (chain 5042, deployer 0x47bB7d30...)
+# FLYAI (fly.ai) — primary token on Robinhood mainnet (chain 4663)
+FLYAI_TOKEN = "0x0088CE7905025c4B5ea1d49aB6179B6aaADB3B9C"
+# Uniswap V4 pool ID (FLYAI/NVDA) — bytes32, not an ERC20 pair contract
+FLYAI_POOL_ID = "0x04f9f653f1692bbffeda87a5436aded3e9c0bc65e0bd929747a3a64b67c1312e"
+# Protocol deployment — pending redeploy on Robinhood (was Arc 5042/5042002)
 GOVERNOR_ADDRESS = "0xca184c37a2af24b004319912c07976d119d09e97"
 GOVERNOR_POLICY = "0x01c33f3070c312f205035393595aa810599733fd"
 TRSRY_ADDRESS = "0x9db82d9b418eaab7d0106b6b1c0eae1f5200e9f0"

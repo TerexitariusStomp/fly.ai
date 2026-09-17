@@ -45,3 +45,4 @@ build/
 .env.*
 !.env.example
 !**/.env.example
+treasury/workers/fly-brain-do/src/heavy_tailed_connectivity/Drosophila_central_brain.csv

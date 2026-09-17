@@ -1,6 +1,6 @@
-# SYM — Treasury-Backed Token Governed by Biological Connectomes
+# FLYAI — Treasury-Backed Token Governed by Biological Connectomes
 
-SYM is a single-token, treasury-backed protocol on **Arc** (testnet `5042002`, mainnet next). The protocol is an Olympus V3 fork (Kernel / Modules / Policies / Heart / RBS) where a set of **7 real biological connectomes** — running on-chain LIF (leaky integrate-and-fire) inference via `FlyEngine` — collectively operate the entire protocol: they own the kernel executor, control the treasury, and manage the buyback floor.
+FLYAI is a single-token, treasury-backed protocol on **Robinhood Chain** (mainnet `4663`, testnet `46630`). The primary token is FLYAI (fly.ai) at `0x0088CE7905025c4B5ea1d49aB6179B6aaADB3B9C`. The protocol is an Olympus V3 fork (Kernel / Modules / Policies / Heart / RBS) where a set of **7 real biological connectomes** — running on-chain LIF (leaky integrate-and-fire) inference via `FlyEngine` — collectively operate the entire protocol: they own the kernel executor, control the treasury, and manage the buyback floor.
 
 ```
                     ┌────────────────────────────────────────┐
@@ -20,7 +20,7 @@ SYM is a single-token, treasury-backed protocol on **Arc** (testnet `5042002`, m
    Olympus Kernel    TreasuryAllocator   ArcLaunchpadAdapter    SymbientInverseBond
    MINTR/TRSRY/      (Yearn-style        (whitelisted tokens,   (buyback at
    PRICE/RANGE        strategy targets,   bounded keeper        floor × 0.985,
-   + Heart            rebalances)         trades)               burns SYM)
+   + Heart            rebalances)         trades)               burns FLYAI)
         │
         ▼
    TreasuryValuation ◄── SymbientCircuitBreaker (trips when spot < floor × 0.98)
@@ -51,10 +51,10 @@ The connectomes control the whole protocol, but only vote on **policy-level** de
 
 ## Tokenomics
 
-- **SYM** — the only token. Rebasing staking via `stSYM` (`SymbientStaking`), non-rebasing wrapper `wstSYM`.
+- **FLYAI** — the only token. Rebasing staking via `stFLYAI` (`SymbientStaking`), non-rebasing wrapper `wstFLYAI`.
 - **Partial backing** — `TreasuryValuation` computes RFV (risk-free value with per-asset haircuts) and `floorPrice = RFV / supply`.
-- **Buyback floor** — `SymbientInverseBond` is a standing bid at `floorPrice × 0.985`; sellers' SYM is burned. Epoch capacity = 1% of treasury RFV; halted when the circuit breaker trips.
-- **Circuit breaker** — `SymbientCircuitBreaker` trips when SYM spot < floor × (1−2%), pausing defense/buyback operations; auto-recovers after 21 consecutive healthy epochs.
+- **Buyback floor** — `SymbientInverseBond` is a standing bid at `floorPrice × 0.985`; sellers' FLYAI is burned. Epoch capacity = 1% of treasury RFV; halted when the circuit breaker trips.
+- **Circuit breaker** — `SymbientCircuitBreaker` trips when FLYAI spot < floor × (1−2%), pausing defense/buyback operations; auto-recovers after 21 consecutive healthy epochs.
 - **RBS** — Olympus RANGE mechanics (cushion/wall spreads, capacity, regeneration) under connectome control via `GovernorPolicy`.
 
 ## Repo layout
@@ -74,7 +74,7 @@ The connectomes control the whole protocol, but only vote on **policy-level** de
 | `contracts/script/DeploySocialPostLog.s.sol` | Agent-facing contracts: SocialPostLog + SafetyGuard + ConnectomeStaking |
 | `contracts/scripts/` | `pack_connectomes.py`, `deploy_fly.py` (web3.py, 7 connectomes) |
 | `migrations/` | D1 schema |
-| `frontend/` | SYM dashboard |
+| `frontend/` | FLYAI dashboard |
 
 ## Build & test
 
@@ -84,7 +84,7 @@ forge build
 forge test     # 60 tests
 ```
 
-## Deploy (Arc testnet)
+## Deploy (Robinhood)
 
 ```bash
 cd contracts
@@ -94,7 +94,7 @@ export RESERVE_TOKEN=0x...             # USDC on Arc
 export UNISWAP_V2_ROUTER=0x...
 export CONNECTOME_VOTERS=0x1,0x2,...   # optional bound voter EOAs
 
-forge script script/DeploySimplified.s.sol --rpc-url https://rpc.testnet.arc.io --broadcast
+forge script script/DeploySimplified.s.sol --rpc-url https://rpc.mainnet.chain.robinhood.com --broadcast
 
 python3 scripts/pack_connectomes.py    # pack 7 connectomes → SSTORE2 blobs
 python3 scripts/deploy_fly.py          # deploy FlyEngine + governor, register connectomes

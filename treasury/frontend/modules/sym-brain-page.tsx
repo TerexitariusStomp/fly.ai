@@ -1,5 +1,5 @@
 /**
- * SYM Brain Page — real 3D connectome visualization.
+ * FLYAI Brain Page — real 3D connectome visualization.
  * Shows actual neuron positions, synapses, and motor group decision tree
  * (BUY/SELL/HOLD) for each species. Fetches brain data from R2 via API.
  */

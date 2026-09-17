@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-/** SYM logo — SVG neural network motif. ~15 lines custom. */
+/** FLYAI logo — SVG neural network motif. ~15 lines custom. */
 export function SymLogo({ size = 40 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -16,17 +16,17 @@ export function SymLogo({ size = 40 }: { size?: number }) {
       <line x1="80" y1="35" x2="65" y2="65" stroke="#ff5ad2" strokeWidth="1" opacity="0.5" />
       <line x1="35" y1="60" x2="50" y2="85" stroke="#6cf08a" strokeWidth="1" opacity="0.5" />
       <line x1="65" y1="65" x2="50" y2="85" stroke="#3ed8ff" strokeWidth="1" opacity="0.5" />
-      <text x="50" y="55" textAnchor="middle" fill="#e7ecf1" fontSize="14" fontWeight="bold" fontFamily="monospace">SYM</text>
+      <text x="50" y="55" textAnchor="middle" fill="#e7ecf1" fontSize="14" fontWeight="bold" fontFamily="monospace">FLYAI</text>
     </svg>
   );
 }
 
-/** SYM logo — image version (from /pictures/sym/sym-icon.png). */
+/** FLYAI logo — image version (from /pictures/sym/sym-icon.png). */
 export function SYMLogo({ className }: { className?: string }) {
   return (
     <img
       src="/pictures/sym/sym-icon.png"
-      alt="SYM Logo"
+      alt="FLYAI Logo"
       className={cn("object-contain", className)}
     />
   );

@@ -59,21 +59,21 @@ interface Env {
 }
 
 
-const arcTestnet = defineChain({
-  id: 5042002,
-  name: "Arc Testnet",
-  nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
-  rpcUrls: { default: { http: [""] } },
+const robinhoodTestnet = defineChain({
+  id: 46630,
+  name: "Robinhood Testnet",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  rpcUrls: { default: { http: ["https://rpc.testnet.chain.robinhood.com"] } },
 });
-const arcMainnet = defineChain({
-  id: 5042,
-  name: "Arc",
-  nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
-  rpcUrls: { default: { http: [""] } },
+const robinhood = defineChain({
+  id: 4663,
+  name: "Robinhood",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  rpcUrls: { default: { http: ["https://rpc.mainnet.chain.robinhood.com"] } },
 });
 // Pick chain from the RPC URL — workers can point at testnet or mainnet.
 function chainFor(env: Env) {
-  return (env.RPC_URL || "").includes("mainnet") ? arcMainnet : arcTestnet;
+  return (env.RPC_URL || "").includes("mainnet") ? robinhood : robinhoodTestnet;
 }
 
 
@@ -117,7 +117,7 @@ const REWARD_MIN_USDC = 25n * 10n ** 6n;   // don't bother under $25
 const SLIPPAGE_BPS = 300n;                 // 3% min-out on the USDC→SYM swap
 
 async function runTreasuryReview(env: Env): Promise<Record<string, unknown>> {
-  const required = ["TRSRY_ADDRESS", "FEE_ROUTER", "GOVERNOR_POLICY", "INVERSE_BOND", "SYM_TOKEN", "SYM_PAIR", "STAKING", "USDC_ADDRESS"];
+  const required = ["TRSRY_ADDRESS", "FEE_ROUTER", "GOVERNOR_POLICY", "INVERSE_BOND", "FLYAI_TOKEN", "FLYAI_POOL_ID", "STAKING", "USDC_ADDRESS"];
   const missing = required.filter((k) => !env[k]);
   if (missing.length) return { skipped: `missing env: ${missing.join(",")}` };
 
@@ -131,8 +131,10 @@ async function runTreasuryReview(env: Env): Promise<Record<string, unknown>> {
   const pub = createPublicClient({ chain: chainFor(env), transport: http(env.RPC_URL) });
   const trsry = env.TRSRY_ADDRESS as Address;
   const usdc = env.USDC_ADDRESS as Address;
-  const sym = env.SYM_TOKEN as Address;
-  const pair = env.SYM_PAIR as Address;
+  const sym = env.FLYAI_TOKEN as Address;
+  // V4 pool IDs are bytes32, not ERC20 pair contracts — balanceOf reads
+  // on this revert and return 0n until a V4 reserve adapter is added.
+  const pair = env.FLYAI_POOL_ID as Address;
 
   const read = (address: Address, fn: "balanceOf" | "totalSupply", args: readonly unknown[] = []) =>
     pub.readContract({ address, abi: ERC20_BAL_ABI, functionName: fn, args: args as never }).catch(() => 0n);

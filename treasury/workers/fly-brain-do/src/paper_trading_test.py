@@ -187,7 +187,7 @@ def main():
     tokens = [
         {"symbol": "PEPE2", "score": 85, "address": "0x1234...", "launchpad": "dex"},
         {"symbol": "DOGE3", "score": 30, "address": "0x5678...", "launchpad": "dex"},
-        {"symbol": "SYM",  "score": 50, "address": "0x9abc...", "launchpad": "dex"},
+        {"symbol": "FLYAI",  "score": 50, "address": "0x9abc...", "launchpad": "dex"},
     ]
 
     # Initialize paper balances

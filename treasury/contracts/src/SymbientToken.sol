@@ -27,7 +27,7 @@ contract SymbientToken is ERC20Permit, ERC20Burnable, AccessControl {
 
     event AuthorizedMinterSet(address indexed minter);
 
-    constructor(address _multisig) ERC20("SYM", "SYM") ERC20Permit("SYM") AccessControl() {
+    constructor(address _multisig) ERC20("FLYAI", "FLYAI") ERC20Permit("FLYAI") AccessControl() {
         _grantRole(DEFAULT_ADMIN_ROLE, _multisig);
         _grantRole(MULTISIG_ROLE, _multisig);
         if (_multisig == address(0)) revert ZeroAddress();
