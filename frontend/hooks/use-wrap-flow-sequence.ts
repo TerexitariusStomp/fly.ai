@@ -6,8 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { erc20Abi, type Abi, type Address } from "viem";
 import { ContractName, getContractAddress } from "@/lib/contracts";
 import { TokenName, getTokenAddress } from "@/lib/tokens";
-import SymbientStakingAbi from "@/abis/SymbientStaking";
-import wstSymbientAbi from "@/abis/wstFLYAI";
+import StakingAdapterAbi from "@/abis/StakingAdapter";
 import type { WrapFlow } from "@/modules/symbient-wrap-flows";
 
 export type SeqStepStatus = "pending" | "wallet" | "confirming" | "done" | "error";
@@ -36,37 +35,38 @@ function buildPlan(flow: WrapFlow): PlanStep[] {
   const stakeArgsRebasing = (addr: Address, amt: bigint) => [addr, amt, true, false] as const;
   const unstakeArgs = (addr: Address, amt: bigint) => [addr, amt, false, false] as const;
   const unstakeArgsRebasing = (addr: Address, amt: bigint) => [addr, amt, false, true] as const;
-  const singleArg = (_addr: Address, amt: bigint) => [amt] as const;
+  const toAmountArgs = (addr: Address, amt: bigint) => [addr, amt] as const;
 
   switch (flow) {
     case "wrap-symbient":
       return [
-        { kind: "approve", token: TokenName.FLYAI, spender: ContractName.STAKING, label: "Approve FLYAI" },
-        { kind: "call", contract: ContractName.STAKING, abi: SymbientStakingAbi, functionName: "stake", label: "Stake FLYAI to stFLYAI", argsBuilder: stakeArgsRebasing, amount: "input" },
+        { kind: "approve", token: TokenName.FLYAI, spender: ContractName.STAKING_ADAPTER, label: "Approve FLYAI" },
+        { kind: "call", contract: ContractName.STAKING_ADAPTER, abi: StakingAdapterAbi, functionName: "stake", label: "Stake FLYAI to stFLYAI", argsBuilder: stakeArgsRebasing, amount: "input" },
       ];
     case "wrap-symbient-to-wstsymbient":
       return [
-        { kind: "approve", token: TokenName.FLYAI, spender: ContractName.STAKING, label: "Approve FLYAI" },
-        { kind: "call", contract: ContractName.STAKING, abi: SymbientStakingAbi, functionName: "stake", label: "Stake FLYAI to wstFLYAI", argsBuilder: stakeArgs, amount: "input" },
+        { kind: "approve", token: TokenName.FLYAI, spender: ContractName.STAKING_ADAPTER, label: "Approve FLYAI" },
+        { kind: "call", contract: ContractName.STAKING_ADAPTER, abi: StakingAdapterAbi, functionName: "stake", label: "Stake FLYAI to wstFLYAI", argsBuilder: stakeArgs, amount: "input" },
       ];
     case "wrap-stsymbient":
       return [
-        { kind: "approve", token: TokenName.STFLYAI, spender: ContractName.WSTFLYAI, label: "Approve stFLYAI" },
-        { kind: "call", contract: ContractName.WSTFLYAI, abi: wstSymbientAbi, functionName: "wrap", label: "Wrap stFLYAI to wstFLYAI", argsBuilder: singleArg, amount: "input" },
+        { kind: "approve", token: TokenName.STFLYAI, spender: ContractName.STAKING_ADAPTER, label: "Approve stFLYAI" },
+        { kind: "call", contract: ContractName.STAKING_ADAPTER, abi: StakingAdapterAbi, functionName: "wrap", label: "Wrap stFLYAI to wstFLYAI", argsBuilder: toAmountArgs, amount: "input" },
       ];
     case "unwrap-wstsymbient":
       return [
-        { kind: "call", contract: ContractName.WSTFLYAI, abi: wstSymbientAbi, functionName: "unwrap", label: "Unwrap wstFLYAI to stFLYAI", argsBuilder: singleArg, amount: "input" },
+        { kind: "approve", token: TokenName.WSTFLYAI, spender: ContractName.STAKING_ADAPTER, label: "Approve wstFLYAI" },
+        { kind: "call", contract: ContractName.STAKING_ADAPTER, abi: StakingAdapterAbi, functionName: "unwrap", label: "Unwrap wstFLYAI to stFLYAI", argsBuilder: toAmountArgs, amount: "input" },
       ];
     case "unwrap-wstsymbient-to-symbient":
       return [
-        { kind: "approve", token: TokenName.WSTFLYAI, spender: ContractName.STAKING, label: "Approve wstFLYAI" },
-        { kind: "call", contract: ContractName.STAKING, abi: SymbientStakingAbi, functionName: "unstake", label: "Unstake wstFLYAI to FLYAI", argsBuilder: unstakeArgs, amount: "input" },
+        { kind: "approve", token: TokenName.WSTFLYAI, spender: ContractName.STAKING_ADAPTER, label: "Approve wstFLYAI" },
+        { kind: "call", contract: ContractName.STAKING_ADAPTER, abi: StakingAdapterAbi, functionName: "unstake", label: "Unstake wstFLYAI to FLYAI", argsBuilder: unstakeArgs, amount: "input" },
       ];
     case "unstake-stsymbient":
       return [
-        { kind: "approve", token: TokenName.STFLYAI, spender: ContractName.STAKING, label: "Approve stFLYAI" },
-        { kind: "call", contract: ContractName.STAKING, abi: SymbientStakingAbi, functionName: "unstake", label: "Unstake stFLYAI to FLYAI", argsBuilder: unstakeArgsRebasing, amount: "input" },
+        { kind: "approve", token: TokenName.STFLYAI, spender: ContractName.STAKING_ADAPTER, label: "Approve stFLYAI" },
+        { kind: "call", contract: ContractName.STAKING_ADAPTER, abi: StakingAdapterAbi, functionName: "unstake", label: "Unstake stFLYAI to FLYAI", argsBuilder: unstakeArgsRebasing, amount: "input" },
       ];
   }
 }
@@ -142,11 +142,11 @@ export function useWrapFlowSequence(flow: WrapFlow, inputAmount: bigint) {
       return;
     }
     if (!publicClient) {
-      setError(new Error("Chain client not ready — is your wallet on Arc testnet?"));
+      setError(new Error("Chain client not ready — is your wallet on Robinhood Chain?"));
       return;
     }
     if (!walletClient) {
-      setError(new Error("Wallet not connected. Please sign in via Privy."));
+      setError(new Error("Wallet not connected. Please connect a wallet."));
       return;
     }
     cancelledRef.current = false;
@@ -191,7 +191,7 @@ export function useWrapFlowSequence(flow: WrapFlow, inputAmount: bigint) {
           } as any);
           setStep(i, { status: "confirming", hash });
           const receipt = await publicClient.waitForTransactionReceipt({ hash });
-          if (receipt.status !== "success") throw new Error(`${step.label} reverted on-chain. Check the transaction on BaseScan for details.`);
+          if (receipt.status !== "success") throw new Error(`${step.label} reverted on-chain. Check the transaction on the Robinhood Chain explorer for details.`);
           setStep(i, { status: "done", hash });
         } else {
           const target = getContractAddress(step.contract, chainId);
@@ -211,7 +211,7 @@ export function useWrapFlowSequence(flow: WrapFlow, inputAmount: bigint) {
           const hash = await walletClient.writeContract({ ...call, ...(gas ? { gas } : {}) } as any);
           setStep(i, { status: "confirming", hash });
           const receipt = await publicClient.waitForTransactionReceipt({ hash });
-          if (receipt.status !== "success") throw new Error(`${step.label} reverted on-chain. This may happen if the staking contract is paused, the circuit breaker is tripped, or there is insufficient liquidity. Check the transaction on BaseScan for details.`);
+          if (receipt.status !== "success") throw new Error(`${step.label} reverted on-chain. This may happen if the staking contract is paused, the circuit breaker is tripped, or there is insufficient liquidity. Check the transaction on the Robinhood Chain explorer for details.`);
           setStep(i, { status: "done", hash });
         }
       }

@@ -21,7 +21,7 @@ export function useStakingAPY() {
   const { data: circulatingSupply, isLoading: supplyLoading } = useReadContract({
     address: stSymbientAddress,
     abi: stSymbientAbi,
-    functionName: "circulatingSupply",
+    functionName: "totalSupply",
     query: { enabled: !!stSymbientAddress },
   });
 
@@ -34,7 +34,7 @@ export function useStakingAPY() {
     const supply = circulatingSupply as bigint;
     if (supply > 0n) {
       // APY = (distribute / supply) * epochs_per_year * 100
-      // Use Number for the ratio since values are in same decimals (9)
+      // Use Number for the ratio since values are in the same decimals
       const ratio = Number(distribute) / Number(supply);
       apy = ratio * EPOCHS_PER_YEAR * 100;
     }

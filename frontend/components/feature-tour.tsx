@@ -16,7 +16,6 @@ import {
 
 const DESKTOP_BREAKPOINT = 1023.5;
 const TIGHT_POPOVER_CLASS = "symbient-tour-popover symbient-tour-popover-tight";
-const NEW_BADGE = `<span class="px-1.25 pt-px mx-[3px] rounded-full bg-green/20 text-[8px] font-semibold text-green uppercase inline-flex items-center justify-center align-middle relative -top-px">NEW</span>`;
 
 type SYMStep = DriveStep & { name: string };
 

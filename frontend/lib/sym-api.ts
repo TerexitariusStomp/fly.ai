@@ -1,11 +1,11 @@
 /**
- * 5H1T API adapter — maps our live API responses to vendored OSS component prop shapes.
+ * FLYAI API adapter — maps live worker responses to vendored OSS component prop shapes.
  * ~80 lines of glue code. All UI rendering is done by vendored MIT-licensed components.
  */
 import { useEffect, useState, useCallback } from "react";
 
-const API_BASE = import.meta.env.VITE_SHIT_UNITS_API_ENDPOINT ?? "https://api-worker.YOUR-SUBDOMAIN.workers.dev";
-const GOV_BASE = "https://governance-worker.YOUR-SUBDOMAIN.workers.dev";
+const API_BASE = import.meta.env.VITE_FLYAI_API_ENDPOINT ?? import.meta.env.VITE_SHIT_UNITS_API_ENDPOINT ?? "https://api-worker.terexmaps.workers.dev";
+const GOV_BASE = import.meta.env.VITE_FLYAI_GOVERNANCE_API_ENDPOINT ?? import.meta.env.VITE_SHIT_GOVERNANCE_API_ENDPOINT ?? "https://governance-worker.terexmaps.workers.dev";
 
 async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url);
@@ -43,7 +43,7 @@ export interface Position {
   current_price: number | null; pnl_percent: number; status: string;
   entry_amount: number; entry_at: number;
 }
-export interface TreasuryPoint { id: number; reserve_usd: number; total_rfv: number; shit_floor_price: number; updated_at: number; }
+export interface TreasuryPoint { id: number; reserve_usd: number; total_rfv: number; shit_floor_price?: number; flyai_floor_price?: number; updated_at: number; }
 export interface Treasury { rfv: number; floor_price: number; open_positions: number; eth_deployed: number; }
 export interface OnchainTreasury { mode: string; rfv: number; floor_price: number; treasury_address: string; error?: string; }
 export interface TokenDiscovery { address: string; symbol: string; name: string; chain: string; launchpad: string; score: number; enriched_at: number; }
@@ -136,7 +136,7 @@ export function toTreasuryPoints(points: TreasuryPoint[]): any[] {
     timestamp: new Date(p.updated_at * 1000).toISOString(),
     time: new Date(p.updated_at * 1000).toLocaleTimeString(),
     reserve: p.reserve_usd,
-    floor: p.shit_floor_price,
+    floor: p.flyai_floor_price ?? p.shit_floor_price,
     rfv: p.total_rfv,
     cycle_number: i,
   }));

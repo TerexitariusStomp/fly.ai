@@ -27,8 +27,8 @@ import { Form, FormField, FormItem } from "@/components/ui-form.tsx";
 import { TokenBigInput } from "@/components/ui-token-big-input.tsx";
 import { useWstSymbientConversionRate } from "@/hooks/use-wst-symbient-conversion.tsx";
 import { PriceChange } from "@/components/price-change.tsx";
-import { useSymbientPriceHistory } from "@/modules/pulse-useSymbientPriceHistory.ts";
-import { useWstSymbientPriceHistory } from "@/modules/pulse-useWstSymbientPriceHistory.ts";
+import { useSymbientPriceHistory } from "@/modules/pulse-useSymPriceHistory.ts";
+import { useWstSymbientPriceHistory } from "@/modules/pulse-useWstSymPriceHistory.ts";
 import { useToken, type TokenWithBalance } from "@/hooks/use-token";
 import { getReferenceSnapshot } from "@/lib/utils";
 import { useStakingAPY } from "@/hooks/use-staking-apy";
@@ -38,6 +38,7 @@ import { useTokenBalance } from "@/hooks/use-token-balance";
 import { getTokenAddress } from "@/lib/tokens";
 import { parseTokenAmount } from "@/lib/utils-token-amount";
 import { DashboardActions } from "@/components/dashboard-actions";
+import { InverseBondCard } from "@/components/inverse-bond-card";
 
 // ─── Wrap info cards ───
 
@@ -541,6 +542,10 @@ export function WrapPage() {
           <Card className="p-6">{panel}</Card>
         </TabsContent>
       </Tabs>
+
+      <div className="mt-8">
+        <InverseBondCard />
+      </div>
 
       {isModalOpen && (
         <WrapSymbientModal

@@ -25,7 +25,7 @@ export const TOKENS: Record<TokenName, TokenInfo> = {
     },
     symbol: "FLYAI",
     decimals: 18,
-    icon: "SHITTokenIcon",
+    icon: "FLYAITokenIcon",
   },
   STFLYAI: {
     addresses: {
@@ -34,7 +34,7 @@ export const TOKENS: Record<TokenName, TokenInfo> = {
     },
     symbol: "stFLYAI",
     decimals: 18,
-    icon: "STSHITTokenIcon",
+    icon: "STFLYAITokenIcon",
   },
   WSTFLYAI: {
     addresses: {
@@ -43,7 +43,7 @@ export const TOKENS: Record<TokenName, TokenInfo> = {
     },
     symbol: "wstFLYAI",
     decimals: 18,
-    icon: "WSTSHITTokenIcon",
+    icon: "WSTFLYAITokenIcon",
   },
 };
 

@@ -31,7 +31,7 @@ const SymTreasuryPage = lazy(() =>
   retryLazy(() => import("@/modules/sym-treasury-page")).then((m) => ({ default: m.SymTreasuryPage })),
 );
 const WrapPage = lazy(() =>
-  retryLazy(() => import("@/modules/symbient-wrap-page")).then((m) => ({
+  retryLazy(() => import("@/modules/sym-wrap-page")).then((m) => ({
     default: m.WrapPage,
   })),
 );

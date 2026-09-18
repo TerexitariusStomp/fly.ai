@@ -2,7 +2,7 @@
  * FLYAI Treasury Page — reserve dashboard + treasury ops (RBS, POL, analytics).
  * Single-token system: treasury reserve assets back the FLYAI floor price.
  */
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, PieChart, Pie, Cell } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { useApi, type TreasuryPoint, type Treasury, type OnchainTreasury, type Position, type Connectome } from "@/lib/sym-api";
 
 export function SymTreasuryPage() {
@@ -17,7 +17,7 @@ export function SymTreasuryPage() {
     time: new Date(p.updated_at * 1000).toLocaleTimeString(),
     reserve: p.reserve_usd,
     rfv: p.total_rfv > 0 ? p.total_rfv : null,
-    floor: p.symbient_floor_price > 0 ? p.symbient_floor_price : null,
+    floor: ((p.flyai_floor_price ?? p.shit_floor_price) ?? 0) > 0 ? (p.flyai_floor_price ?? p.shit_floor_price) : null,
   })) ?? [];
   const hasFloorData = priceHistory.some(p => p.floor != null);
 
@@ -63,7 +63,7 @@ export function SymTreasuryPage() {
               <StatCard label="Treasury Contract" value={onchain.treasury_address ? `${onchain.treasury_address.slice(0, 8)}...` : "—"} />
             </div>
             {onchain.treasury_address && (
-              <a href={`https://testnet.arcscan.app/address/${onchain.treasury_address}`} target="_blank" rel="noopener noreferrer" className="text-xs font-mono text-emerald-400 hover:text-emerald-300 mt-2 inline-block">
+              <a href={`https://robinhoodchain.blockscout.com/address/${onchain.treasury_address}`} target="_blank" rel="noopener noreferrer" className="text-xs font-mono text-emerald-400 hover:text-emerald-300 mt-2 inline-block">
                 View on Blockscout →
               </a>
             )}
@@ -149,7 +149,7 @@ export function SymTreasuryPage() {
                         </td>
                         <td className="px-4 py-3">
                           {p.entry_tx && p.entry_tx.startsWith("0x") ? (
-                            <a href={`https://testnet.arcscan.app/tx/${p.entry_tx}`} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 text-xs">
+                            <a href={`https://robinhoodchain.blockscout.com/tx/${p.entry_tx}`} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 text-xs">
                               view ↗
                             </a>
                           ) : (

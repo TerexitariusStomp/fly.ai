@@ -42,8 +42,8 @@ const withIcon = <T extends { id: number }>(chain: T, iconUrl: string) => ({
   iconBackground: "transparent",
 });
 
-const robinhoodWithIcon = withIcon(arc, "/icons/chain-robinhood.svg");
-const robinhoodTestnetWithIcon = withIcon(arcTestnet, "/icons/chain-robinhood.svg");
+const robinhoodWithIcon = withIcon(robinhood, "/app/fly.svg");
+const robinhoodTestnetWithIcon = withIcon(robinhoodTestnet, "/app/fly.svg");
 
 /**
  * Chains available in the wallet network selector.
@@ -74,6 +74,6 @@ export const allChains = isTestnetMode
  * Custom RPC transports per chain.
  */
 export const transports: Record<number, Transport> = {
-  [arc.id]: http("https://rpc.mainnet.arc.io/"),
-  [arcTestnet.id]: http("https://rpc.testnet.arc.io"),
+  [robinhood.id]: http("https://rpc.mainnet.chain.robinhood.com"),
+  [robinhoodTestnet.id]: http("https://rpc.testnet.chain.robinhood.com"),
 };

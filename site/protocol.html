@@ -157,12 +157,44 @@
   </div>
 </section>
 
+<section>
+  <div class="wrap">
+    <p class="eyebrow">Interact</p>
+    <h2>Protocol wallet actions</h2>
+    <p class="lede">Connect a wallet on Robinhood Chain to stake FLYAI, wrap or unwrap staking derivatives, and sell FLYAI through the treasury inverse bond. These are direct calls to the deployed contracts — no admin methods are exposed.</p>
+    <div class="card pad" style="padding: 0; overflow: hidden;">
+      <iframe src="/app/#/stake-wrap" title="FLYAI protocol app" loading="lazy" style="display:block;width:100%;min-height:980px;border:0;background:#07090c"></iframe>
+    </div>
+    <p><a class="btn sm" href="/app/#/stake-wrap" target="_blank" rel="noopener">Open protocol app</a></p>
+  </div>
+</section>
+
 <footer>
   <div class="wrap">
     <div class="links">
       <a href="index.html">Home</a>
       <a href="token.html">$FLYAI</a>
       <a href="agents.html">For Agents</a>
+      <a href="/app/#/stake-wrap">Protocol app</a>
+    </div>
+    <div class="links" aria-label="Deployed contracts">
+      <a href="https://robinhoodchain.blockscout.com/address/0x0088CE7905025c4B5ea1d49aB6179B6aaADB3B9C" target="_blank" rel="noopener">FLYAI</a>
+      <a href="https://robinhoodchain.blockscout.com/address/0x60c11f1182b0313d17b96ff8f20a12611ab769c5" target="_blank" rel="noopener">stFLYAI</a>
+      <a href="https://robinhoodchain.blockscout.com/address/0xc5fdf1d701cd8395564451cd89d940b5fd0c3600" target="_blank" rel="noopener">wstFLYAI</a>
+      <a href="https://robinhoodchain.blockscout.com/address/0x02dcb803a61315d27eebfa89c71f86e451847448" target="_blank" rel="noopener">Staking Adapter</a>
+      <a href="https://robinhoodchain.blockscout.com/address/0x73fcf57ea4bb78b103e9323fad27b54fd7aeccf2" target="_blank" rel="noopener">Inverse Bond</a>
+      <a href="https://robinhoodchain.blockscout.com/address/0x5be9ab574c7c9e3cf4367d610c682e6174633e24" target="_blank" rel="noopener">Treasury Valuation</a>
+      <a href="https://robinhoodchain.blockscout.com/address/0xaf95908a0311e470997c6ef39153576fa05157ac" target="_blank" rel="noopener">Symbient Price</a>
+      <a href="https://robinhoodchain.blockscout.com/address/0x6a7a1df72301e6a09dd43adf2fdd4487994e72a8" target="_blank" rel="noopener">Connectome Governor</a>
+      <a href="https://robinhoodchain.blockscout.com/address/0x2257c925e5d6156cca11f0d7f9a69859d383099f" target="_blank" rel="noopener">Governor Policy</a>
+      <a href="https://robinhoodchain.blockscout.com/address/0x381c76f91fb16ce539f5488cb5baacdd047ab1b6" target="_blank" rel="noopener">Olympus Kernel</a>
+      <a href="https://robinhoodchain.blockscout.com/address/0x056518a55e60328ddeb8b7a1de844c8d390989e1" target="_blank" rel="noopener">Olympus Treasury</a>
+      <a href="https://robinhoodchain.blockscout.com/address/0x4934ca5b217383c96ab5145b8ee5ca65f1eacd42" target="_blank" rel="noopener">Token Registry</a>
+      <a href="https://robinhoodchain.blockscout.com/address/0x07732db25b67fd0cee4625b062ee6e710921c132" target="_blank" rel="noopener">FlyEngine</a>
+      <a href="https://robinhoodchain.blockscout.com/address/0x6429b17f42c3f188595f24d0bd721079ba4329a3" target="_blank" rel="noopener">Treasury Allocator</a>
+      <a href="https://robinhoodchain.blockscout.com/address/0x9552e44a2ba380b4ddd62b6ca4359661cee6a864" target="_blank" rel="noopener">Decision Ledger</a>
+      <a href="https://robinhoodchain.blockscout.com/address/0x739076194179fcd0d8ebaa729c09e59dbf3d64a4" target="_blank" rel="noopener">Circuit Breaker</a>
+      <a href="https://robinhoodchain.blockscout.com/address/0xf56f81d2a205279548021255a7b1f8d5097ffc66" target="_blank" rel="noopener">Social Post Log</a>
     </div>
     <p>Protocol data is served from the Cloudflare api-worker and D1. Contract calls remain on Robinhood Chain; connectome inference and vote tallying run off-chain before the collective decision is relayed on-chain.</p>
   </div>

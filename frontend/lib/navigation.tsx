@@ -69,8 +69,8 @@ export function renderNavIcon(
 export const NAV_SECTIONS: NavSection[] = [
   {
     id: "overview",
-    label: "5H1T",
-    sidebarTitle: "5H1T Overview",
+    label: "FLYAI",
+    sidebarTitle: "FLYAI Overview",
     icon: TrendingUp,
     section: "overview",
     items: [
@@ -101,7 +101,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     id: "wrap",
     label: "Stake & Wrap",
-    sidebarTitle: "Stake 5H1T / Wrap stSHIT",
+    sidebarTitle: "Stake FLYAI / Wrap stFLYAI",
     icon: LayoutDashboard,
     section: "wrap",
     route: "stake-wrap",
