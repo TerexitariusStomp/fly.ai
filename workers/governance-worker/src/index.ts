@@ -7,11 +7,12 @@
  *
  *   1. PROPOSE: build (target, calldata, market) from pending treasury/
  *      protocol intents stored in D1 (`proposals_queue` table).
- *   2. VOTE: for each registered connectome, call governor.vote(pid, cid)
- *      from the connectome's bound voter key — the vote runs the connectome's
- *      on-chain LIF inference via FlyEngine.analyze().
- *   3. EXECUTE: once forVotes >= quorum (3 of 7) and > againstVotes, call
- *      governor.execute(pid). Permissionless — any keeper can.
+ *   2. VOTE: each connectome's DO evaluates off-chain (fly-brain-do /decide);
+ *      votes land in D1 `governance_votes`. No on-chain gas per vote.
+ *   3. EXECUTE: once forVotes >= quorum (3 of 7) and > againstVotes, the
+ *      colonyExecutor relays a single governor.colonyExecute(ref, target, data)
+ *      tx. The on-chain propose/vote/execute path is a dormant fallback only —
+ *      on-chain LIF votes cost ~16M gas each, so everything votes off-chain.
  *
  * Also aggregates per-connectome P&L from D1 for the meta-wallet and
  * reporting, and posts epoch summaries to Discord.

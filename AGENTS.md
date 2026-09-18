@@ -134,11 +134,13 @@ Wiring state (as of 2026-09-18):
 - `FlyEngine.governor` = governor proxy; `gov.decisionLedger` + `gov.socialPostLog` set
 - Governor: admin = deployer `0xc6f1…` (**compromised — rotate to Safe before real value**),
   colonyExecutor = `0xdd18b2…`, quorum 3334 bps
-- All 7 connectomes registered in the governor (n=7 → quorum 3-of-7);
-  only drosophila/human/celegans_male have on-chain engine data — rat/mouse/ciona/macaque_modha
-  need SSTORE2 chunk uploads (~8M gas, packed data in `~/fly-data/packed/`)
-- On-chain `vote()` costs ~16M gas/call (LIF inference) — the operating path is
-  `colonyExecute` (off-chain D1 votes → executor relays one tx); proven by tx `0xb5df1f…`
+- All 7 connectomes registered in the governor (n=7 → quorum 3-of-7)
+- **Everything votes off-chain**: the operating path is `colonyExecute`
+  (D1 `governance_votes` tally → colonyExecutor relays one tx); proven by tx `0xb5df1f…`.
+  The on-chain `vote()` path is a dormant fallback only — it costs ~16M gas/call.
+  Only drosophila/human/celegans_male have on-chain engine data; the other 4
+  would need SSTORE2 chunks (~8M gas, packed in `~/fly-data/packed/`) but
+  don't need it for off-chain voting.
 - Buyback float: `approveToken(FLYAI → bond, 50M)` queued via `proposals_queue` → colony vote →
   `colonyExecute`. GovernorPolicy currently holds 0 FLYAI — float still needs funding.
 

@@ -412,6 +412,45 @@ class ConnectomeDO(DurableObject):
         self._genome = g
         return g
 
+    async def _colony_listen(self) -> dict:
+        """flytalk port: read siblings' last signals → sensory drive.
+        Sibling SELL → 'threat' (escape drive), BUY → 'target' (approach),
+        anything else → 'wind' (weak bilateral chop). Returns a dict consumed
+        by _market_to_direct_inputs as _colony_drive."""
+        drive = {"threat": 0.0, "target": 0.0, "wind": 0.0}
+        try:
+            rows = await self.env.DB.prepare(
+                "SELECT envelope, strength FROM colony_signals "
+                "WHERE from_fly != ? AND created_at > datetime('now', '-5 minutes') "
+                "ORDER BY id DESC LIMIT 50"
+            ).bind(self.connectome_id).all()
+            for r in (rows.results or []):
+                env = str(r["envelope"] or "").upper()
+                s = float(r["strength"] or 0)
+                if env in ("SELL", "-1"):
+                    drive["threat"] += s
+                elif env in ("BUY", "1"):
+                    drive["target"] += s
+                else:
+                    drive["wind"] += s
+        except Exception:
+            pass
+        return drive
+
+    async def _colony_speak(self, action, confidence: float):
+        """flytalk port: emit this connectome's decoded action as a colony
+        signal siblings read on their next tick."""
+        try:
+            await self.env.DB.prepare(
+                "INSERT INTO colony_signals (from_fly, kind, envelope, strength, tick) "
+                "VALUES (?, 'action', ?, ?, ?)"
+            ).bind(
+                self.connectome_id, str(action), float(confidence),
+                int(time.time()),
+            ).run()
+        except Exception:
+            pass
+
     async def _llm_adjudicate(self, token: dict, neural: dict) -> dict:
         """LLM layer on top of neural inference — the connectome's persona
         interprets the brain's raw decision against market context. Returns
@@ -685,30 +724,7 @@ class ConnectomeDO(DurableObject):
             # Fan out: drive the pipeline workers that have no cron of their
             # own (free tier = 5 crons/account, all used). One DO alarm chain
             # kicks discovery → trade → social each minute.
-            key = {"X-Colony-Key": self.env.COLONY_ADMIN_KEY}
-            if self.connectome_id == "drosophila":  # only one connectome fans out
-                for url in (
-                    "https://discovery-worker.terexmaps.workers.dev/",
-                    "https://trade-worker.terexmaps.workers.dev/process",
-                    "https://enrichment-worker.terexmaps.workers.dev/",
-                ):
-                    try:
-                        await fetch(url, headers=key)
-                    except Exception:
-                        pass
-            # Social every ~7 ticks (~7 min) — keeps posting cadence human
-            if self.connectome_id == "celegans_male" and int(time.time()) % 420 < 60:
-                try:
-                    await fetch("https://social-worker.terexmaps.workers.dev/post", headers=key)
-                except Exception:
-                    pass
-            # Governance cycle every ~15 min — propose/vote/execute queued
-            # protocol actions (rewards funding, bond params, whitelists)
-            if self.connectome_id == "human" and int(time.time()) % 900 < 60:
-                try:
-                    await fetch("https://governance-worker.terexmaps.workers.dev/governance/cycle", headers=key)
-                except Exception:
-                    pass
+            await self._fan_out()
             # Success — reset backoff to 1 minute
             await self.ctx.storage.setAlarm(int(time.time() * 1000) + 60_000)
         except Exception as e:
@@ -716,6 +732,44 @@ class ConnectomeDO(DurableObject):
             # Still reschedule, but with backoff (5 min on crash)
             # so the DO retries instead of going permanently silent.
             await self.ctx.storage.setAlarm(int(time.time() * 1000) + 300_000)
+
+    async def _fan_out(self):
+        """Drive the pipeline workers that have no cron of their own
+        (free tier = 5 crons/account, all used). Called from both alarm()
+        and /trigger so a dropped DO alarm can't starve the chain.
+        Intervals are tracked by last-call timestamps in DO storage —
+        fixed clock windows (t % N < 60) can be missed indefinitely when
+        alarms drift."""
+        key = {"X-Colony-Key": self.env.COLONY_ADMIN_KEY}
+        if self.connectome_id == "drosophila":  # only one connectome fans out
+            for url in (
+                "https://discovery-worker.terexmaps.workers.dev/",
+                "https://trade-worker.terexmaps.workers.dev/process",
+                "https://enrichment-worker.terexmaps.workers.dev/",
+            ):
+                try:
+                    await fetch(url, headers=key)
+                except Exception:
+                    pass
+        # Social every ~7 min — keeps posting cadence human
+        if self.connectome_id == "celegans_male":
+            last_social = (await self.ctx.storage.get("last_social_at") or 0)
+            if int(time.time()) - int(last_social) >= 420:
+                try:
+                    await fetch("https://social-worker.terexmaps.workers.dev/post", headers=key)
+                    await self.ctx.storage.put("last_social_at", int(time.time()))
+                except Exception:
+                    pass
+        # Governance cycle every ~15 min — propose/vote/execute queued
+        # protocol actions (rewards funding, bond params, whitelists)
+        if self.connectome_id == "human":
+            last_gov = (await self.ctx.storage.get("last_gov_at") or 0)
+            if int(time.time()) - int(last_gov) >= 840:
+                try:
+                    await fetch("https://governance-worker.terexmaps.workers.dev/governance/cycle", headers=key)
+                    await self.ctx.storage.put("last_gov_at", int(time.time()))
+                except Exception:
+                    pass
 
     async def _flush_signals(self):
         """Batch-insert the buffered signals in one or more multi-row
@@ -1310,6 +1364,10 @@ class ConnectomeDO(DurableObject):
                     decision = await self._evaluate_token(token)
                     await self._store_signal(token, decision)
                     signals_made += 1
+                # Fan out here too — DO self-alarms drift/get dropped on the
+                # free tier; the */5 cron guarantees this path runs, so the
+                # governance + pipeline fan-out can't starve.
+                await self._fan_out()
                 # Set alarm for next cycle
                 await self.ctx.storage.setAlarm(int(time.time() * 1000) + 60_000)
                 return Response.json({"status": "ok", "initialized": self.initialized, "signals": signals_made})
