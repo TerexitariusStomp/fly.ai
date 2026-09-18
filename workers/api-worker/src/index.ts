@@ -521,11 +521,21 @@ async function getGovernance(env: Env) {
     "SELECT connectome_id, epoch, pnl_percent, n_trades, reported_at " +
     "FROM connectome_pnl_reports ORDER BY reported_at DESC LIMIT 20"
   ).all();
+  const proposals = await env.DB.prepare(
+    "SELECT id, target, description, status, votes_for, votes_against, tx_hash, created_at " +
+    "FROM proposals_queue ORDER BY id DESC LIMIT 12"
+  ).all().catch(() => ({ results: [] }));
+  const votes = await env.DB.prepare(
+    "SELECT proposal_id, connectome_id, action, confidence, decided_at " +
+    "FROM governance_votes ORDER BY decided_at DESC LIMIT 80"
+  ).all().catch(() => ({ results: [] }));
   return {
     individual: individual.results,
     global,
     meta,
     latest_reports: latestReports.results,
+    proposals: proposals.results,
+    votes: votes.results,
   };
 }
 

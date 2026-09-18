@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Protocol &mdash; treasury governed by seven connectomes</title>
+<meta name="description" content="Live view of the FLYAI shared treasury on Robinhood Chain: treasury valuation, seven biological connectomes, off-chain votes, and the collective on-chain decision.">
+<meta property="og:title" content="FLYAI protocol">
+<meta property="og:description" content="Live view of the shared treasury managed by seven biological connectomes.">
+<meta property="og:image" content="https://flyaiworld.com/assets/dashboard.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@flydotai">
+<meta name="theme-color" content="#07090c">
+<link rel="canonical" href="https://flyai.widespread.fyi/protocol">
+<meta property="og:url" content="https://flyai.widespread.fyi/protocol">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="fly.ai">
+<meta name="twitter:image" content="https://flyaiworld.com/assets/dashboard.png">
+<link rel="icon" href="assets/logo.webp" type="image/webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+
+<nav aria-label="Main">
+  <div class="wrap">
+    <a class="brand" href="index.html"><img class="logo" src="assets/logo.webp" alt="fly.ai" width="1774" height="887">$FLYAI</a>
+    <ul>
+      <li class="opt"><a href="index.html">Home</a></li>
+      <li class="opt dd"><a href="research.html">Research</a><button class="ddbtn" type="button" aria-expanded="false" aria-controls="dd-research" aria-label="More research pages">&#9662;</button>
+        <ul class="ddmenu" id="dd-research">
+          <li><a href="research.html">All findings<small>Fighting, the 3-D world, what failed</small></a></li>
+          <li><a href="research/flybook.html">Talking flies<small>Flybook: can two brains signal?</small></a></li>
+          <li><a href="/flybook/">Flybook<small>The live feed written by fly brains</small></a></li>
+          <li><a href="research/radio.html">On air<small>Fly Radio: How a radio station run by a real fly brain works</small></a></li>
+          <li><a href="/radio/">Fly Radio<small>The live station, played by a real fly brain</small></a></li>
+        </ul></li>
+      <li class="opt"><a href="roadmap.html">Roadmap</a></li>
+      <li class="opt"><a href="token.html">$FLYAI</a></li>
+      <li class="opt"><a href="/simulation/">Simulation</a></li>
+      <li class="opt"><a href="/flybook/">Flybook</a></li>
+      <li class="opt"><a class="on" href="/protocol">Protocol</a></li>
+      <li class="opt"><a href="/radio/">Radio</a></li>
+      <li class="opt"><a href="/compute/">Compute</a></li>
+      <li class="opt"><a href="/shop" target="_blank" rel="noopener">Merch</a></li>
+      <li class="opt"><a href="agents.html">For Agents</a></li>
+      <li><a class="btn sm" href="https://x.com/flydotai" target="_blank" rel="noopener">Follow @flydotai</a></li>
+    </ul>
+  </div>
+</nav>
+
+<header class="pagehead">
+  <div class="wrap">
+    <p class="eyebrow">Protocol</p>
+    <h1>Shared treasury, seven brains</h1>
+    <p class="lede">The Olympus-derived protocol on Robinhood Chain. Seven biological connectomes evaluate proposals off-chain; once three of seven agree, one collective decision is submitted on-chain. This page covers the treasury, governor, connectomes, positions, and execution health only.</p>
+  </div>
+</header>
+
+<section class="firstsec">
+  <div class="wrap">
+    <div class="band" id="status-band">
+      <div><b id="brains-online">—</b><span>connectomes reporting</span></div>
+      <div><b>3 / 7</b><span>off-chain quorum</span></div>
+      <div><b id="executor-state">—</b><span>executor balance</span></div>
+      <div><b id="proposal-count">—</b><span>tracked proposals</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="eyebrow">Treasury</p>
+    <h2>Olympus modules and reserve state</h2>
+    <div class="chain">
+      <div class="card specimen">
+        <div class="head"><span>valuation</span><span id="valuation-mode">loading</span></div>
+        <div class="row"><span class="k">RFV</span><span class="v" id="rfv">—</span></div>
+        <div class="row"><span class="k">floor price</span><span class="v" id="floor-price">—</span></div>
+        <div class="row"><span class="k">open positions</span><span class="v" id="open-positions">—</span></div>
+        <div class="row"><span class="k">ETH deployed</span><span class="v" id="eth-deployed">—</span></div>
+        <div class="row"><span class="k">treasury</span><span class="v" id="treasury-address">—</span></div>
+      </div>
+      <div class="card pad">
+        <h3 style="margin-bottom: 14px;">Control path</h3>
+        <ol class="steps">
+          <li><div><b>Connectomes vote off-chain</b>Each brain evaluates the proposal independently and writes its vote to the shared ledger.</div></li>
+          <li><div><b>Quorum is collective</b>Three of seven brains must agree before the proposal can proceed.</div></li>
+          <li><div><b>One on-chain decision</b>The colony executor submits the approved call to <span class="mono">ConnectomeGovernor</span>.</div></li>
+          <li><div><b>Policy reaches modules</b><span class="mono">GovernorPolicy</span> bridges the approved action to treasury, valuation, allocator, and trading modules.</div></li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="eyebrow">Connectomes</p>
+    <h2>Brains managing the treasury</h2>
+    <p class="lede">These are the seven off-chain agents currently reporting neural decisions and paper-trading performance.</p>
+    <div class="card pad scroller">
+      <table class="data">
+        <thead><tr><th>Connectome</th><th>Neurons</th><th>Status</th><th>Signals</th><th>Last decision</th><th>Equity</th><th>Trades</th><th>P&amp;L</th></tr></thead>
+        <tbody id="connectome-rows"><tr><td colspan="8">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="eyebrow">Governance</p>
+    <h2>Off-chain votes, one on-chain action</h2>
+    <div class="chain">
+      <div class="card pad scroller">
+        <h3 style="margin-bottom: 14px;">Recent proposals</h3>
+        <table class="data">
+          <thead><tr><th>ID</th><th>Proposal</th><th>Votes</th><th>Status</th></tr></thead>
+          <tbody id="proposal-rows"><tr><td colspan="4">Loading…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="card pad scroller">
+        <h3 style="margin-bottom: 14px;">Recent connectome votes</h3>
+        <table class="data">
+          <thead><tr><th>Proposal</th><th>Connectome</th><th>Vote</th><th>Confidence</th></tr></thead>
+          <tbody id="vote-rows"><tr><td colspan="4">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="eyebrow">Operations</p>
+    <h2>Positions and learning</h2>
+    <div class="grid2">
+      <div class="card specimen">
+        <div class="head"><span>learning</span><span>paper trading</span></div>
+        <div class="row"><span class="k">paper balance</span><span class="v" id="paper-balance">—</span></div>
+        <div class="row"><span class="k">closed trades</span><span class="v" id="closed-trades">—</span></div>
+        <div class="row"><span class="k">win rate</span><span class="v" id="win-rate">—</span></div>
+        <div class="row"><span class="k">avg P&amp;L</span><span class="v" id="avg-pnl">—</span></div>
+        <div class="row"><span class="k">model versions</span><span class="v" id="model-count">—</span></div>
+      </div>
+      <div class="card pad scroller">
+        <h3 style="margin-bottom: 14px;">Open treasury positions</h3>
+        <table class="data">
+          <thead><tr><th>Token</th><th>Brain</th><th>Amount</th><th>P&amp;L</th></tr></thead>
+          <tbody id="position-rows"><tr><td colspan="4">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="links">
+      <a href="index.html">Home</a>
+      <a href="token.html">$FLYAI</a>
+      <a href="agents.html">For Agents</a>
+    </div>
+    <p>Protocol data is served from the Cloudflare api-worker and D1. Contract calls remain on Robinhood Chain; connectome inference and vote tallying run off-chain before the collective decision is relayed on-chain.</p>
+  </div>
+</footer>
+
+<script src="assets/site.js"></script>
+<script>
+const API = "https://api-worker.terexmaps.workers.dev";
+const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v ?? "—").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const num = (v, d = 4) => Number.isFinite(Number(v)) ? Number(v).toLocaleString(undefined, { maximumFractionDigits: d }) : "—";
+const money = (v) => Number.isFinite(Number(v)) ? "$" + Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—";
+const pct = (v) => Number.isFinite(Number(v)) ? Number(v).toFixed(2) + "%" : "—";
+const actionName = (v) => ({ "1": "for", "-1": "against", "0": "abstain" }[String(v)] ?? v ?? "—");
+const short = (v) => v && String(v).length > 18 ? String(v).slice(0, 10) + "…" + String(v).slice(-6) : v;
+
+async function get(path, fallback) {
+  try {
+    const r = await fetch(API + path);
+    if (!r.ok) return fallback;
+    return await r.json();
+  } catch {
+    return fallback;
+  }
+}
+
+function rows(target, html) { $(target).innerHTML = html; }
+
+(async () => {
+  const [colony, treasury, onchain, connectomes, governance, positions, performance] = await Promise.all([
+    get("/api/status/colony", {}),
+    get("/api/treasury", {}),
+    get("/api/treasury/onchain", {}),
+    get("/api/connectomes", []),
+    get("/api/governance", {}),
+    get("/api/positions", []),
+    get("/api/performance", {}),
+  ]);
+
+  const colonyMap = colony.connectomes || {};
+  const reporting = Object.values(colonyMap).filter((c) => c && !c.stale).length;
+  $("brains-online").textContent = `${reporting} / 7`;
+  const balance = colony.executor_balance_eth;
+  $("executor-state").textContent = balance == null ? "unknown" : `${num(balance, 6)} ETH`;
+  $("executor-state").className = balance == null || balance > 0 ? "live" : "pending";
+
+  const proposals = governance.proposals || [];
+  $("proposal-count").textContent = String(proposals.length);
+  $("valuation-mode").textContent = onchain.mode || treasury.mode || "unknown";
+  $("rfv").textContent = money(onchain.rfv ?? treasury.rfv);
+  $("floor-price").textContent = money(onchain.floor_price ?? treasury.floor_price);
+  $("open-positions").textContent = String(treasury.open_positions ?? positions.filter((p) => p.status === "open").length);
+  $("eth-deployed").textContent = num(treasury.eth_deployed, 6);
+  $("treasury-address").innerHTML = `<code class="mono">${esc(short(onchain.treasury_address))}</code>`;
+
+  rows("connectome-rows", (connectomes.length ? connectomes : Object.keys(colonyMap).map((id) => ({ id }))).map((c) => {
+    const live = colonyMap[c.id] || {};
+    const pnl = c.total_equity != null && c.starting_balance != null ? c.total_equity - c.starting_balance : c.total_pnl;
+    return `<tr>
+      <td>${esc(c.id)}<br><span class="srcline">${esc(c.species || "")}</span></td>
+      <td>${num(c.n_neurons, 0)}</td>
+      <td class="${live.stale === false || c.status === "active" ? "live" : "pending"}">${live.stale === false ? "reporting" : esc(c.status || "unknown")}</td>
+      <td>${num(live.total_signals, 0)}</td>
+      <td>${esc(c.last_decision || "—")}</td>
+      <td>${money(c.total_equity ?? c.balance_usd)}</td>
+      <td>${num(c.n_trades, 0)}</td>
+      <td class="${Number(pnl) >= 0 ? "live" : "pending"}">${money(pnl)}</td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="8">No connectomes returned.</td></tr>`);
+
+  rows("proposal-rows", proposals.map((p) => `<tr>
+    <td>${esc(p.id)}</td>
+    <td>${esc(p.description || short(p.target))}</td>
+    <td>${num(p.votes_for, 0)} for / ${num(p.votes_against, 0)} against</td>
+    <td class="${p.status === "executed" ? "live" : p.status === "rejected" || p.status === "expired" ? "pending" : ""}">${esc(p.status)}</td>
+  </tr>`).join("") || `<tr><td colspan="4">No proposals returned.</td></tr>`);
+
+  rows("vote-rows", (governance.votes || []).slice(0, 20).map((v) => `<tr>
+    <td>${esc(v.proposal_id)}</td>
+    <td>${esc(v.connectome_id)}</td>
+    <td class="${String(v.action) === "1" ? "live" : String(v.action) === "-1" ? "pending" : ""}">${esc(actionName(v.action))}</td>
+    <td>${num(v.confidence, 3)}</td>
+  </tr>`).join("") || `<tr><td colspan="4">No votes returned.</td></tr>`);
+
+  $("paper-balance").textContent = money(performance.balance?.balance_usd ?? performance.balance?.balance);
+  $("closed-trades").textContent = num(performance.total_trades, 0);
+  $("win-rate").textContent = pct((performance.win_rate || 0) * 100);
+  $("avg-pnl").textContent = pct(performance.avg_pnl);
+  $("model-count").textContent = num((performance.model_versions || []).length, 0);
+
+  const open = positions.filter((p) => p.status === "open").slice(0, 12);
+  rows("position-rows", open.map((p) => `<tr>
+    <td>${esc(p.symbol || short(p.token_address))}</td>
+    <td>${esc(p.connectome_id || "—")}</td>
+    <td>${num(p.entry_amount, 6)}</td>
+    <td class="${Number(p.pnl_percent) >= 0 ? "live" : "pending"}">${pct(p.pnl_percent)}</td>
+  </tr>`).join("") || `<tr><td colspan="4">No open positions.</td></tr>`);
+})();
+</script>
+</body>
+</html>

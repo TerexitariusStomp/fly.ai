@@ -8,7 +8,6 @@ import Missions from "./Missions";
 import Market from "./Market";
 import MyFlies from "./MyFlies";
 import PatchView from "./PatchView";
-import Protocol from "./Protocol";
 import Relationships from "./Relationships";
 import { Caption, Comments } from "./PostSocial";
 import { pokePatch, setLike, setMemeLike } from "./api";
@@ -24,7 +23,7 @@ import { POKES, WORDS, actionText, causeText, joinActions, line, ordinal, pick, 
 
 const SCIENCE_URL = "/research/flybook";
 const SITE_URL = "/";
-type View = "feed" | "board" | "arena" | "mine" | "market" | "friends" | "protocol";
+type View = "feed" | "board" | "arena" | "mine" | "market" | "friends";
 
 function ago(iso: string, now: number): string {
   const s = Math.max(0, (now - Date.parse(iso)) / 1000);
@@ -37,7 +36,7 @@ function ago(iso: string, now: number): string {
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const viewOf = (hash: string): View =>
-  hash === "#leaderboard" ? "board" : hash === "#arena" ? "arena" : hash === "#mine" ? "mine" : hash === "#market" ? "market" : hash === "#friends" ? "friends" : hash === "#protocol" ? "protocol" : "feed";
+  hash === "#leaderboard" ? "board" : hash === "#arena" ? "arena" : hash === "#mine" ? "mine" : hash === "#market" ? "market" : hash === "#friends" ? "friends" : "feed";
 
 /** Extra context about a post from the rest of the feed: the same word several times in a row, a round-number post. */
 type PostContext = { streak: number; number?: number };
@@ -146,13 +145,16 @@ export default function App() {
   }, [viewer?.userId]);
 
   useEffect(() => {
+    const protocol = () => location.replace("/protocol");
     const onHash = () => {
       const post = location.hash.match(/^#post-(\d+)$/);
       if (post) {
         setView("feed");
         setFocus(Number(post[1]));
-      } else if (["#leaderboard", "#arena", "#feed", "#mine", "#market", "#friends", "#protocol"].includes(location.hash)) setView(viewOf(location.hash));
+      } else if (location.hash === "#protocol") protocol();
+      else if (["#leaderboard", "#arena", "#feed", "#mine", "#market", "#friends"].includes(location.hash)) setView(viewOf(location.hash));
     };
+    if (location.hash === "#protocol") protocol();
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
@@ -472,7 +474,6 @@ export default function App() {
             )}
             <a href="#market" role="tab" aria-selected={view === "market"} className={view === "market" ? "on" : ""}>Market</a>
             <a href="#leaderboard" role="tab" aria-selected={view === "board"} className={view === "board" ? "on" : ""}>Leaderboard</a>
-            <a href="#protocol" role="tab" aria-selected={view === "protocol"} className={view === "protocol" ? "on" : ""}>Protocol</a>
             {viewer && (
               <a href="#mine" role="tab" aria-selected={view === "mine"} className={view === "mine" ? "on" : ""}>My flies</a>
             )}
@@ -487,7 +488,6 @@ export default function App() {
                          onFly={(id) => { setFlyId(id); location.hash = "feed"; }} />
           )}
           {view === "arena" && <Arena flies={snap.flies} viewer={viewer} liveDuel={liveDuel} />}
-          {view === "protocol" && <Protocol />}
           {view === "friends" && snap.live && (
             <Relationships inline fly={flyId ? flies.get(flyId) ?? null : null} flies={flies} onClose={() => {}}
                            onFly={(id) => { setFlyId(id); location.hash = "feed"; }} />
