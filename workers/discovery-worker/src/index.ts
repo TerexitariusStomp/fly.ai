@@ -1,5 +1,5 @@
 /**
- * Discovery Worker — polls Arc launchpads for new tokens.
+ * Discovery Worker — polls Robinhood launchpads for new tokens.
  * Runs on CF Cron Trigger (free: 1-min interval).
  * Writes discovered tokens to D1.
  *
@@ -100,7 +100,7 @@ async function ethCall(to: string, data: string): Promise<string | null> {
 }
 
 /** Poll DexScreener for trending tokens (paper trading — any chain with
- *  live price data; Arc has no DexScreener pairs yet). */
+ *  live price data; Robinhood pairs may lag DexScreener). */
 const SEARCH_QUERIES = ["solana", "base", "pepe", "ai", "inu"];
 
 async function pollDexScreener(env: Env) {

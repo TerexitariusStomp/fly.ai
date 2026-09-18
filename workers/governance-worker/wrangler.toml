@@ -18,7 +18,9 @@ script_name = "fly-brain-do"
 # no cron — driven by fly-brain-do alarm chain
 
 [vars]
-RPC_URL = "https://rpc.mainnet.chain.robinhood.com"
+# RPC_URL is a secret (keyed endpoint) — set via `wrangler secret put RPC_URL`
+# The bare RPC 429s under load; use the apikey'd URL.
+# RPC_URL = "https://rpc.mainnet.chain.robinhood.com"
 USDC_ADDRESS = "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168"
 # FLYAI (fly.ai) — primary token on Robinhood mainnet (chain 4663)
 FLYAI_TOKEN = "0x0088CE7905025c4B5ea1d49aB6179B6aaADB3B9C"

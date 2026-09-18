@@ -40,7 +40,7 @@ interface Env {
   COOLDOWN_SECONDS: string;
   // Real trading secrets
   EXECUTOR_PRIVATE_KEY?: string;
-  ARC_RPC_URL?: string;
+  RPC_URL?: string;
   REAL_TRADING?: string;
   EMERGENCY_STOP?: string;
   FLYAI_TOKEN?: string;
@@ -62,10 +62,10 @@ const DEFAULT_STOP_LOSS_PCT = 15;
 const DEFAULT_MAX_POSITION_PCT = 50;
 const DEFAULT_MIN_SCORE_TO_BUY = 30;
 
-// DEX trading costs (Arc / Uniswap V2-style AMM)
+// DEX trading costs (Robinhood Uniswap V4-style AMM)
 const DEX_FEE_PCT = 0.3;          // 0.3% swap fee (Uniswap V2 standard)
 const SLIPPAGE_BASE_PCT = 0.5;    // 0.5% base slippage tolerance
-const GAS_COST_USD = 0.02;        // ~$0.02 gas per swap on Arc (L2)
+const GAS_COST_USD = 0.02;        // ~$0.02 gas per swap on Robinhood
 const MAX_SLIPPAGE_PCT = 3.0;     // Cap slippage at 3% even for large trades
 
 const COLORS: Record<string, number> = {
@@ -160,7 +160,7 @@ async function processSignals(env: Env) {
 }
 
 function isRealTrading(env: Env): boolean {
-  return env.REAL_TRADING === "true" && !env.EMERGENCY_STOP && !!env.EXECUTOR_PRIVATE_KEY && !!env.ARC_RPC_URL;
+  return env.REAL_TRADING === "true" && !env.EMERGENCY_STOP && !!env.EXECUTOR_PRIVATE_KEY && !!env.RPC_URL;
 }
 
 // === Per-connectome wallet management ===
@@ -514,11 +514,11 @@ function getClients(env: Env) {
     id: 4663,
     name: "Robinhood",
     nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-    rpcUrls: { default: { http: [env.ARC_RPC_URL!] } },
+    rpcUrls: { default: { http: [env.RPC_URL!] } },
   };
   const account = privateKeyToAccount(env.EXECUTOR_PRIVATE_KEY as `0x${string}`);
-  const pub = createPublicClient({ chain, transport: http(env.ARC_RPC_URL) });
-  const wc = createWalletClient({ account, chain, transport: http(env.ARC_RPC_URL) });
+  const pub = createPublicClient({ chain, transport: http(env.RPC_URL) });
+  const wc = createWalletClient({ account, chain, transport: http(env.RPC_URL) });
   return { pub, wc, account, address: account.address };
 }
 

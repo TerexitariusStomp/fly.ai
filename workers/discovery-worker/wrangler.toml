@@ -17,5 +17,4 @@ id = "10656e3d29ec4697acb0d7d6c811f660"
 # no cron — driven by fly-brain-do alarm chain
 
 [vars]
-ARC_RPC = "https://rpc.mainnet.chain.robinhood.com"
 account_id = "6c0140469651854b2e358517371a03d3"

@@ -627,7 +627,7 @@ async function runGovernanceCycle(env: Env): Promise<Record<string, unknown>> {
           address: governor, abi: COLONY_ABI, functionName: "colonyExecute",
           args: [decisionRef, q.target as Address, q.calldata as Hex],
         });
-        // Arc RPC often drops receipt polling — the tx usually still lands.
+        // Robinhood RPC often drops receipt polling — the tx usually still lands.
         try {
           await publicClient.waitForTransactionReceipt({ hash, timeout: 30_000 });
         } catch { /* landed or pending — hash recorded, verify next cycle */ }

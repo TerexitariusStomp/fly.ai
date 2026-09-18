@@ -10,7 +10,7 @@ interface Env {
   DB: D1Database;
   BRAIN_BUCKET?: R2Bucket;
   TREASURY_VALUATION?: string;
-  ARC_RPC_URL?: string;
+  RPC_URL?: string;
 }
 
 // Fetch token price from GeckoTerminal (updates more frequently than DexScreener)
@@ -224,7 +224,7 @@ async function getTreasury(env: Env) {
 // Read on-chain RFV and floor price from TreasuryValuation contract (single-token system)
 async function getOnchainTreasury(env: Env) {
   const treasuryAddr = env.TREASURY_VALUATION;
-  const rpcUrl = env.ARC_RPC_URL || "https://rpc.mainnet.chain.robinhood.com";
+  const rpcUrl = env.RPC_URL || "https://rpc.mainnet.chain.robinhood.com";
 
   if (!treasuryAddr) {
     return { error: "TREASURY_VALUATION not configured", mode: "paper" };
@@ -372,7 +372,7 @@ const CONNECTOME_IDS = ["drosophila","rat","mouse","ciona","macaque_modha","huma
 const COLONY_EXECUTOR = "0xDd18b27067BEa45D06C1E80a69dcfEb7cc6fB084";
 
 async function getColonyStatus(env: Env) {
-  const rpcUrl = env.ARC_RPC_URL || "https://rpc.mainnet.chain.robinhood.com";
+  const rpcUrl = env.RPC_URL || "https://rpc.mainnet.chain.robinhood.com";
 
   const lastSignals = await env.DB.prepare(
     "SELECT connectome_id, MAX(created_at) AS last_signal, COUNT(*) AS total " +

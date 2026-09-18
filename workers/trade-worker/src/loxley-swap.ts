@@ -223,7 +223,7 @@ export function encodeV4Swap(
   };
 }
 
-// Arc addresses (from loxley/cli/env.js)
+// Robinhood chain addresses (from loxley/cli/env.js)
 export const ADDRESSES = {
   UNIVERSAL_ROUTER: "0x8876789976decbfcbbbe364623c63652db8c0904" as const,
   V4_QUOTER: "0x8dc178efb8111bb0973dd9d722ebeff267c98f94" as const,
