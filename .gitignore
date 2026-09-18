@@ -27,6 +27,8 @@ build/
 .next/
 .wrangler/
 .dev.vars
+target/
+**/target/
 
 # OS / editor
 .DS_Store
