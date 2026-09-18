@@ -43,3 +43,6 @@ build/
 coverage/
 .env.arc.mainnet
 workers/flyai-site/public/
+site/flybook/public/
+site/flybook/dist/
+site/flybook/node_modules/
