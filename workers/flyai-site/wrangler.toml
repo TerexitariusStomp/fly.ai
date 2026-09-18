@@ -1,0 +1,13 @@
+name = "flyai-site"
+compatibility_date = "2026-09-18"
+account_id = "6c0140469651854b2e358517371a03d3"
+
+# Custom domain on the widespread.fyi zone — Cloudflare auto-provisions
+# the DNS record + cert on deploy (zone is on this account).
+routes = [
+  { pattern = "flyai.widespread.fyi", custom_domain = true }
+]
+
+# Static site: vendored fly.ai pages + flybook SPA (built into ./public by build.sh)
+[assets]
+directory = "./public"

@@ -42,3 +42,4 @@ build/
 *.log
 coverage/
 .env.arc.mainnet
+workers/flyai-site/public/
