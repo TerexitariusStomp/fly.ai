@@ -66,6 +66,11 @@ EXPLORE_P = 0.07  # 7% of decisions are random to gather diverse training data
 # every tick; only persistence is coarser.
 SIGNAL_FLUSH_EVERY = 5
 
+# Brain weight blobs live in D1 (R2 not enabled) and DO isolates evict
+# between alarms — DO-storage caching makes cold-start weight loads
+# hit D1 at most once per this window instead of every tick.
+WEIGHT_CACHE_TTL = 6 * 3600
+
 # Feature vector: 6 normalized market features for the encoder
 FEATURE_KEYS = ["liquidity_norm", "volume_norm", "momentum", "buy_ratio", "score_norm", "age_norm"]
 
@@ -214,6 +219,31 @@ class ConnectomeDO(DurableObject):
         b64 = "".join(r["data_b64"] for r in chunks.results)
         return base64.b64decode(b64)
 
+    async def _read_weight_cached(self, path: str) -> bytes:
+        """Weight blobs are multi-MB chunked D1 rows and DO isolates evict
+        between 1-min alarms — re-reading them every cold start was one of
+        the top row-read burners. Cache in DO storage (survives eviction);
+        revalidate every WEIGHT_CACHE_TTL. Self-refreshes when this DO
+        writes new weights via _write_weight."""
+        meta = await self.ctx.storage.get(f"wmeta:{path}")
+        if meta and (time.time() - float(meta.get("ts") or 0)) < WEIGHT_CACHE_TTL:
+            parts = []
+            for i in range(int(meta["n"])):
+                p = await self.ctx.storage.get(f"w:{path}:{i}")
+                if p is None:
+                    parts = None
+                    break
+                parts.append(p if isinstance(p, bytes) else bytes(p))
+            if parts is not None:
+                return b"".join(parts)
+        blob = await self._read_weight(path)
+        STEP = 96 * 1024  # DO storage value cap is 128KiB
+        n = max(1, (len(blob) + STEP - 1) // STEP)
+        for i in range(n):
+            await self.ctx.storage.put(f"w:{path}:{i}", blob[i * STEP:(i + 1) * STEP])
+        await self.ctx.storage.put(f"wmeta:{path}", {"n": n, "ts": time.time()})
+        return blob
+
     async def _write_weight(self, path: str, data: bytes):
         """Write a weight blob to D1 — chunked into `weight_chunks` if the
         base64 encoding exceeds the single-statement size limit (~90KB).
@@ -224,8 +254,9 @@ class ConnectomeDO(DurableObject):
         if not await self._safe_run("DELETE FROM weight_chunks WHERE path = ?", (path,)):
             return
         CHUNK = 60000
+        ok = True
         if len(b64) <= CHUNK:
-            await self._safe_run(
+            ok = await self._safe_run(
                 "INSERT INTO weights (path, data_b64, size, uploaded_at) VALUES (?, ?, ?, ?)",
                 (path, b64, len(data), int(time.time())))
         else:
@@ -234,6 +265,14 @@ class ConnectomeDO(DurableObject):
                         "INSERT INTO weight_chunks (path, seq, data_b64) VALUES (?, ?, ?)",
                         (path, seq, b64[i:i + CHUNK])):
                     return
+        if not ok:
+            return
+        # keep the DO-storage cache fresh for our own writes
+        STEP = 96 * 1024
+        n = max(1, (len(data) + STEP - 1) // STEP)
+        for i in range(n):
+            await self.ctx.storage.put(f"w:{path}:{i}", data[i * STEP:(i + 1) * STEP])
+        await self.ctx.storage.put(f"wmeta:{path}", {"n": n, "ts": time.time()})
 
     async def _read_r2_stream(self, obj) -> bytes:
         """Read an R2 object body as bytes using the stream API."""
@@ -277,8 +316,8 @@ class ConnectomeDO(DurableObject):
         # Fetch weights from D1: `weights` for small files, `weight_chunks` for large
         try:
             self._log(f"fetching weights: {weights_key}, {meta_key}")
-            weights_bytes = await self._read_weight(weights_key)
-            meta_bytes = await self._read_weight(meta_key)
+            weights_bytes = await self._read_weight_cached(weights_key)
+            meta_bytes = await self._read_weight_cached(meta_key)
             self._log(f"got bytes: weights={len(weights_bytes)}, meta={len(meta_bytes)}")
 
             weights_file = tempfile.NamedTemporaryFile(suffix=".npz", delete=False)
@@ -324,7 +363,7 @@ class ConnectomeDO(DurableObject):
         # Load trained readout from D1 (connectome-prefixed)
         readout_key = f"{self.connectome_id}/readout.npz"
         try:
-            r_bytes = await self._read_weight(readout_key)
+            r_bytes = await self._read_weight_cached(readout_key)
             r_file = tempfile.NamedTemporaryFile(suffix=".npz", delete=False)
             r_file.write(r_bytes)
             r_file.close()
@@ -336,7 +375,7 @@ class ConnectomeDO(DurableObject):
         # Load trained encoder from D1 (connectome-prefixed)
         encoder_key = f"{self.connectome_id}/encoder.npz"
         try:
-            e_bytes = await self._read_weight(encoder_key)
+            e_bytes = await self._read_weight_cached(encoder_key)
             e_file = tempfile.NamedTemporaryFile(suffix=".npz", delete=False)
             e_file.write(e_bytes)
             e_file.close()
