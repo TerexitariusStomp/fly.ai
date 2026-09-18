@@ -20,11 +20,11 @@ export function ErrorScreen({ error, onReset }: ErrorScreenProps) {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-surface-bg-l1">
       <div className="max-w-lg w-full text-center space-y-8">
-        {/* SYM Logo and Branding */}
+        {/* FLYAI Logo and Branding */}
         <div className="flex flex-col items-center gap-4">
           <div className="flex items-center gap-x-[10px]">
-            <Icon name="SYMTokenIcon" className="text-primary-t" size={40} />
-            <div className="text-3xl font-bold text-primary-t">SYM</div>
+            <Icon name="FLYAITokenIcon" className="text-primary-t" size={40} />
+            <div className="text-3xl font-bold text-primary-t">FLYAI</div>
           </div>
         </div>
 
@@ -65,7 +65,7 @@ export function ErrorScreen({ error, onReset }: ErrorScreenProps) {
 
         {/* Footer */}
         <p className="text-xs text-tertiary-t mt-8">
-          If this problem continues, please contact the SYM team
+          If this problem continues, please contact the FLYAI team
         </p>
       </div>
     </div>

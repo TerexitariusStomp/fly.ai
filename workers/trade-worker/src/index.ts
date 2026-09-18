@@ -8,7 +8,7 @@
  * Modes:
  * - Paper (default): virtual balance, no real money at risk
  * - Real (REAL_TRADING=true): real swaps via loxley's Uniswap V4 encoding + viem
- *   Profits accumulate in the treasury as reserve assets (single-token SYM system)
+ *   Profits accumulate in the treasury as reserve assets (single-token FLYAI system)
  *   RFV/floor price auto-pushed on-chain each epoch
  *
  * Self-improving: uses learned trade params (profit target, stop loss, position size)
@@ -29,6 +29,7 @@ import { createWalletClient, createPublicClient, http, parseEther, formatEther, 
 import { privateKeyToAccount } from "viem/accounts";
 import { ABI, ADDRESSES, V2_ROUTER_ABI, encodeV4Swap, poolKeyFor, poolIdOf, minOutFromRate, BPS } from "./loxley-swap";
 import { evaluateGateSync, CONSTITUTIONAL_GATE_ENABLED, type GateResult } from "./constitutional-gate";
+import { safeDb } from "./safe-db";
 
 interface Env {
   DB: D1Database;
@@ -39,10 +40,10 @@ interface Env {
   COOLDOWN_SECONDS: string;
   // Real trading secrets
   EXECUTOR_PRIVATE_KEY?: string;
-  ARC_RPC_URL?: string;
+  RPC_URL?: string;
   REAL_TRADING?: string;
   EMERGENCY_STOP?: string;
-  SYM_TOKEN?: string;
+  FLYAI_TOKEN?: string;
   TREASURY_VALUATION?: string;
   // Tolly LP fee → staking rewards loop
   FEE_ROUTER?: string;
@@ -50,7 +51,8 @@ interface Env {
 }
 
 const DEXSCREENER_API = "https://api.dexscreener.com/latest/dex";
-const FLY_BRAIN_RETRAIN_URL = "https://fly-brain-do.hardwoodstablecoin.workers.dev/retrain";
+const FLY_BRAIN_RETRAIN_URL = "https://fly-brain-do.symbient.workers.dev/retrain";
+const FLY_BRAIN_BASE = "https://fly-brain-do.symbient.workers.dev";
 
 // Default paper trading config (overridden by learned settings when available)
 const STARTING_BALANCE = 1.0;
@@ -60,10 +62,10 @@ const DEFAULT_STOP_LOSS_PCT = 15;
 const DEFAULT_MAX_POSITION_PCT = 50;
 const DEFAULT_MIN_SCORE_TO_BUY = 30;
 
-// DEX trading costs (Arc / Uniswap V2-style AMM)
+// DEX trading costs (Robinhood Uniswap V4-style AMM)
 const DEX_FEE_PCT = 0.3;          // 0.3% swap fee (Uniswap V2 standard)
 const SLIPPAGE_BASE_PCT = 0.5;    // 0.5% base slippage tolerance
-const GAS_COST_USD = 0.02;        // ~$0.02 gas per swap on Arc (L2)
+const GAS_COST_USD = 0.02;        // ~$0.02 gas per swap on Robinhood
 const MAX_SLIPPAGE_PCT = 3.0;     // Cap slippage at 3% even for large trades
 
 const COLORS: Record<string, number> = {
@@ -74,7 +76,16 @@ const COLORS: Record<string, number> = {
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
+    env = { ...env, DB: safeDb(env.DB) };
     const url = new URL(request.url);
+    // Mutations need the colony key; reads stay open
+    if (url.pathname === "/process" || url.pathname === "/force-sell-all") {
+      const key = request.headers.get("X-Colony-Key") || url.searchParams.get("key") || "";
+      const expected = (env as unknown as { COLONY_ADMIN_KEY?: string }).COLONY_ADMIN_KEY;
+      if (!expected || key !== expected) {
+        return Response.json({ error: "forbidden" }, { status: 403 });
+      }
+    }
     if (url.pathname === "/process") {
       ctx.waitUntil(processSignals(env));
       return Response.json({ status: "processing" });
@@ -110,6 +121,7 @@ export default {
   },
 
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
+    env = { ...env, DB: safeDb(env.DB) };
     ctx.waitUntil(processSignals(env));
   },
 };
@@ -148,7 +160,7 @@ async function processSignals(env: Env) {
 }
 
 function isRealTrading(env: Env): boolean {
-  return env.REAL_TRADING === "true" && !env.EMERGENCY_STOP && !!env.EXECUTOR_PRIVATE_KEY && !!env.ARC_RPC_URL;
+  return env.REAL_TRADING === "true" && !env.EMERGENCY_STOP && !!env.EXECUTOR_PRIVATE_KEY && !!env.RPC_URL;
 }
 
 // === Per-connectome wallet management ===
@@ -209,13 +221,17 @@ async function processBuySignals(env: Env, isReal: boolean = false) {
   const params = await getTradeParams(env);
 
   // Get all signals tagged with connectome_id
+  // Window the scan to recent signals only (stale signals aren't tradeable
+  // anyway) — with idx_signals_decision_created this reads ~20 rows instead
+  // of scanning the whole signals table + materializing all of paper_trades.
+  const cutoff = Math.floor(Date.now() / 1000) - 6 * 3600;
   const signals = await env.DB.prepare(
     "SELECT s.*, t.symbol, t.launchpad, t.score FROM signals s "
-    + "LEFT JOIN tokens t ON LOWER(s.token_address) = LOWER(t.address) "
-    + "WHERE s.decision = 'BUY' AND s.score >= ? "
-    + "AND s.id NOT IN (SELECT signal_id FROM paper_trades WHERE signal_id IS NOT NULL) "
+    + "LEFT JOIN tokens t ON s.token_address = t.address COLLATE NOCASE "
+    + "WHERE s.decision = 'BUY' AND s.score >= ? AND s.created_at > ? "
+    + "AND NOT EXISTS (SELECT 1 FROM paper_trades pt WHERE pt.signal_id = s.id) "
     + "ORDER BY s.created_at DESC LIMIT 20"
-  ).bind(params.minScore).all();
+  ).bind(params.minScore, cutoff).all();
 
   for (const signal of signals.results || []) {
     const connectomeId = signal.connectome_id || "drosophila"; // fallback for old signals
@@ -233,10 +249,14 @@ async function processBuySignals(env: Env, isReal: boolean = false) {
       await logGateResult(env, gate, "trade", connectomeId);
       if (gate.verdict === "block") continue;
     }
-    if (isReal) {
-      await handleRealBuy(env, signal, balance, params, connectomeId);
-    } else {
-      await handlePaperBuy(env, signal, balance, params, connectomeId);
+    try {
+      if (isReal) {
+        await handleRealBuy(env, signal, balance, params, connectomeId);
+      } else {
+        await handlePaperBuy(env, signal, balance, params, connectomeId);
+      }
+    } catch (e) {
+      console.error(`buy failed for ${signal.token_address} [${connectomeId}]:`, e);
     }
   }
 }
@@ -304,9 +324,10 @@ async function handlePaperBuy(env: Env, signal: any, balance: number, params: an
 async function processSellSignals(env: Env, isReal: boolean = false) {
   const signals = await env.DB.prepare(
     "SELECT s.*, t.symbol FROM signals s "
-    + "LEFT JOIN tokens t ON LOWER(s.token_address) = LOWER(t.address) "
-    + "WHERE s.decision = 'SELL' ORDER BY s.created_at DESC LIMIT 10"
-  ).all();
+    + "LEFT JOIN tokens t ON s.token_address = t.address COLLATE NOCASE "
+    + "WHERE s.decision = 'SELL' AND s.created_at > ? "
+    + "ORDER BY s.created_at DESC LIMIT 10"
+  ).bind(Math.floor(Date.now() / 1000) - 6 * 3600).all();
 
   for (const signal of signals.results || []) {
     const connectomeId = signal.connectome_id || "drosophila";
@@ -352,6 +373,17 @@ async function autoSellPositions(env: Env, isReal: boolean = false) {
       // Insert new BUY signal to re-enter the position (continuous trading cycle)
       await insertReentrySignal(env, position);
     }
+
+    // minds.py: report the outcome to the connectome's DO so its dopamine
+    // update can run (the trade's reward feeds back into learned biases).
+    const cid = position.connectome_id || "drosophila";
+    try {
+      await fetch(`${FLY_BRAIN_BASE}/${cid}/learn`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prices: { [position.token_address]: marketPrice },
+                               coin_flux: { [position.token_address]: pnlPct / 100 } }),
+      });
+    } catch { /* learning is best-effort */ }
   }
 }
 
@@ -401,8 +433,8 @@ async function sellPosition(env: Env, position: any, reason: string, action: str
 
   await env.DB.prepare(
     "UPDATE positions SET status = 'closed', exit_price = ?, exit_tx = ?, exit_at = ?, pnl_percent = ? "
-    + "WHERE id = ?"
-  ).bind(exitPrice, txHash, now, pnlPct, position.id).run();
+    + "WHERE token_address = ? AND (connectome_id = ? OR (connectome_id IS NULL AND ? IS NULL))"
+  ).bind(exitPrice, txHash, now, pnlPct, position.token_address, position.connectome_id, position.connectome_id).run();
 
   // Update per-connectome wallet
   await updateConnectomeWallet(env, connectomeId, newBalance, pnlUsd, pnlUsd > 0);
@@ -455,7 +487,10 @@ async function maybeTriggerRetrain(env: Env) {
 
   if (completed && completed.n > 0 && completed.n % threshold === 0) {
     try {
-      await fetch(FLY_BRAIN_RETRAIN_URL, { method: "POST" });
+      await fetch(FLY_BRAIN_RETRAIN_URL, {
+        method: "POST",
+        headers: { "X-Colony-Key": (env as unknown as { COLONY_ADMIN_KEY?: string }).COLONY_ADMIN_KEY || "" },
+      });
       await postDiscord(env, {
         action: "RETRAIN", symbol: "Brain",
         reason: `${completed.n} trades completed — triggering model retrain`,
@@ -481,14 +516,14 @@ async function forceSellAll(env: Env) {
 
 function getClients(env: Env) {
   const chain = {
-    id: 5042002,
-    name: "Arc",
+    id: 4663,
+    name: "Robinhood",
     nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-    rpcUrls: { default: { http: [env.ARC_RPC_URL!] } },
+    rpcUrls: { default: { http: [env.RPC_URL!] } },
   };
   const account = privateKeyToAccount(env.EXECUTOR_PRIVATE_KEY as `0x${string}`);
-  const pub = createPublicClient({ chain, transport: http(env.ARC_RPC_URL) });
-  const wc = createWalletClient({ account, chain, transport: http(env.ARC_RPC_URL) });
+  const pub = createPublicClient({ chain, transport: http(env.RPC_URL) });
+  const wc = createWalletClient({ account, chain, transport: http(env.RPC_URL) });
   return { pub, wc, account, address: account.address };
 }
 
@@ -655,8 +690,9 @@ async function handleRealSell(env: Env, position: any, reason: string, action: s
   ).bind(position.token_address, position.symbol, entryPrice, exitValueUsd / positionSize, positionSize, pnlUsd, pnlPct, newBalance, connectomeId, now, txHash).run();
 
   await env.DB.prepare(
-    "UPDATE positions SET status = 'closed', exit_price = ?, exit_tx = ?, exit_at = ?, pnl_percent = ? WHERE id = ?"
-  ).bind(exitValueUsd / positionSize, txHash, now, pnlPct, position.id).run();
+    "UPDATE positions SET status = 'closed', exit_price = ?, exit_tx = ?, exit_at = ?, pnl_percent = ? "
+    + "WHERE token_address = ? AND (connectome_id = ? OR (connectome_id IS NULL AND ? IS NULL))"
+  ).bind(exitValueUsd / positionSize, txHash, now, pnlPct, position.token_address, position.connectome_id, position.connectome_id).run();
 
   await updateConnectomeWallet(env, connectomeId, newBalance, pnlUsd, pnlUsd > 0);
   await recordTrainingData(env, position, entryPrice, exitValueUsd / positionSize, pnlPct, now);
@@ -673,11 +709,11 @@ async function handleRealSell(env: Env, position: any, reason: string, action: s
 
 // Push RFV/floor price to on-chain TreasuryValuation contract
 async function pushRfvOnChain(env: Env) {
-  if (!env.TREASURY_VALUATION || !env.SYM_TOKEN) return;
+  if (!env.TREASURY_VALUATION || !env.FLYAI_TOKEN) return;
   const { pub, wc } = getClients(env);
   try {
-    const symbientSupply = await pub.readContract({
-      address: getAddress(env.SYM_TOKEN) as Address,
+    const flyaiSupply = await pub.readContract({
+      address: getAddress(env.FLYAI_TOKEN) as Address,
       abi: ABI.erc20,
       functionName: "totalSupply",
     }) as bigint;
@@ -690,7 +726,7 @@ async function pushRfvOnChain(env: Env) {
       address: getAddress(env.TREASURY_VALUATION) as Address,
       abi: treasuryAbi,
       functionName: "refreshValuationsFromKeeper",
-      args: [symbientSupply],
+      args: [flyaiSupply],
     });
     await pub.waitForTransactionReceipt({ hash: tx });
   } catch (e) {
@@ -702,7 +738,7 @@ async function pushRfvOnChain(env: Env) {
 // Claims creator USDC fees from the Tolly fee locker (if claim calldata is
 // configured), then consolidates them into TRSRY — the single treasury.
 // Connectome trading floats are drawn from TRSRY by governor-approved
-// withdrawals; funding staker rewards (fundRewards: USDC → SYM →
+// withdrawals; funding staker rewards (fundRewards: USDC → FLYAI →
 // rewardPool) is a gated governance decision via ConnectomeGovernor
 // proposals, not this cron.
 async function harvestFeeRouter(env: Env) {
@@ -778,7 +814,7 @@ async function getTokenPrice(tokenAddress: string): Promise<any> {
 
   // Try GeckoTerminal first (more frequent updates)
   try {
-    const resp = await fetch(`https://api.geckoterminal.com/api/v2/networks/arc/tokens/${tokenAddress}`);
+    const resp = await fetch(`https://api.geckoterminal.com/api/v2/networks/robinhood/tokens/${tokenAddress}`);
     if (resp.ok) {
       const data = await resp.json() as any;
       basePrice = parseFloat(data?.data?.attributes?.price_usd || "0");
@@ -857,7 +893,7 @@ async function postDiscord(env: Env, decision: {
   }
 
   const body = {
-    username: "SYM Paper Trader",
+    username: "FLYAI Paper Trader",
     embeds: [{
       title: `${decision.action} ${decision.symbol}`,
       color: COLORS[decision.action] || 0x808080,

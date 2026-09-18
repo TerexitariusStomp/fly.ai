@@ -4,6 +4,7 @@ import { Icon } from "@/components/icon.tsx";
 import { cn } from "@/lib/utils";
 import { NumberFlow } from "@/components/ui-number-flow.tsx";
 import { ConnectButton } from "@/components/connect-button";
+import { DeployedContractsMenu } from "@/components/deployed-contracts-menu";
 import {
   RiMoonLine,
   RiSunLine,
@@ -11,7 +12,6 @@ import {
   RiTwitterXFill,
   RiGitBranchLine,
   RiBookOpenLine,
-  RiFileListLine,
 } from "@remixicon/react";
 import { Tooltip } from "@/components/ui-tooltip.tsx";
 import { type Theme, useTheme } from "@/components/theme-provider.tsx";
@@ -27,10 +27,9 @@ const THEME_OPTIONS: { value: Theme; label: string; icon: React.ReactNode }[] = 
 ];
 
 const SOCIAL_LINKS = [
-  { href: "https://twitter.com/SYMFinance", icon: RiTwitterXFill, label: "X" },
+  { href: "https://x.com/flydotai", icon: RiTwitterXFill, label: "X" },
   { href: "https://radicle.network/nodes/rosa.radicle.network/rad%3Az2kY22UBjvyrbxfKZftjF4H66C7Wx", icon: RiGitBranchLine, label: "Radicle" },
-  { href: "/#/whitepaper", icon: RiBookOpenLine, label: "Whitepaper" },
-  { href: "/#/contracts", icon: RiFileListLine, label: "Contracts" },
+  { href: "https://flyaiworld.com", icon: RiBookOpenLine, label: "fly.ai" },
 ];
 
 function ThemeSwitcher({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) => void }) {
@@ -67,8 +66,8 @@ function pad(n: number) {
 export function Footer() {
   const { theme, setTheme } = useTheme();
   const { hours, minutes, seconds, progress } = useEpochTimer();
-  const WSTSYMToken = useToken(TokenName.WSTSYM);
-  const SYMToken = useToken(TokenName.SYM);
+  const WSTFLYAIToken = useToken(TokenName.WSTFLYAI);
+  const FlyaiToken = useToken(TokenName.FLYAI);
 
   const beatLabel = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 
@@ -108,6 +107,7 @@ export function Footer() {
                 </a>
               </Tooltip>
             ))}
+            <DeployedContractsMenu />
           </div>
         </div>
         <Separator />
@@ -152,17 +152,18 @@ export function Footer() {
                 </a>
               </Tooltip>
             ))}
+            <DeployedContractsMenu />
           </div>
         </div>
         <div className="flex items-center">
           <div className="flex items-center gap-x-1">
-            <Icon name={SYMToken.icon} className="size-4" />
-            <NumberFlow value={SYMToken.price} className="text-sm" />
+            <Icon name={FlyaiToken.icon} className="size-4" />
+            <NumberFlow value={FlyaiToken.price} className="text-sm" />
           </div>
           <Separator orientation="vertical" className="h-5 mx-4 w-px" />
           <div className="flex items-center gap-x-1">
-            <Icon name={WSTSYMToken.icon} className="size-4" />
-            <NumberFlow value={WSTSYMToken.price} className="text-sm" />
+            <Icon name={WSTFLYAIToken.icon} className="size-4" />
+            <NumberFlow value={WSTFLYAIToken.price} className="text-sm" />
           </div>
           <Separator orientation="vertical" className="h-5 mx-4 w-px" />
           <ConnectButton />

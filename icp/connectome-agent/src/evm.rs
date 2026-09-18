@@ -301,7 +301,7 @@ pub fn erc20_transfer_calldata(to: Address, amount: U256) -> Vec<u8> {
     IERC20::transferCall { to, amount }.abi_encode()
 }
 
-/// ERC20Burnable.burn — for internal SymbientToken; Tolly fixed-supply tokens
+/// ERC20Burnable.burn — for internal FLYAI token; Tolly fixed-supply tokens
 /// lack it, so callers must dead-sink via transfer instead (checked upstream).
 pub fn erc20_burn_calldata(amount: U256) -> Vec<u8> {
     // burn(uint256) selector = 0x42966c68

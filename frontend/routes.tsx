@@ -21,17 +21,17 @@ function retryLazy<T>(
   });
 }
 
-const SymOverviewPage = lazy(() =>
-  retryLazy(() => import("@/modules/sym-overview-page")).then((m) => ({ default: m.SymOverviewPage })),
+const FlyaiOverviewPage = lazy(() =>
+  retryLazy(() => import("@/modules/flyai-overview-page")).then((m) => ({ default: m.FlyaiOverviewPage })),
 );
-const SymTradersPage = lazy(() =>
-  retryLazy(() => import("@/modules/sym-traders-page")).then((m) => ({ default: m.SymTradersPage })),
+const FlyaiTradersPage = lazy(() =>
+  retryLazy(() => import("@/modules/flyai-traders-page")).then((m) => ({ default: m.FlyaiTradersPage })),
 );
-const SymTreasuryPage = lazy(() =>
-  retryLazy(() => import("@/modules/sym-treasury-page")).then((m) => ({ default: m.SymTreasuryPage })),
+const FlyaiTreasuryPage = lazy(() =>
+  retryLazy(() => import("@/modules/flyai-treasury-page")).then((m) => ({ default: m.FlyaiTreasuryPage })),
 );
 const WrapPage = lazy(() =>
-  retryLazy(() => import("@/modules/symbient-wrap-page")).then((m) => ({
+  retryLazy(() => import("@/modules/flyai-wrap-page")).then((m) => ({
     default: m.WrapPage,
   })),
 );
@@ -46,9 +46,9 @@ export const router = createHashRouter([
     Component: AppLayout,
     errorElement: <RouteErrorElement />,
     children: [
-      { index: true, element: withSuspense(<SymOverviewPage />) },
-      { path: "traders", element: withSuspense(<SymTradersPage />) },
-      { path: "treasury", element: withSuspense(<SymTreasuryPage />) },
+      { index: true, element: withSuspense(<FlyaiOverviewPage />) },
+      { path: "traders", element: withSuspense(<FlyaiTradersPage />) },
+      { path: "treasury", element: withSuspense(<FlyaiTreasuryPage />) },
       { path: "stake-wrap", element: withSuspense(<WrapPage />) },
       { path: "*", element: <Navigate to="/" replace /> },
     ],

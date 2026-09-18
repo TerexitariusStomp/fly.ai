@@ -1,7 +1,7 @@
 import type { Address } from "viem";
 import type { IconName } from "@/components/icon.tsx";
 import type { ChainId } from "./contracts";
-import { base, baseSepolia } from "@/lib/chains";
+import { robinhood, robinhoodTestnet } from "@/lib/chains";
 
 export type TokenInfo = {
   addresses: Partial<Record<ChainId, Address>>;
@@ -10,40 +10,40 @@ export type TokenInfo = {
   icon: IconName;
 };
 
-// Single-token system: SYM + its staking derivatives only.
+// Single-token system: FLYAI (fly.ai on Robinhood) + its staking derivatives only.
 export enum TokenName {
-  SYM = "SYM",
-  STSYM = "STSYM",
-  WSTSYM = "WSTSYM",
+  FLYAI = "FLYAI",
+  STFLYAI = "STFLYAI",
+  WSTFLYAI = "WSTFLYAI",
 }
 
 export const TOKENS: Record<TokenName, TokenInfo> = {
-  SYM: {
+  FLYAI: {
     addresses: {
-      [base.id]: "0x0000000000000000000000000000000000000000",
-      [baseSepolia.id]: "0x823d5d44F9E647402c949376E54f709Ab3a9015b",
+      [robinhood.id]: "0x0088CE7905025c4B5ea1d49aB6179B6aaADB3B9C",
+      [robinhoodTestnet.id]: "0x0000000000000000000000000000000000000000",
     },
-    symbol: "SYM",
+    symbol: "FLYAI",
     decimals: 18,
-    icon: "SHITTokenIcon",
+    icon: "FLYAITokenIcon",
   },
-  STSYM: {
+  STFLYAI: {
     addresses: {
-      [base.id]: "0x0000000000000000000000000000000000000000",
-      [baseSepolia.id]: "0xdb3D61dEE55eF664412BcEBEd144981B2Fc11a34",
+      [robinhood.id]: "0x60c11f1182b0313d17b96ff8f20a12611ab769c5",
+      [robinhoodTestnet.id]: "0x0000000000000000000000000000000000000000",
     },
-    symbol: "stSYM",
+    symbol: "stFLYAI",
     decimals: 18,
-    icon: "STSHITTokenIcon",
+    icon: "STFLYAITokenIcon",
   },
-  WSTSYM: {
+  WSTFLYAI: {
     addresses: {
-      [base.id]: "0x0000000000000000000000000000000000000000",
-      [baseSepolia.id]: "0x933E4B8e744733FAaFD67aC99eD8987C9Aa5E533",
+      [robinhood.id]: "0xc5fdf1d701cd8395564451cd89d940b5fd0c3600",
+      [robinhoodTestnet.id]: "0x0000000000000000000000000000000000000000",
     },
-    symbol: "wstSYM",
+    symbol: "wstFLYAI",
     decimals: 18,
-    icon: "WSTSHITTokenIcon",
+    icon: "WSTFLYAITokenIcon",
   },
 };
 

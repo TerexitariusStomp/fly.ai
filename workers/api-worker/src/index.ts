@@ -4,11 +4,13 @@
  * Reads from D1, returns JSON. Also handles POST for betting actions.
  */
 
+import { safeDb } from "./safe-db";
+
 interface Env {
   DB: D1Database;
   BRAIN_BUCKET?: R2Bucket;
   TREASURY_VALUATION?: string;
-  ARC_RPC_URL?: string;
+  RPC_URL?: string;
 }
 
 // Fetch token price from GeckoTerminal (updates more frequently than DexScreener)
@@ -20,7 +22,7 @@ async function fetchTokenPrice(tokenAddress: string): Promise<number> {
   // Try GeckoTerminal first (more frequent updates)
   let basePrice = 0;
   try {
-    const resp = await fetch(`https://api.geckoterminal.com/api/v2/networks/arc/tokens/${tokenAddress}`);
+    const resp = await fetch(`https://api.geckoterminal.com/api/v2/networks/robinhood/tokens/${tokenAddress}`);
     if (resp.ok) {
       const data = await resp.json() as any;
       basePrice = parseFloat(data?.data?.attributes?.price_usd || "0");
@@ -63,6 +65,7 @@ async function fetchTokenPrices(tokenAddresses: string[]): Promise<Record<string
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
+    env = { ...env, DB: safeDb(env.DB) };
     const url = new URL(request.url);
 
     // CORS headers for frontend
@@ -80,21 +83,22 @@ export default {
     // Each endpoint gets a TTL proportional to how fast the data changes.
     if (request.method === "GET") {
       const CACHE_TTL: Record<string, number> = {
-        "/api/token-stats": 30,
-        "/api/treasury": 30,
-        "/api/treasury/onchain": 60,
-        "/api/positions": 15,
-        "/api/signals": 15,
-        "/api/trades": 15,
-        "/api/tokens": 30,
-        "/api/model-status": 60,
-        "/api/training-data": 60,
-        "/api/performance": 60,
-        "/api/connectomes": 15,
-        "/api/wallets": 30,
-        "/api/governance": 30,
-        "/api/betting/leaderboard": 30,
-        "/api/betting/rounds": 30,
+        "/api/token-stats": 120,
+        "/api/treasury": 120,
+        "/api/treasury/onchain": 300,
+        "/api/positions": 60,
+        "/api/signals": 60,
+        "/api/trades": 60,
+        "/api/status/colony": 60,
+        "/api/tokens": 120,
+        "/api/model-status": 300,
+        "/api/training-data": 300,
+        "/api/performance": 300,
+        "/api/connectomes": 60,
+        "/api/wallets": 120,
+        "/api/governance": 120,
+        "/api/betting/leaderboard": 120,
+        "/api/betting/rounds": 120,
       };
       const ttl = CACHE_TTL[url.pathname];
       if (ttl) {
@@ -111,6 +115,7 @@ export default {
       if (url.pathname === "/api/trades") return json(await getTrades(env), corsHeaders);
       if (url.pathname === "/api/tokens") return json(await getTokens(env, url.searchParams), corsHeaders);
       if (url.pathname === "/api/health") return json({ status: "ok", time: Date.now() }, corsHeaders);
+      if (url.pathname === "/api/status/colony") return json(await getColonyStatus(env), corsHeaders);
       if (url.pathname === "/api/model-status") return json(await getModelStatus(env), corsHeaders);
       if (url.pathname === "/api/training-data") return json(await getTrainingData(env), corsHeaders);
       if (url.pathname === "/api/performance") return json(await getPerformance(env), corsHeaders);
@@ -139,17 +144,56 @@ export default {
       return null;
       };
 
-      const resp = await handle();
+      const resp = await handle().catch(async (e: unknown) => {
+        // D1 quota exhaustion / transient failure — serve the last good copy
+        // instead of a 500 so frontends degrade to stale data, not blanks.
+        if (ttl) {
+          const staleReq = new Request(`${url.origin}${url.pathname}?__stale=1`, request);
+          const stale = await caches.default.match(staleReq);
+          if (stale) {
+            const h = new Headers(stale.headers);
+            h.set("X-Stale-Data", "1");
+            h.set("Access-Control-Allow-Origin", "*");
+            return new Response(stale.body, { status: 200, headers: h });
+          }
+        }
+        throw e;
+      });
       if (resp && ttl) {
         const toCache = resp.clone();
         toCache.headers.set("Cache-Control", `public, max-age=${ttl}`);
         ctx.waitUntil(caches.default.put(request, toCache));
+        const staleReq = new Request(`${url.origin}${url.pathname}?__stale=1`, request);
+        const staleCopy = resp.clone();
+        staleCopy.headers.set("Cache-Control", "public, max-age=86400");
+        ctx.waitUntil(caches.default.put(staleReq, staleCopy));
       }
       if (resp) return resp;
     }
 
-    // POST routes — betting actions
+    // POST routes — betting actions + admin
     if (request.method === "POST") {
+      // Brain-weight upload: POST /api/admin/weights?path=malecns/weights.bin&seq=N&total=M
+      // Raw binary body, keyed by COLONY_ADMIN_KEY. Chunks land in weight_chunks.
+      if (url.pathname === "/api/admin/weights") {
+        const key = request.headers.get("X-Colony-Key");
+        if (!env.COLONY_ADMIN_KEY || key !== env.COLONY_ADMIN_KEY)
+          return json({ error: "unauthorized" }, { ...corsHeaders, status: 401 });
+        const path = url.searchParams.get("path");
+        const seq = parseInt(url.searchParams.get("seq") ?? "0");
+        const total = parseInt(url.searchParams.get("total") ?? "0");
+        if (!path) return json({ error: "path required" }, { ...corsHeaders, status: 400 });
+        const bytes = new Uint8Array(await request.arrayBuffer());
+        // chunked base64 — slices must be multiples of 3 bytes so groups align
+        let b64 = "";
+        const SLICE = 3 * 2730;   // 8190
+        for (let i = 0; i < bytes.byteLength; i += SLICE)
+          b64 += btoa(String.fromCharCode(...bytes.subarray(i, i + SLICE)));
+        await env.DB.prepare(
+          "INSERT OR REPLACE INTO weight_chunks (path, seq, data_b64) VALUES (?, ?, ?)"
+        ).bind(path, seq, b64).run();
+        return json({ ok: true, path, seq, bytes: bytes.byteLength }, corsHeaders);
+      }
       const body = await request.json() as Record<string, any>;
       if (url.pathname === "/api/betting/place-bet") return json(await placeBet(env, body), corsHeaders);
       if (url.pathname === "/api/betting/stake") return json(await placeVaultStake(env, body), corsHeaders);
@@ -199,7 +243,7 @@ async function getTreasury(env: Env) {
 // Read on-chain RFV and floor price from TreasuryValuation contract (single-token system)
 async function getOnchainTreasury(env: Env) {
   const treasuryAddr = env.TREASURY_VALUATION;
-  const rpcUrl = env.ARC_RPC_URL || "https://rpc.testnet.arc.io";
+  const rpcUrl = env.RPC_URL || "https://rpc.mainnet.chain.robinhood.com";
 
   if (!treasuryAddr) {
     return { error: "TREASURY_VALUATION not configured", mode: "paper" };
@@ -232,7 +276,7 @@ async function getOnchainTreasury(env: Env) {
 
 async function getTreasuryHistory(env: Env) {
   const result = await env.DB.prepare(
-    "SELECT * FROM treasury_snapshots ORDER BY updated_at DESC LIMIT 30"
+    "SELECT id, reserve_usd, total_rfv, shit_floor_price AS flyai_floor_price, updated_at FROM treasury_snapshots ORDER BY updated_at DESC LIMIT 30"
   ).all();
   return result.results;
 }
@@ -343,6 +387,70 @@ function computeSharpe(pnlReports: number[]): number {
   return std > 0 ? mean / std : 0;
 }
 
+const CONNECTOME_IDS = ["drosophila","rat","mouse","ciona","macaque_modha","human","celegans_male"];
+const COLONY_EXECUTOR = "0xDd18b27067BEa45D06C1E80a69dcfEb7cc6fB084";
+
+async function getColonyStatus(env: Env) {
+  const rpcUrl = env.RPC_URL || "https://rpc.mainnet.chain.robinhood.com";
+
+  // Prefer the maintained counter table (7 rows) — fall back to the full
+  // GROUP BY scan only if signal_counts isn't populated yet.
+  let lastSignals = await env.DB.prepare(
+    "SELECT connectome_id, last_signal, total FROM signal_counts"
+  ).all().catch(() => ({ results: [] }));
+  if (!lastSignals.results?.length) {
+    lastSignals = await env.DB.prepare(
+      "SELECT connectome_id, MAX(created_at) AS last_signal, COUNT(*) AS total " +
+      "FROM signals GROUP BY connectome_id"
+    ).all().catch(() => ({ results: [] }));
+  }
+  const byConnectome: Record<string, any> = {};
+  for (const cid of CONNECTOME_IDS) byConnectome[cid] = { last_signal: null, total_signals: 0, stale: true };
+  const now = Date.now();
+  for (const r of (lastSignals.results || []) as any[]) {
+    const cid = r.connectome_id as string;
+    const raw = r.last_signal;
+    const ts = typeof raw === "number" ? raw * 1000
+      : raw ? Date.parse(String(raw).replace(" ", "T") + "Z") : null;
+    byConnectome[cid] = {
+      last_signal: r.last_signal,
+      total_signals: r.total,
+      stale: !ts || now - ts > 10 * 60 * 1000,  // stale if no signal in 10 min
+    };
+  }
+
+  const lastPost = await env.DB.prepare(
+    "SELECT MAX(posted_at) AS last_post FROM social_posts"
+  ).first().catch(() => null);
+  const lastCycle = await env.DB.prepare(
+    "SELECT MAX(decided_at) AS last_cycle FROM governance_votes"
+  ).first().catch(() => null);
+
+  // Executor ETH balance on Robinhood (eth_getBalance)
+  let executor_balance_eth: number | null = null;
+  try {
+    const resp = await fetch(rpcUrl, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_getBalance", params: [COLONY_EXECUTOR, "latest"] }),
+    });
+    const j = await resp.json() as any;
+    executor_balance_eth = Number(BigInt(j.result || "0x0")) / 1e18;
+  } catch { /* leave null */ }
+
+  const staleCount = Object.values(byConnectome).filter((c: any) => c.stale).length;
+  return {
+    ok: staleCount === 0,
+    stale_connectomes: staleCount,
+    connectomes: byConnectome,
+    last_social_post: (lastPost as any)?.last_post ?? null,
+    last_governance_vote: (lastCycle as any)?.last_cycle ?? null,
+    executor: COLONY_EXECUTOR,
+    executor_balance_eth,
+    executor_low: executor_balance_eth !== null && executor_balance_eth < 0.0002,
+    checked_at: new Date().toISOString(),
+  };
+}
+
 async function getConnectomes(env: Env) {
   const result = await env.DB.prepare(
     "SELECT c.id, c.species, c.n_neurons, c.n_synapses, c.resolution, c.source, c.status, " +
@@ -439,11 +547,21 @@ async function getGovernance(env: Env) {
     "SELECT connectome_id, epoch, pnl_percent, n_trades, reported_at " +
     "FROM connectome_pnl_reports ORDER BY reported_at DESC LIMIT 20"
   ).all();
+  const proposals = await env.DB.prepare(
+    "SELECT id, target, description, status, votes_for, votes_against, tx_hash, created_at " +
+    "FROM proposals_queue ORDER BY id DESC LIMIT 12"
+  ).all().catch(() => ({ results: [] }));
+  const votes = await env.DB.prepare(
+    "SELECT proposal_id, connectome_id, action, confidence, decided_at " +
+    "FROM governance_votes ORDER BY decided_at DESC LIMIT 80"
+  ).all().catch(() => ({ results: [] }));
   return {
     individual: individual.results,
     global,
     meta,
     latest_reports: latestReports.results,
+    proposals: proposals.results,
+    votes: votes.results,
   };
 }
 

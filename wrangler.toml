@@ -1,15 +1,15 @@
-# SYM Protocol — Cloudflare Free Tier Config
+# FLYAI Protocol — Cloudflare Free Tier Config
 # $0/month: Workers (100K req/day), D1 (5GB), R2 (10GB), KV (100K reads), DO (100 classes)
 
-name = "symbient-token"
+name = "flyai-protocol"
 compatibility_date = "2026-09-12"
 compatibility_flags = ["python_workers"]
 
 # D1 database (free: 5GB, 5M reads/day, 100K writes/day)
 [[d1_databases]]
 binding = "DB"
-database_name = "rooted"
-database_id = "a494ae7e-4efd-49c6-8058-603179e3fd23"
+database_name = "sym-protocol"
+database_id = "c8180dd7-0f8b-40b0-bc23-0ccae5260ca3"
 
 # R2 bucket (free: 10GB) — stores connectome weights
 [[r2_buckets]]
@@ -22,13 +22,13 @@ binding = "CACHE"
 id = "4fdb467491a84170bfbb0e9c3060ec40"
 
 # Secrets (free):
-# npx wrangler secret put ARC_RPC_URL
+# npx wrangler secret put RPC_URL
 # npx wrangler secret put EXECUTOR_PRIVATE_KEY
 # npx wrangler secret put DISCORD_WEBHOOK_URL
 
 [vars]
-ARC_CHAIN_ID = "5042002"
-ARC_RPC = "https://rpc.testnet.arc.io"
+CHAIN_ID = "4663"
+RPC_URL = "https://rpc.mainnet.chain.robinhood.com"
 WETH = "0x0Bd7D308f3E1639FAb988df18A8011f41EAcAD73"
 MAX_ETH_PER_TRADE = "0.01"
 COOLDOWN_SECONDS = "60"

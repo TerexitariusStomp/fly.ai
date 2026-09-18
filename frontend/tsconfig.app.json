@@ -23,5 +23,5 @@
     }
   },
   "include": ["."],
-  "exclude": ["**/*.spec.ts", "**/*.spec.tsx", "**/*.test.ts", "**/*.test.tsx", "test-setup.ts", "vendor"]
+  "exclude": ["**/*.spec.ts", "**/*.spec.tsx", "**/*.test.ts", "**/*.test.tsx", "test-setup.ts", "vendor", "scripts"]
 }

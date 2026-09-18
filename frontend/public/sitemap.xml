@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://shit-token-frontend.pages.dev/</loc>
+    <loc>https://flyai.widespread.fyi/app/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://shit-token-frontend.pages.dev/#/traders</loc>
+    <loc>https://flyai.widespread.fyi/app/#/traders</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://shit-token-frontend.pages.dev/#/treasury</loc>
+    <loc>https://flyai.widespread.fyi/app/#/treasury</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://shit-token-frontend.pages.dev/#/stake-wrap</loc>
+    <loc>https://flyai.widespread.fyi/app/#/stake-wrap</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>

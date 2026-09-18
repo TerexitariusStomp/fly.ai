@@ -1,5 +1,5 @@
 /**
- * Discovery Worker — polls Arc launchpads for new tokens.
+ * Discovery Worker — polls Robinhood launchpads for new tokens.
  * Runs on CF Cron Trigger (free: 1-min interval).
  * Writes discovered tokens to D1.
  *
@@ -13,27 +13,38 @@
  * RPC fallback: tries multiple public RPCs in order until one succeeds.
  */
 
+import { safeDb } from "./safe-db";
+
 interface Env {
   DB: D1Database;
   CACHE: KVNamespace;
 }
 
-// Public Arc RPCs (fallback list)
+// Robinhood RPCs (fallback list)
 const RPCS = [
-  "https://rpc.mainnet.arc.io/",
-  "https://rpc.mainnet.arc.io",
-  "https://rpc.testnet.arc.io",
+  "https://rpc.mainnet.chain.robinhood.com",
+  "https://rpc.mainnet.chain.robinhood.com",
+  "https://rpc.testnet.chain.robinhood.com",
 ];
 
 const DEXSCREENER_API = "https://api.dexscreener.com/latest/dex";
-const ARC_CHAIN = "arc";
+const ARC_CHAIN = "robinhood";
 
 export default {
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
+    env = { ...env, DB: safeDb(env.DB) };
     ctx.waitUntil(discoverTokens(env));
   },
 
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
+    env = { ...env, DB: safeDb(env.DB) };
+    // Every fetch runs a scan — colony key required
+    const url = new URL(request.url);
+    const key = request.headers.get("X-Colony-Key") || url.searchParams.get("key") || "";
+    const expected = (env as unknown as { COLONY_ADMIN_KEY?: string }).COLONY_ADMIN_KEY;
+    if (!expected || key !== expected) {
+      return Response.json({ error: "forbidden" }, { status: 403 });
+    }
     await discoverTokens(env);
     return Response.json({ status: "discovery_complete" });
   },
@@ -89,7 +100,7 @@ async function ethCall(to: string, data: string): Promise<string | null> {
 }
 
 /** Poll DexScreener for trending tokens (paper trading — any chain with
- *  live price data; Arc has no DexScreener pairs yet). */
+ *  live price data; Robinhood pairs may lag DexScreener). */
 const SEARCH_QUERIES = ["solana", "base", "pepe", "ai", "inu"];
 
 async function pollDexScreener(env: Env) {

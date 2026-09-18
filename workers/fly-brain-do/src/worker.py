@@ -22,6 +22,7 @@ import time
 import tempfile
 import os
 import base64
+import re
 
 import numpy as np
 
@@ -31,6 +32,8 @@ from workers import DurableObject, Response, WorkerEntrypoint, fetch
 from fly_brain_pyodide import FlyBrain
 from fly_eyes import FeatureDetectors
 from flyreservoir import Readout, Trace, run, best_threshold, fit_ridge, project
+import minds  # vendored upstream — dopamine learning, memory, tubes
+import random as pyrandom  # minds.py uses random.Random, not numpy Generator
 
 # Decision neuron groups — configurable per connectome via metadata.
 # Fly connectomes use MaleCNS motor groups; others use cell_type lookup.
@@ -58,6 +61,16 @@ def get_simulation_params(n_neurons: int) -> tuple[int, int]:
 # Exploration rate during recording (from sshfighter/fly_fighter.py EXPLORE_P)
 EXPLORE_P = 0.07  # 7% of decisions are random to gather diverse training data
 
+# Signals are persisted every Nth tick — keeps D1 row writes ~5x under
+# the free-tier daily limit (6K/day vs 30K/day). Decisions still run
+# every tick; only persistence is coarser.
+SIGNAL_FLUSH_EVERY = 5
+
+# Brain weight blobs live in D1 (R2 not enabled) and DO isolates evict
+# between alarms — DO-storage caching makes cold-start weight loads
+# hit D1 at most once per this window instead of every tick.
+WEIGHT_CACHE_TTL = 6 * 3600
+
 # Feature vector: 6 normalized market features for the encoder
 FEATURE_KEYS = ["liquidity_norm", "volume_norm", "momentum", "buy_ratio", "score_norm", "age_norm"]
 
@@ -68,10 +81,33 @@ FLY_CONNECTOMES = {"drosophila"}
 REGION_CONNECTOMES = {"human", "macaque_modha", "mouse", "rat"}
 
 # The 7 governing connectome IDs (loaded from R2)
+# Live FLYAI token on Robinhood mainnet — governance proposals are evaluated
+# against this market (they all act on the fly.ai protocol's treasury).
+FLYAI_TOKEN = "0x0088CE7905025c4B5ea1d49aB6179B6aaADB3B9C"
+
 ALL_CONNECTOMES = [
     "drosophila", "rat", "mouse", "ciona",
     "macaque_modha", "human", "celegans_male",
 ]
+
+# Each connectome reasons with a different Workers AI model — diversity of
+# "cognition" like the neuron-count spread (49 → 575). Roughly scaled:
+# small connectomes get small fast models, the big ones get the frontier.
+LLM_MODELS = {
+    "drosophila":     "@cf/meta/llama-3.2-3b-instruct",
+    "rat":            "@cf/mistral/mistral-7b-instruct-v0.2",
+    "mouse":          "@cf/meta/llama-3.1-8b-instruct",
+    "ciona":          "@cf/qwen/qwen1.5-14b-chat-awq",
+    "macaque_modha":  "@cf/qwen/qwq-32b",
+    "human":          "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
+    "celegans_male":  "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+}
+LLM_MODEL_DEFAULT = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+
+
+def _strip_think(text: str) -> str:
+    """Reasoning models (r1, qwq) wrap chain-of-thought in <think> tags."""
+    return re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
 
 
 class ConnectomeDO(DurableObject):
@@ -98,6 +134,73 @@ class ConnectomeDO(DurableObject):
         self.buy_neurons = None   # Resolved per-connectome from metadata
         self.sell_neurons = None
         self.hold_neurons = None
+        self._left_cells = None   # Lateralized injection sets (lazy)
+        self._right_cells = None
+        self._genome = None       # Evolvable personality params (D1)
+        # D1 write circuit breaker — trips on "exceeded limit" and stays
+        # closed until UTC midnight. In-memory only: no storage dependency,
+        # no counter to corrupt, self-heals each day.
+        self._d1_dead_day = None
+        # Signal buffer — holds the CURRENT tick's signals only (overwritten
+        # each tick). Flushed to D1 every SIGNAL_FLUSH_EVERY ticks.
+        self._signal_buffer = []
+        self._tick_count = 0
+        self.mind = None          # minds.py state — dopamine learning, memory, tubes
+        self._mind_loaded = False
+        self._mind_rng = pyrandom.Random(64)
+
+    async def _load_mind(self):
+        """Load this connectome's trading mind (traits + learned gains/biases/tubes + memory)."""
+        if self._mind_loaded:
+            return
+        self._mind_loaded = True
+        try:
+            row = await self.env.DB.prepare(
+                "SELECT state FROM connectome_minds WHERE connectome_id = ?"
+            ).bind(self.connectome_id).first()
+            if row and row.get("state"):
+                self.mind = json.loads(row["state"])
+                self.mind = minds.ensure(self.mind, self.connectome_id, self._mind_rng)
+            else:
+                self.mind = minds.born(self.connectome_id, self._mind_rng)
+        except Exception:
+            self.mind = minds.born(self.connectome_id, self._mind_rng)
+
+    async def _save_mind(self):
+        if not self.mind or not self._d1_writable():
+            return
+        await self._safe_run(
+            "INSERT OR REPLACE INTO connectome_minds (connectome_id, state, updated_at) VALUES (?, ?, ?)",
+            (self.connectome_id, json.dumps(self.mind), int(time.time())))
+
+    def _d1_writable(self) -> bool:
+        """False while the D1 write breaker is tripped for the current UTC day."""
+        today = int(time.time()) // 86400
+        if self._d1_dead_day == today:
+            return False
+        self._d1_dead_day = None  # new day (or never tripped) — breaker resets
+        return True
+
+    async def _safe_run(self, sql: str, params: tuple = ()) -> bool:
+        """Run one D1 write; trip the breaker on limit errors.
+
+        Returns True on success, False if skipped or failed. Once the
+        breaker trips, all subsequent writes short-circuit in memory —
+        no further D1 calls, so a failure can't feedback-loop.
+        """
+        if not self._d1_writable():
+            return False
+        try:
+            await self.env.DB.prepare(sql).bind(*params).run()
+            return True
+        except Exception as e:
+            if "exceeded" in str(e) or "limit" in str(e).lower():
+                self._d1_dead_day = int(time.time()) // 86400
+                self._signal_buffer = []
+                print(f"[{self.connectome_id}] D1 write limit hit — writes disabled until UTC midnight")
+            else:
+                print(f"[{self.connectome_id}] D1 write failed: {e}")
+            return False
 
     async def _read_weight(self, path: str) -> bytes:
         """Read a weight blob from D1 — single row in `weights`, or chunked
@@ -116,22 +219,60 @@ class ConnectomeDO(DurableObject):
         b64 = "".join(r["data_b64"] for r in chunks.results)
         return base64.b64decode(b64)
 
+    async def _read_weight_cached(self, path: str) -> bytes:
+        """Weight blobs are multi-MB chunked D1 rows and DO isolates evict
+        between 1-min alarms — re-reading them every cold start was one of
+        the top row-read burners. Cache in DO storage (survives eviction);
+        revalidate every WEIGHT_CACHE_TTL. Self-refreshes when this DO
+        writes new weights via _write_weight."""
+        meta = await self.ctx.storage.get(f"wmeta:{path}")
+        if meta and (time.time() - float(meta.get("ts") or 0)) < WEIGHT_CACHE_TTL:
+            parts = []
+            for i in range(int(meta["n"])):
+                p = await self.ctx.storage.get(f"w:{path}:{i}")
+                if p is None:
+                    parts = None
+                    break
+                parts.append(p if isinstance(p, bytes) else bytes(p))
+            if parts is not None:
+                return b"".join(parts)
+        blob = await self._read_weight(path)
+        STEP = 96 * 1024  # DO storage value cap is 128KiB
+        n = max(1, (len(blob) + STEP - 1) // STEP)
+        for i in range(n):
+            await self.ctx.storage.put(f"w:{path}:{i}", blob[i * STEP:(i + 1) * STEP])
+        await self.ctx.storage.put(f"wmeta:{path}", {"n": n, "ts": time.time()})
+        return blob
+
     async def _write_weight(self, path: str, data: bytes):
         """Write a weight blob to D1 — chunked into `weight_chunks` if the
-        base64 encoding exceeds the single-statement size limit (~90KB)."""
+        base64 encoding exceeds the single-statement size limit (~90KB).
+        Aborts cleanly if the D1 write breaker trips mid-write."""
         b64 = base64.b64encode(data).decode()
-        await self.env.DB.prepare("DELETE FROM weights WHERE path = ?").bind(path).run()
-        await self.env.DB.prepare("DELETE FROM weight_chunks WHERE path = ?").bind(path).run()
+        if not await self._safe_run("DELETE FROM weights WHERE path = ?", (path,)):
+            return
+        if not await self._safe_run("DELETE FROM weight_chunks WHERE path = ?", (path,)):
+            return
         CHUNK = 60000
+        ok = True
         if len(b64) <= CHUNK:
-            await self.env.DB.prepare(
-                "INSERT INTO weights (path, data_b64, size, uploaded_at) VALUES (?, ?, ?, ?)"
-            ).bind(path, b64, len(data), int(time.time())).run()
+            ok = await self._safe_run(
+                "INSERT INTO weights (path, data_b64, size, uploaded_at) VALUES (?, ?, ?, ?)",
+                (path, b64, len(data), int(time.time())))
         else:
             for seq, i in enumerate(range(0, len(b64), CHUNK)):
-                await self.env.DB.prepare(
-                    "INSERT INTO weight_chunks (path, seq, data_b64) VALUES (?, ?, ?)"
-                ).bind(path, seq, b64[i:i + CHUNK]).run()
+                if not await self._safe_run(
+                        "INSERT INTO weight_chunks (path, seq, data_b64) VALUES (?, ?, ?)",
+                        (path, seq, b64[i:i + CHUNK])):
+                    return
+        if not ok:
+            return
+        # keep the DO-storage cache fresh for our own writes
+        STEP = 96 * 1024
+        n = max(1, (len(data) + STEP - 1) // STEP)
+        for i in range(n):
+            await self.ctx.storage.put(f"w:{path}:{i}", data[i * STEP:(i + 1) * STEP])
+        await self.ctx.storage.put(f"wmeta:{path}", {"n": n, "ts": time.time()})
 
     async def _read_r2_stream(self, obj) -> bytes:
         """Read an R2 object body as bytes using the stream API."""
@@ -163,7 +304,7 @@ class ConnectomeDO(DurableObject):
             self.connectome_id = do_name.split(":")[-1] if ":" in do_name else do_name
 
         try:
-            await self._log_error(f"starting brain initialization for {self.connectome_id}")
+            self._log(f"starting brain initialization for {self.connectome_id}")
         except Exception:
             pass
 
@@ -174,10 +315,10 @@ class ConnectomeDO(DurableObject):
 
         # Fetch weights from D1: `weights` for small files, `weight_chunks` for large
         try:
-            await self._log_error(f"fetching weights: {weights_key}, {meta_key}")
-            weights_bytes = await self._read_weight(weights_key)
-            meta_bytes = await self._read_weight(meta_key)
-            await self._log_error(f"got bytes: weights={len(weights_bytes)}, meta={len(meta_bytes)}")
+            self._log(f"fetching weights: {weights_key}, {meta_key}")
+            weights_bytes = await self._read_weight_cached(weights_key)
+            meta_bytes = await self._read_weight_cached(meta_key)
+            self._log(f"got bytes: weights={len(weights_bytes)}, meta={len(meta_bytes)}")
 
             weights_file = tempfile.NamedTemporaryFile(suffix=".npz", delete=False)
             weights_file.write(weights_bytes)
@@ -187,36 +328,42 @@ class ConnectomeDO(DurableObject):
             meta_file.write(meta_bytes)
             meta_file.close()
 
-            await self._log_error("loading FlyBrain from temp files")
+            self._log("loading FlyBrain from temp files")
 
             self.brain = FlyBrain(weights_npz=weights_file.name, meta_npz=meta_file.name, seed=64)
             os.unlink(weights_file.name)
             os.unlink(meta_file.name)
 
-            await self._log_error(f"FlyBrain loaded: {self.brain.n} neurons")
+            self._log(f"FlyBrain loaded: {self.brain.n} neurons")
 
             # Initialize fly_eyes.FeatureDetectors only for fly connectomes
             if self.connectome_id in FLY_CONNECTOMES:
                 self.eyes = FeatureDetectors(self.brain)
-                await self._log_error("FeatureDetectors initialized (fly connectome)")
+                self._log("FeatureDetectors initialized (fly connectome)")
             else:
                 self.eyes = None
-                await self._log_error(f"Non-fly connectome {self.connectome_id} — using direct injection")
+                self._log(f"Non-fly connectome {self.connectome_id} — using direct injection")
 
             # Resolve BUY/SELL/HOLD neuron groups from brain metadata (cell types)
             # Falls back to DEFAULT_*_NEURONS if no matching groups found
             self.buy_neurons = self._resolve_neurons(DEFAULT_BUY_NEURONS)
             self.sell_neurons = self._resolve_neurons(DEFAULT_SELL_NEURONS)
             self.hold_neurons = self._resolve_neurons(DEFAULT_HOLD_NEURONS)
-            await self._log_error(f"Neuron groups resolved: buy={len(self.buy_neurons)} sell={len(self.sell_neurons)} hold={len(self.hold_neurons)}")
+            self._log(f"Neuron groups resolved: buy={len(self.buy_neurons)} sell={len(self.sell_neurons)} hold={len(self.hold_neurons)}")
+
+            # Resolve L/R hemispheres then calibrate synaptic gain — binary-
+            # weighted pruned brains avalanche at default gain; find the regime
+            # where input propagates without total saturation.
+            self._resolve_hemispheres()
+            self._calibrate_gain()
         except Exception as e:
-            await self._log_error(f"brain init failed: {e}")
+            self._log(f"brain init failed: {e}")
             raise
 
         # Load trained readout from D1 (connectome-prefixed)
         readout_key = f"{self.connectome_id}/readout.npz"
         try:
-            r_bytes = await self._read_weight(readout_key)
+            r_bytes = await self._read_weight_cached(readout_key)
             r_file = tempfile.NamedTemporaryFile(suffix=".npz", delete=False)
             r_file.write(r_bytes)
             r_file.close()
@@ -228,7 +375,7 @@ class ConnectomeDO(DurableObject):
         # Load trained encoder from D1 (connectome-prefixed)
         encoder_key = f"{self.connectome_id}/encoder.npz"
         try:
-            e_bytes = await self._read_weight(encoder_key)
+            e_bytes = await self._read_weight_cached(encoder_key)
             e_file = tempfile.NamedTemporaryFile(suffix=".npz", delete=False)
             e_file.write(e_bytes)
             e_file.close()
@@ -242,23 +389,29 @@ class ConnectomeDO(DurableObject):
             pass  # no encoder trained yet
 
         self.initialized = True
-        await self.env.DB.prepare(
-            "INSERT INTO audit_log (event, data, created_at) VALUES (?, ?, ?)"
-        ).bind("fly_brain_init", json.dumps({
-            "neurons": self.brain.n,
-            "synapses": len(self.brain.data),
-            "groups": list(self.brain.groups.keys()),
-            "visual_neurons": len(self.brain.visual),
-            "readout_loaded": self.readout is not None,
-            "encoder_loaded": self.encoder_w_az is not None,
-            "readout_cv_score": float(self.readout.cv_score) if self.readout else None,
-            "eyes_loaded": self.eyes is not None,
-        }), int(time.time())).run()
+        # Log init once per DO, not per cold start — the isolate is evicted
+        # between alarms so an unguarded write would grow audit_log forever.
+        if await self.ctx.storage.get("init_logged"):
+            return
+        wrote = await self._safe_run(
+            "INSERT INTO audit_log (event, data, created_at) VALUES (?, ?, ?)",
+            ("fly_brain_init", json.dumps({
+                "neurons": self.brain.n,
+                "synapses": len(self.brain.data),
+                "groups": list(self.brain.groups.keys()),
+                "visual_neurons": len(self.brain.visual),
+                "readout_loaded": self.readout is not None,
+                "encoder_loaded": self.encoder_w_az is not None,
+                "readout_cv_score": float(self.readout.cv_score) if self.readout else None,
+                "eyes_loaded": self.eyes is not None,
+            }), int(time.time())))
+        if wrote:
+            await self.ctx.storage.put("init_logged", True)
 
-    async def _log_error(self, message: str):
-        await self.env.DB.prepare(
-            "INSERT INTO audit_log (event, data, created_at) VALUES (?, ?, ?)"
-        ).bind("fly_brain_error", json.dumps({"error": message, "connectome": self.connectome_id}), int(time.time())).run()
+    def _log(self, message: str):
+        """Console logging only — zero D1 writes, so a D1 failure can
+        never feedback-loop through the error path."""
+        print(f"[{self.connectome_id}] {message}")
 
     def _resolve_neurons(self, candidate_types: list[str]) -> np.ndarray:
         """Resolve neuron indices from cell type names in connectome metadata.
@@ -280,9 +433,266 @@ class ConnectomeDO(DurableObject):
             return rng.choice(self.brain.n, size=min(10, self.brain.n), replace=False)
         return np.array([], dtype=np.int64)
 
+    async def _get_genome(self) -> dict:
+        """Evolvable personality/genome for this connectome — loaded once per
+        DO lifetime. bias shifts input score; risk_appetite scales confidence;
+        persona steers the LLM adjudication layer."""
+        if self._genome is not None:
+            return self._genome
+        g = {"risk_appetite": 0.5, "bias": 0.0, "persona": "", "generation": 0}
+        try:
+            row = await self.env.DB.prepare(
+                "SELECT risk_appetite, bias, persona, generation FROM connectome_genome WHERE connectome_id = ?"
+            ).bind(self.connectome_id).first()
+            if row:
+                g.update({k: row[k] for k in g if row[k] is not None})
+        except Exception:
+            pass
+        self._genome = g
+        return g
+
+    async def _colony_listen(self) -> dict:
+        """flytalk port: read siblings' last signals → sensory drive.
+        Sibling SELL → 'threat' (escape drive), BUY → 'target' (approach),
+        anything else → 'wind' (weak bilateral chop). Returns a dict consumed
+        by _market_to_direct_inputs as _colony_drive."""
+        drive = {"threat": 0.0, "target": 0.0, "wind": 0.0}
+        try:
+            rows = await self.env.DB.prepare(
+                "SELECT envelope, strength FROM colony_signals "
+                "WHERE from_fly != ? AND created_at > datetime('now', '-5 minutes') "
+                "ORDER BY id DESC LIMIT 50"
+            ).bind(self.connectome_id).all()
+            for r in (rows.results or []):
+                env = str(r["envelope"] or "").upper()
+                s = float(r["strength"] or 0)
+                if env in ("SELL", "-1"):
+                    drive["threat"] += s
+                elif env in ("BUY", "1"):
+                    drive["target"] += s
+                else:
+                    drive["wind"] += s
+        except Exception:
+            pass
+        return drive
+
+    async def _colony_speak(self, action, confidence: float):
+        """flytalk port: emit this connectome's decoded action as a colony
+        signal siblings read on their next tick."""
+        try:
+            await self.env.DB.prepare(
+                "INSERT INTO colony_signals (from_fly, kind, envelope, strength, tick) "
+                "VALUES (?, 'action', ?, ?, ?)"
+            ).bind(
+                self.connectome_id, str(action), float(confidence),
+                int(time.time()),
+            ).run()
+        except Exception:
+            pass
+
+    async def _llm_adjudicate(self, token: dict, neural: dict) -> dict:
+        """LLM layer on top of neural inference — the connectome's persona
+        interprets the brain's raw decision against market context. Returns
+        final {action, confidence, reason, llm_note}. Falls back to the neural
+        decision if the LLM is unavailable or unparseable."""
+        g = await self._get_genome()
+        persona = g.get("persona") or "You are a connectome trading brain."
+        prompt = (
+            f"Your neural network just evaluated a market:\n"
+            f"- Neural decision: {neural['action']} (confidence {neural['confidence']:.2f})\n"
+            f"- Neural detail: {neural['reason']}\n"
+            f"- Market: price=${token.get('price_usd', '?')}, vol24h=${token.get('volume_24h', '?')}, "
+            f"chg24h={token.get('price_change_24h', '?')}%, score={token.get('score', '?')}\n"
+            f"Vote your intent as JSON only: {{\"action\": 1|-1|0, \"confidence\": 0-100, \"note\": \"<10 words\"}}. "
+            f"1=support/buy, -1=oppose/sell, 0=abstain."
+        )
+        try:
+            if not await self._ai_budget_ok():
+                return {**neural, "llm_note": "ai budget exhausted — neural only"}
+            resp = await self.env.AI.run(LLM_MODELS.get(self.connectome_id) or LLM_MODEL_DEFAULT, {
+                "messages": [
+                    {"role": "system", "content": persona},
+                    {"role": "user", "content": prompt},
+                ],
+                "max_tokens": 80,
+            })
+            try:
+                resp = resp.to_py()
+            except Exception:
+                pass
+            try:
+                text = resp["response"]          # JsDict/dict subscript
+            except Exception:
+                text = getattr(resp, "response", None) or str(resp)
+            text = _strip_think(str(text))
+            import re, ast as _ast
+            m = re.search(r'\{[^{}]*["\']action["\'][^{}]*\}', text)
+            if m:
+                try:
+                    j = json.loads(m.group(0))
+                except Exception:
+                    j = _ast.literal_eval(m.group(0))  # single-quoted py dict
+                action = max(-1, min(1, int(j.get("action", 0))))
+                conf = max(0, min(100, int(j.get("confidence", 0))))
+                return {
+                    "action": {1: "BUY", -1: "SELL", 0: "HOLD"}[action],
+                    "confidence": conf / 100.0,
+                    "reason": f"llm: {j.get('note','')} | neural: {neural['reason']}",
+                    "llm_action": action,
+                }
+            if not m:
+                # loose fallback: bare -1/0/1 digit or BUY/SELL/HOLD word
+                bare = re.search(r'(?<![\d.-])(-?1|0)(?![\d.])', text)
+                word = re.search(r'\b(BUY|SELL|HOLD|FOR|AGAINST|ABSTAIN)\b', text, re.I)
+                if bare or word:
+                    tok = (bare.group(1) if bare else word.group(1).upper())
+                    act = {"1":1,"-1":-1,"0":0,"BUY":1,"FOR":1,"SELL":-1,"AGAINST":-1,"HOLD":0,"ABSTAIN":0}.get(tok, 0)
+                    return {"action": {1:"BUY",-1:"SELL",0:"HOLD"}[act],
+                            "confidence": 0.6, "reason": f"llm(loose): {text[:60]}",
+                            "llm_action": act}
+                return {**neural, "llm_note": "unparseable", "llm_raw": text[:120]}
+        except Exception as e:
+            return {**neural, "llm_note": f"llm error: {e}"}
+
     async def _get_setting(self, key: str, default: str = "") -> str:
         row = await self.env.DB.prepare("SELECT value FROM settings WHERE key = ?").bind(key).first()
         return row["value"] if row else default
+
+    # Free-tier guard: hard daily cap on Workers AI calls. llama-3.3-70b
+    # costs ~1 neuron/token; 350 calls/day ≈ <1k neurons worst case.
+    AI_DAILY_CAP = 350
+
+    async def _ai_budget_ok(self) -> bool:
+        """Atomically bump today's AI-call counter; False once over cap."""
+        key = f"meter_ai_{time.strftime('%Y%m%d')}"
+        try:
+            row = await self.env.DB.prepare(
+                "UPDATE settings SET value = CAST(COALESCE(value,'0') AS INTEGER) + 1 "
+                "WHERE key = ? RETURNING value"
+            ).bind(key).first()
+            if not row:
+                await self.env.DB.prepare(
+                    "INSERT INTO settings (key, value) VALUES (?, '1')"
+                ).bind(key).run()
+                return True
+            return int(row["value"]) <= self.AI_DAILY_CAP
+        except Exception:
+            return True  # meter failure never blocks the colony
+
+    async def _ai_text(self, system: str, user: str, max_tokens: int = 300) -> str:
+        """Workers AI call → plain text. Handles the JS-proxy response."""
+        if not await self._ai_budget_ok():
+            raise RuntimeError("ai budget exhausted for today")
+        resp = await self.env.AI.run(LLM_MODELS.get(self.connectome_id) or LLM_MODEL_DEFAULT, {
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            "max_tokens": max_tokens,
+        })
+        try:
+            resp = resp.to_py()
+        except Exception:
+            pass
+        try:
+            text = resp["response"]
+        except Exception:
+            text = getattr(resp, "response", None) or str(resp)
+        return _strip_think(str(text))
+
+    async def _llm_code(self, task: str, file_path: str, file_content: str) -> dict:
+        """Code generation — the connectome's persona + LLM writes the new
+        file content. Colony review (/review) decides whether it merges."""
+        g = await self._get_genome()
+        persona = g.get("persona") or "You are a connectome engineer."
+        prompt = (
+            "You are a software engineer for the FLYAI colony.\n"
+            f"Task: {task}\n"
+            f"File: {file_path}\n"
+            f"Current content:\n```\n{file_content[:8000]}\n```\n"
+            "Return ONLY the complete updated file content — no commentary, no code fences. "
+            "If the task doesn't apply to this file, return the content unchanged."
+        )
+        text = await self._ai_text(persona, prompt, max_tokens=3000)
+        import re as _re
+        m = _re.search(r"```[a-zA-Z]*\n(.*)```\s*$", text, _re.S)
+        if m:
+            text = m.group(1)
+        return {"new_content": text.strip("\n") + "\n",
+                "note": f"code by {self.connectome_id} gen {g.get('generation',0)}",
+                "connectome_id": self.connectome_id}
+
+    async def _llm_ideate(self, repo_map: str, recent_outcomes: str) -> dict:
+        """Self-directed task ideation — the connectome picks ONE file in the
+        colony repo and proposes a concrete improvement. Returns
+        {task, file_path, rationale}. Colony review decides whether it ships."""
+        g = await self._get_genome()
+        persona = g.get("persona") or "You are a connectome engineer."
+        prompt = (
+            "You maintain the FLYAI colony's own codebase. Pick ONE file and "
+            "propose ONE concrete, small improvement (bug fix, clarity, feature).\n"
+            f"Repo files:\n{repo_map[:6000]}\n\n"
+            f"Recent task outcomes:\n{recent_outcomes[:2000]}\n\n"
+            "Prefer files and changes you can fully rewrite confidently. "
+            "Return JSON only: "
+            "{\"task\": \"<one sentence>\", \"file_path\": \"<repo path>\", "
+            "\"rationale\": \"<why this helps, <15 words>\"}."
+        )
+        text = await self._ai_text(persona, prompt, max_tokens=200)
+        import re, ast as _ast
+        m = re.search(r'\{[^{}]*["\']task["\'][^{}]*\}', text)
+        if m:
+            try:
+                j = json.loads(m.group(0))
+            except Exception:
+                j = _ast.literal_eval(m.group(0))
+            return {"task": str(j.get("task", ""))[:200],
+                    "file_path": str(j.get("file_path", ""))[:300],
+                    "rationale": str(j.get("rationale", ""))[:200],
+                    "connectome_id": self.connectome_id}
+        return {"error": f"unparseable ideation: {text[:100]}"}
+
+    async def _llm_review(self, task: str, file_path: str, patch: str) -> dict:
+        """Code-review vote — same {action,confidence,reason} shape as /decide
+        so the governance worker reuses its tally. 1=approve, -1=reject, 0=abstain."""
+        g = await self._get_genome()
+        persona = g.get("persona") or "You are a connectome code reviewer."
+        prompt = (
+            "Review this proposed code change for the colony repo.\n"
+            f"Task: {task}\nFile: {file_path}\n"
+            f"Proposed new content:\n```\n{patch[:8000]}\n```\n"
+            "Reject anything that exfiltrates secrets/keys, drains funds, adds hidden "
+            "privileges, or is clearly broken.\n"
+            "Reply with ONLY this JSON on ONE line — no other text, no markdown:\n"
+            "{\"action\": 1, \"confidence\": 75, \"note\": \"<10 words\"}\n"
+            "action: 1=approve, -1=reject, 0=abstain."
+        )
+        try:
+            text = await self._ai_text(persona, prompt, max_tokens=80)
+        except Exception as e:
+            return {"action": 0, "confidence": 0, "reason": f"llm error: {e}"}
+        import re, ast as _ast
+        m = re.search(r'\{[^{}]*["\']action["\'][^{}]*\}', text)
+        if m:
+            try:
+                j = json.loads(m.group(0))
+            except Exception:
+                j = _ast.literal_eval(m.group(0))
+            action = max(-1, min(1, int(j.get("action", 0))))
+            conf = max(0, min(100, int(j.get("confidence", 0))))
+            return {"action": action, "confidence": conf,
+                    "reason": f"review: {j.get('note','')}"}
+        # Keyword fallback — the model wrote prose; extract the verdict
+        low = text.lower()
+        if re.search(r'\b(reject|block|do not (merge|approve)|unsafe|vulnerable)\b', low):
+            return {"action": -1, "confidence": 60, "reason": f"review(kw): {text[:60]}"}
+        if re.search(r'\b(approve|lgtm|merge|looks good|ship)\b', low):
+            return {"action": 1, "confidence": 60, "reason": f"review(kw): {text[:60]}"}
+        bare = re.search(r'(?<![\d.-])(-?1|0)(?![\d.])', text)
+        if bare:
+            return {"action": max(-1, min(1, int(bare.group(1)))), "confidence": 60,
+                    "reason": f"review(loose): {text[:60]}"}
+        return {"action": 0, "confidence": 0, "reason": f"review unparseable: {text[:80]}"}
 
     async def _fetch_candidates(self, limit: int = 3) -> list:
         """Fetch top-scored token candidates.
@@ -292,7 +702,7 @@ class ConnectomeDO(DurableObject):
         would exhaust the free-tier daily row-read limit. Falls back to
         a direct D1 query if the API is unreachable.
         """
-        api_base = getattr(self.env, "API_BASE_URL", None) or "https://api-worker.hardwoodstablecoin.workers.dev"
+        api_base = getattr(self.env, "API_BASE_URL", None) or "https://api-worker.symbient.workers.dev"
         try:
             resp = await fetch(f"{api_base}/api/tokens?min_score=30&limit={limit}")
             if resp.status == 200:
@@ -300,7 +710,7 @@ class ConnectomeDO(DurableObject):
                 if isinstance(data, list):
                     return data
         except Exception as e:
-            await self._log_error(f"candidate fetch via API failed, falling back to D1: {e}")
+            self._log(f"candidate fetch via API failed, falling back to D1: {e}")
         cursor = await self.env.DB.prepare(
             "SELECT address, symbol, launchpad, score, score_reasons FROM tokens "
             "WHERE ignored = 0 AND score > 30 ORDER BY score DESC LIMIT ?"
@@ -317,34 +727,128 @@ class ConnectomeDO(DurableObject):
         try:
             await self._ensure_brain()
             candidates = await self._fetch_candidates(limit=3)
+            cpu_start = time.process_time()
+            self._signal_buffer = []
             for token in candidates:
-                decision = await self._evaluate_token(token)
-                await self._store_signal(token, decision)
+                # CPU watchdog — DO alarms get 30s; bail at 20s so the
+                # alarm always completes and reschedules.
+                if time.process_time() - cpu_start > 20.0:
+                    self._log("CPU watchdog — skipping remaining candidates")
+                    break
+                try:
+                    decision = await self._evaluate_token(token)
+                    # LLM layer on actionable signals — the persona confirms
+                    # or vetoes BUY/SELL before it becomes a signal. Bounded:
+                    # only fires on non-HOLD, and _ai_budget_ok caps daily calls.
+                    if decision.get("action") in ("BUY", "SELL"):
+                        decision = await self._llm_adjudicate(token, decision)
+                except Exception as e:
+                    self._log(f"eval failed for {token.get('address', '?')}: {e}")
+                    continue
+                self._signal_buffer.append((
+                    token["address"], decision["action"], decision["confidence"],
+                    decision["neural_activity"], decision["features"],
+                    decision["score"], decision["reason"], self.connectome_id, int(time.time()),
+                ))
+            # Persist signals every SIGNAL_FLUSH_EVERY ticks — the buffer
+            # holds only the current tick's signals, so intermediate ticks
+            # are skipped and D1 writes drop ~5x. Tick count lives in DO
+            # storage because the isolate is evicted between alarms —
+            # an in-memory counter would reset every tick and never flush.
+            tick = (await self.ctx.storage.get("tick_count") or 0) + 1
+            if tick >= SIGNAL_FLUSH_EVERY:
+                tick = 0
+                await self._flush_signals()
+            await self.ctx.storage.put("tick_count", tick)
             # Fan out: drive the pipeline workers that have no cron of their
             # own (free tier = 5 crons/account, all used). One DO alarm chain
             # kicks discovery → trade → social each minute.
-            if self.connectome_id == "drosophila":  # only one connectome fans out
-                for url in (
-                    "https://discovery-worker.terexmaps.workers.dev/",
-                    "https://trade-worker.terexmaps.workers.dev/process",
-                ):
-                    try:
-                        await fetch(url)
-                    except Exception:
-                        pass
-            # Social every ~7 ticks (~7 min) — keeps posting cadence human
-            if self.connectome_id == "celegans_male" and int(time.time()) % 420 < 60:
-                try:
-                    await fetch("https://social-worker.terexmaps.workers.dev/post")
-                except Exception:
-                    pass
+            await self._fan_out()
             # Success — reset backoff to 1 minute
             await self.ctx.storage.setAlarm(int(time.time() * 1000) + 60_000)
         except Exception as e:
-            await self._log_error(str(e))
+            self._log(str(e))
             # Still reschedule, but with backoff (5 min on crash)
             # so the DO retries instead of going permanently silent.
             await self.ctx.storage.setAlarm(int(time.time() * 1000) + 300_000)
+
+    async def _fan_out(self):
+        """Drive the pipeline workers that have no cron of their own
+        (free tier = 5 crons/account, all used). Called from both alarm()
+        and /trigger so a dropped DO alarm can't starve the chain.
+        Intervals are tracked by last-call timestamps in DO storage —
+        fixed clock windows (t % N < 60) can be missed indefinitely when
+        alarms drift."""
+        key = {"X-Colony-Key": self.env.COLONY_ADMIN_KEY}
+        if self.connectome_id == "drosophila":  # only one connectome fans out
+            # trade-worker every ~5 min — signals only flush every
+            # SIGNAL_FLUSH_EVERY ticks anyway, so a 1-min cadence mostly
+            # re-scans unchanged data (~20M D1 rows/day — blows free tier).
+            # discovery + enrichment have their own crons; leave them alone.
+            last_trade = (await self.ctx.storage.get("last_trade_at") or 0)
+            if int(time.time()) - int(last_trade) >= 300:
+                try:
+                    await fetch("https://trade-worker.symbient.workers.dev/process", headers=key)
+                    await self.ctx.storage.put("last_trade_at", int(time.time()))
+                except Exception:
+                    pass
+            try:
+                await fetch("https://discovery-worker.symbient.workers.dev/", headers=key)
+            except Exception:
+                pass
+            # Daily retention — signals/colony_signals grow ~5k rows/day and
+            # every unindexed scan compounds against the D1 read quota.
+            last_prune = (await self.ctx.storage.get("last_prune_at") or 0)
+            if int(time.time()) - int(last_prune) >= 86400:
+                await self.ctx.storage.put("last_prune_at", int(time.time()))
+                week_ago = int(time.time()) - 7 * 86400
+                await self._safe_run("DELETE FROM signals WHERE created_at < ?", (week_ago,))
+                await self._safe_run("DELETE FROM colony_signals WHERE created_at < datetime('now', '-1 day')", ())
+        # Social every ~7 min — keeps posting cadence human
+        if self.connectome_id == "celegans_male":
+            last_social = (await self.ctx.storage.get("last_social_at") or 0)
+            if int(time.time()) - int(last_social) >= 420:
+                try:
+                    await fetch("https://social-worker.symbient.workers.dev/post", headers=key)
+                    await self.ctx.storage.put("last_social_at", int(time.time()))
+                except Exception:
+                    pass
+        # Governance cycle every ~15 min — propose/vote/execute queued
+        # protocol actions (rewards funding, bond params, whitelists)
+        if self.connectome_id == "human":
+            last_gov = (await self.ctx.storage.get("last_gov_at") or 0)
+            if int(time.time()) - int(last_gov) >= 840:
+                try:
+                    await fetch("https://governance-worker.symbient.workers.dev/governance/cycle", headers=key)
+                    await self.ctx.storage.put("last_gov_at", int(time.time()))
+                except Exception:
+                    pass
+
+    async def _flush_signals(self):
+        """Batch-insert the buffered signals in one or more multi-row
+        INSERTs (max 10 rows each — D1 allows 100 bound params, we use 9).
+        All-or-drop: on failure the buffer is cleared, never retried."""
+        flushed = 0
+        while self._signal_buffer and self._d1_writable():
+            chunk, self._signal_buffer = self._signal_buffer[:10], self._signal_buffer[10:]
+            placeholders = ",".join(["(?,?,?,?,?,?,?,?,?)"] * len(chunk))
+            flat = tuple(v for row in chunk for v in row)
+            ok = await self._safe_run(
+                "INSERT INTO signals (token_address, decision, confidence, neural_activity, "
+                f"feature_snapshot, score, reason, connectome_id, created_at) VALUES {placeholders}",
+                flat)
+            if not ok:
+                break
+            flushed += len(chunk)
+        if flushed:
+            # Maintain a tiny counter table so /api/status/colony reads 7
+            # rows instead of COUNT(*) over the whole signals table.
+            await self._safe_run(
+                "INSERT INTO signal_counts (connectome_id, total, last_signal) VALUES (?,?,?) "
+                "ON CONFLICT(connectome_id) DO UPDATE SET "
+                "total = total + excluded.total, last_signal = excluded.last_signal",
+                (self.connectome_id, flushed, int(time.time())))
+        self._signal_buffer = []
 
     def _extract_features(self, token: dict) -> np.ndarray:
         """Extract 6 normalized market features from token data."""
@@ -391,52 +895,124 @@ class ConnectomeDO(DurableObject):
         return (dx * 50, size), shots, threat  # dx in screen units (upstream uses ~30-90)
 
     def _market_to_direct_inputs(self, token: dict, features: np.ndarray):
-        """Map market data to direct neuron injection for non-fly connectomes.
+        """Lateralized market injection — mirrors upstream L/R visual steering.
 
-        Injects into sensory neurons identified by cell type (from metadata).
-        Uses the same 5 market signals as fly connectomes but mapped to
-        whatever sensory cell types exist in this connectome.
+        The packed connectomes carry `side` metadata (L/R hemisphere) but no
+        visual neurons, so market signal drives hemispheres directly:
+        score > 50 → left hemisphere (approach/forward circuit),
+        score < 50 → right hemisphere (retreat/escape circuit).
+        Amplitude scales with |score - 50|.
+        Colony coupling: siblings' actions add drive (threat→right, target→left).
         """
-        score = float(token.get("score", 0))
-        # Map market features to injection strengths
-        buy_strength = max(0, (score - 50) / 50.0) * 0.5  # 0..0.5
-        sell_strength = max(0, (50 - score) / 50.0) * 0.5  # 0..0.5
-        volatility = 0.2  # baseline noise drive
-
-        # Inject into sensory neurons (visual, mechanosensory, etc.)
+        score = float(token.get("score", 50))
+        strength = abs(score - 50.0) / 50.0 * 0.35  # 0..0.35
         inject_list = []
-        sensory_types = ["visual", "mechanosensory", "photoreceptor", "bipolar",
-                         "eyespot", "olfactory", "chemosensory", "pyramidal"]
-        sensory_idx = self.brain.cells(sensory_types)
-        if len(sensory_idx) > 0:
-            # Drive sensory neurons with market signal
-            inject_list.append((sensory_idx, buy_strength + volatility))
+        if strength <= 0.01:
+            return inject_list
+        target = self._left_cells if score > 50 else self._right_cells
+        inject_list.append((target, strength))
+
+        # colony coupling — siblings' decoded actions as extra sensory drive
+        colony = getattr(self, "_colony_drive", {})
+        if colony.get("threat"):
+            inject_list.append((self._right_cells, min(0.3, colony["threat"] * 0.1)))
+        if colony.get("target"):
+            inject_list.append((self._left_cells, min(0.3, colony["target"] * 0.1)))
+        if colony.get("wind"):
+            # wind → both hemispheres weakly (chop)
+            inject_list.append((self._left_cells, min(0.15, colony["wind"] * 0.05)))
+            inject_list.append((self._right_cells, min(0.15, colony["wind"] * 0.05)))
         return inject_list
+
+    def _resolve_hemispheres(self):
+        """Resolve L/R injection sets — the packed brains' only sensory axis.
+        Capped: dense small connectomes avalanche on wide input."""
+        if self.brain.side is not None:
+            left = np.flatnonzero(self.brain.side == "L")
+            right = np.flatnonzero(self.brain.side == "R")
+        else:
+            left = np.array([], dtype=np.int64)
+            right = left
+        if len(left) == 0 or len(right) == 0:
+            rng = np.random.default_rng(11)
+            perm = rng.permutation(self.brain.n)
+            half = max(1, self.brain.n // 2)
+            left, right = perm[:half], perm[half:]
+        cap = max(4, min(16, self.brain.n // 10))
+        self._left_cells = left[:cap]
+        self._right_cells = right[:cap]
+
+    def _calibrate_gain(self):
+        """Binary-search synaptic gain so a probe input produces sparse,
+        non-avalanching activity. Binary-weighted pruned connectomes sit at a
+        percolation edge — default gain (3.0) avalanches every neuron; we need
+        the regime where baseline is quiet and input propagates partially.
+        Target: probe fires 2%..30% of neurons/step, baseline near 0."""
+        brain = self.brain
+        # probe with the real production injection sets — hub neurons make
+        # arbitrary probes unrepresentative
+        probes = [(self._left_cells, 0.3), (self._right_cells, 0.3)]
+        def fires_per_step(gain, steps=100):
+            brain.reset(64)
+            brain.gain = gain
+            brain.tonic = 0.02
+            for _ in range(30):
+                brain.step()
+            worst = 0.0
+            for inj in probes:
+                brain.reset(64)
+                for _ in range(30):
+                    brain.step()
+                tot = sum(len(brain.step(inject=[inj])) for _ in range(steps))
+                worst = max(worst, tot / steps)
+            return worst
+        lo, hi = 0.001, 1.0
+        target_lo, target_hi = 0.02 * brain.n, 0.30 * brain.n
+        best = 0.02
+        for _ in range(12):
+            mid = (lo + hi) / 2
+            r = fires_per_step(mid)
+            if r < target_lo:
+                lo = mid
+            elif r > target_hi:
+                hi = mid
+            else:
+                best = mid
+                break
+            best = mid
+        brain.gain = best
+        brain.tonic = 0.02
+        brain.reset(64)
+        self._log(f"calibrated gain={best:.4f} (probe {fires_per_step(best):.1f} fires/step, n={brain.n})")
 
     async def _evaluate_token(self, token: dict) -> dict:
         """Run LIF simulation for one token using upstream fly_eyes + Trace."""
         brain = self.brain
         brain.reset(seed=64)
 
+        # Genome influence: bias shifts the market signal before it reaches
+        # the sensory input — evolved personalities literally perceive the
+        # market differently.
+        genome = await self._get_genome()
+        if genome.get("bias"):
+            token = dict(token)
+            token["score"] = float(token.get("score", 50)) + float(genome["bias"])
+
         features = self._extract_features(token)
+
+        # Colony coupling: listen to siblings' last-tick actions before encoding
+        self._colony_drive = await self._colony_listen()
 
         # Scale simulation by connectome size to fit within CPU limit
         sim_steps, warmup_steps = get_simulation_params(brain.n)
 
-        # Use upstream fly_eyes.FeatureDetectors for fly connectomes, direct injection for others
-        if self.eyes is not None:
-            opp, shots, threat = self._market_to_fly_inputs(token, features)
-            def encode(t):
-                if t >= sim_steps:
-                    return []
-                return self.eyes.inject(opp=opp, shots=shots, threat=threat)
-        else:
-            # Non-fly connectome: inject directly into sensory neurons via cell types
-            inject_list = self._market_to_direct_inputs(token, features)
-            def encode(t):
-                if t >= sim_steps:
-                    return []
-                return inject_list
+        # Lateralized market injection for all connectomes — the packed brains
+        # have no visual neurons, so the fly_eyes path can't drive them.
+        inject_list = self._market_to_direct_inputs(token, features)
+        def encode(t):
+            if t >= sim_steps:
+                return []
+            return inject_list
 
         # Use upstream flyreservoir.Trace over resolved output neurons
         trace = Trace(brain, types=["descending_neuron"], tau=0.1)
@@ -483,24 +1059,55 @@ class ConnectomeDO(DurableObject):
                 confidence = 0.0
                 reason = f"readout P(profit)={p_profit:.2f} < {threshold}"
         else:
-            # Fallback: hand-written Decoder (from sshfighter/fly_fighter.py pattern)
-            # Use resolved neuron groups (per-connectome, from metadata)
-            buy_rate = max(rates.get(g, 0) for g in self.buy_neurons) if len(self.buy_neurons) > 0 else 0
-            sell_rate = max(rates.get(g, 0) for g in self.sell_neurons) if len(self.sell_neurons) > 0 else 0
-            buy_threshold = float(self.env.BUY_THRESHOLD_HZ or 5.0)
-            sell_threshold = float(self.env.SELL_THRESHOLD_HZ or 3.0)
-            if buy_rate > buy_threshold and buy_rate > sell_rate:
+            # Comparative decode (upstream fly_fighter pattern): which motor
+            # program dominates post-warmup — forward → BUY, escape → SELL,
+            # backward or silence → HOLD. Counts are per group NAME over the
+            # post-warmup window.
+            fwd = counts.get("forward_L", 0) + counts.get("forward_R", 0)
+            esc = counts.get("escape_L", 0) + counts.get("escape_R", 0)
+            bwd = counts.get("backward_L", 0) + counts.get("backward_R", 0)
+            total = fwd + esc + bwd
+            if total == 0:
+                action = "HOLD"
+                confidence = 0.0
+                reason = "no motor activity (quiet network)"
+            elif fwd > esc and fwd > bwd:
                 action = "BUY"
-                confidence = min(1.0, buy_rate / (buy_threshold * 2))
-                reason = f"forward={buy_rate:.1f}Hz > {buy_threshold}Hz threshold"
-            elif sell_rate > sell_threshold:
+                confidence = min(1.0, fwd / total)
+                reason = f"forward dominant: fwd={fwd} esc={esc} bwd={bwd}"
+            elif esc > fwd and esc > bwd:
                 action = "SELL"
-                confidence = min(1.0, sell_rate / (sell_threshold * 2))
-                reason = f"escape={sell_rate:.1f}Hz > {sell_threshold}Hz threshold"
+                confidence = min(1.0, esc / total)
+                reason = f"escape dominant: esc={esc} fwd={fwd} bwd={bwd}"
             else:
                 action = "HOLD"
                 confidence = 0.0
-                reason = f"forward={buy_rate:.1f}Hz, escape={sell_rate:.1f}Hz below thresholds"
+                reason = f"backward/mixed: fwd={fwd} esc={esc} bwd={bwd}"
+
+        # ---- minds.py: learned bias + memory veto on the neural decision ----
+        # The brain produced a raw action; the mind scales it by what it has learned.
+        await self._load_mind()
+        if self.mind:
+            bias_map = {"BUY": "buy", "SELL": "sell", "HOLD": "take_profit"}
+            mact = bias_map.get(action, "buy")
+            bias = float(self.mind["learned"]["bias"].get(mact, 1.0))
+            if bias < minds.BIAS_BLOCK:                      # learned: this action always loses
+                action, confidence = "HOLD", 0.0
+                reason += f" | mind veto (bias={bias:.2f})"
+            elif bias != 1.0:
+                confidence = min(1.0, confidence * bias)
+                reason += f" | mind bias ×{bias:.2f}"
+            # memory veto: same situation lost before → skip (20% explore override)
+            if action in ("BUY", "SELL") and self.mind["memory"]:
+                state = [float(features[2]), float(features[3]), float(features[4]), float(features[5])]
+                recall_reward, n = minds.recall(self.mind, state, mact)
+                if recall_reward is not None and n >= int(self.mind["traits"]["k"]) \
+                   and recall_reward < -self.mind["traits"]["caution"] \
+                   and self._mind_rng.random() > minds.EXPLORE:
+                    action, confidence = "HOLD", 0.0
+                    reason += f" | memory veto ({n} similar, mean reward {recall_reward:.3f})"
+                    self.mind["stats"]["vetoes"] += 1
+            await self._save_mind()
 
         # Exploration during recording (from sshfighter/fly_fighter.py EXPLORE_P)
         # 7% of decisions are random to gather diverse training data
@@ -508,6 +1115,23 @@ class ConnectomeDO(DurableObject):
             action = self.rng.choice(["BUY", "HOLD"])
             confidence = 0.5
             reason = f"exploration random {action} (EXPLORE_P={EXPLORE_P})"
+
+        # Genome: risk_appetite scales expressed confidence (0 → timid, 1 → bold)
+        confidence = float(confidence) * (0.5 + float(genome.get("risk_appetite", 0.5)))
+
+        # Colony coupling: speak — this connectome's action becomes a signal
+        # envelope that siblings read on their next tick (flytalk port).
+        await self._colony_speak(action, min(1.0, max(0.0, confidence)))
+
+        # Neuron-decoded output for social-worker: the raw group counts and the
+        # decoded action. The post is built from THIS, not invented — the LLM
+        # only formats it. truth = what actually happened (stimulus), word =
+        # what the brain decoded (may hallucinate — recorded honestly).
+        self._last_neural = {
+            "action": action, "confidence": float(confidence),
+            "counts": {k: int(v) for k, v in counts.items()},
+            "reason": reason,
+        }
 
         return {
             "action": action,
@@ -521,15 +1145,91 @@ class ConnectomeDO(DurableObject):
         }
 
     async def _store_signal(self, token: dict, decision: dict):
-        """Store fly brain decision + features in D1."""
-        await self.env.DB.prepare(
+        """Store fly brain decision + features in D1 (used by /trigger for
+        immediate persistence — the alarm loop uses _flush_signals instead)."""
+        await self._safe_run(
             "INSERT INTO signals (token_address, decision, confidence, neural_activity, "
-            "feature_snapshot, score, reason, connectome_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        ).bind(
-            token["address"], decision["action"], decision["confidence"],
-            decision["neural_activity"], decision["features"],
-            decision["score"], decision["reason"], self.connectome_id, int(time.time()),
-        ).run()
+            "feature_snapshot, score, reason, connectome_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (token["address"], decision["action"], decision["confidence"],
+             decision["neural_activity"], decision["features"],
+             decision["score"], decision["reason"], self.connectome_id, int(time.time())))
+
+    async def _evolve(self) -> dict:
+        """Iterative improvement — score connectomes by recent trading PnL;
+        underperformers mutate toward the top performer's genome (params
+        blended, persona rewritten by the LLM). Selection pressure on
+        personality."""
+        g = await self._get_genome()
+        now = int(time.time())
+        try:
+            rows = await self.env.DB.prepare(
+                "SELECT connectome_id, COALESCE(SUM(pnl_usd),0) pnl FROM paper_trades "
+                "WHERE created_at > ? AND connectome_id IS NOT NULL GROUP BY connectome_id"
+            ).bind(now - 7 * 86400).all()
+            perf = {r["connectome_id"]: float(r["pnl"] or 0) for r in (rows.results or [])}
+        except Exception as e:
+            return {"status": "skipped", "error": str(e)}
+
+        my_pnl = perf.get(self.connectome_id, 0.0)
+        best_cid, best_pnl = max(perf.items(), key=lambda kv: kv[1]) if perf else (None, 0.0)
+
+        # record pnl score + touch generation only when actually mutating
+        await self._safe_run(
+            "UPDATE connectome_genome SET pnl_score = ?, updated_at = ? WHERE connectome_id = ?",
+            (my_pnl, now, self.connectome_id))
+
+        # I'm the best (or tied/no data) → hold position
+        if not best_cid or best_cid == self.connectome_id or my_pnl >= best_pnl:
+            return {"status": "held", "my_pnl": my_pnl, "best": best_cid}
+
+        # mutate toward the winner: 70/30 param blend + LLM persona rewrite
+        winner = await self.env.DB.prepare(
+            "SELECT risk_appetite, bias, persona FROM connectome_genome WHERE connectome_id = ?"
+        ).bind(best_cid).first()
+        if not winner:
+            return {"status": "no_winner_genome"}
+
+        rng = np.random.default_rng(now)
+        new_risk = 0.7 * float(g["risk_appetite"]) + 0.3 * float(winner["risk_appetite"]) + float(rng.normal(0, 0.03))
+        new_bias = 0.7 * float(g["bias"]) + 0.3 * float(winner["bias"]) + float(rng.normal(0, 1.5))
+        new_risk = min(1.0, max(0.0, new_risk))
+        new_bias = min(20.0, max(-20.0, new_bias))
+
+        # persona evolves via the LLM — winner's traits grafted in
+        new_persona = g.get("persona") or ""
+        try:
+            if not await self._ai_budget_ok():
+                raise RuntimeError("ai budget exhausted")
+            resp = await self.env.AI.run(LLM_MODELS.get(self.connectome_id) or LLM_MODEL_DEFAULT, {
+                "messages": [
+                    {"role": "system", "content": "You evolve AI trading personas. Keep each persona distinct, short (2 sentences), species-flavored."},
+                    {"role": "user", "content":
+                        f"Evolve this persona toward the colony's top performer.\n"
+                        f"MY persona: {new_persona}\n"
+                        f"TOP persona ({best_cid}, pnl ${best_pnl:.2f}): {winner['persona']}\n"
+                        f"Write the evolved persona (2 sentences, keep my species identity):"},
+                ], "max_tokens": 100})
+            try:
+                resp = resp.to_py()
+            except Exception:
+                pass
+            try:
+                text = resp["response"]          # JsDict/dict subscript
+            except Exception:
+                text = getattr(resp, "response", None) or str(resp)
+            text = _strip_think(str(text))
+            if text.strip():
+                new_persona = text.strip()[:400]
+        except Exception:
+            pass
+
+        new_gen = int(g["generation"]) + 1
+        await self._safe_run(
+            "UPDATE connectome_genome SET risk_appetite = ?, bias = ?, persona = ?, generation = ?, updated_at = ? WHERE connectome_id = ?",
+            (new_risk, new_bias, new_persona, new_gen, now, self.connectome_id))
+        self._genome = None  # reload next call
+        return {"status": "evolved", "generation": new_gen, "from": best_cid,
+                "risk_appetite": new_risk, "bias": new_bias}
 
     async def _retrain(self) -> dict:
         """Retrain readout + encoder from completed trade outcomes."""
@@ -560,9 +1260,9 @@ class ConnectomeDO(DurableObject):
         # 2. Optimize readout threshold using best_threshold (sshfighter pattern)
         p_train = np.array([float(readout.predict(x)) for x in X])
         optimal_threshold = best_threshold(y, p_train, beta=0.5)
-        await self.env.DB.prepare(
-            "INSERT OR REPLACE INTO settings (key, value) VALUES ('readout_threshold', ?)"
-        ).bind(str(round(optimal_threshold, 3))).run()
+        await self._safe_run(
+            "INSERT OR REPLACE INTO settings (key, value) VALUES ('readout_threshold', ?)",
+            (str(round(optimal_threshold, 3)),))
 
         # 3. Train encoder via ridge regression (flyreservoir.fit_ridge — OSS)
         pnl = np.array([r["pnl_percent"] or 0 for r in rows], dtype=np.float32)
@@ -604,25 +1304,25 @@ class ConnectomeDO(DurableObject):
             max_position = 50
 
         now = int(time.time())
-        await self.env.DB.prepare(
-            "INSERT OR REPLACE INTO settings (key, value) VALUES ('profit_target_pct', ?)"
-        ).bind(str(round(profit_target, 1))).run()
-        await self.env.DB.prepare(
-            "INSERT OR REPLACE INTO settings (key, value) VALUES ('stop_loss_pct', ?)"
-        ).bind(str(round(stop_loss, 1))).run()
-        await self.env.DB.prepare(
-            "INSERT OR REPLACE INTO settings (key, value) VALUES ('max_position_pct', ?)"
-        ).bind(str(round(max_position, 1))).run()
+        await self._safe_run(
+            "INSERT OR REPLACE INTO settings (key, value) VALUES ('profit_target_pct', ?)",
+            (str(round(profit_target, 1)),))
+        await self._safe_run(
+            "INSERT OR REPLACE INTO settings (key, value) VALUES ('stop_loss_pct', ?)",
+            (str(round(stop_loss, 1)),))
+        await self._safe_run(
+            "INSERT OR REPLACE INTO settings (key, value) VALUES ('max_position_pct', ?)",
+            (str(round(max_position, 1)),))
 
         # Log to model_versions
-        await self.env.DB.prepare(
+        await self._safe_run(
             "INSERT INTO model_versions (model_type, version, cv_score, trade_count, metrics, saved_at) "
-            "VALUES (?, ?, ?, ?, ?, ?)"
-        ).bind("readout", len(rows), readout.cv_score, len(rows),
-               json.dumps({"auc": readout.cv_score, "win_rate": win_rate,
-                           "profit_target": profit_target, "stop_loss": stop_loss,
-                           "max_position": max_position,
-                           "threshold": optimal_threshold}), now).run()
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            ("readout", len(rows), readout.cv_score, len(rows),
+             json.dumps({"auc": readout.cv_score, "win_rate": win_rate,
+                         "profit_target": profit_target, "stop_loss": stop_loss,
+                         "max_position": max_position,
+                         "threshold": optimal_threshold}), now))
 
         # Discord notification
         await self._post_retrain_discord(readout.cv_score, len(rows), win_rate,
@@ -644,7 +1344,7 @@ class ConnectomeDO(DurableObject):
                 "method": "POST",
                 "headers": {"Content-Type": "application/json"},
                 "body": json.dumps({
-                    "username": "SYM Brain Trainer",
+                    "username": "FLYAI Brain Trainer",
                     "embeds": [{
                         "title": f"Model retrained ({n_trades} trades)",
                         "color": 0x9b59b6,
@@ -727,6 +1427,10 @@ class ConnectomeDO(DurableObject):
                     decision = await self._evaluate_token(token)
                     await self._store_signal(token, decision)
                     signals_made += 1
+                # Fan out here too — DO self-alarms drift/get dropped on the
+                # free tier; the */5 cron guarantees this path runs, so the
+                # governance + pipeline fan-out can't starve.
+                await self._fan_out()
                 # Set alarm for next cycle
                 await self.ctx.storage.setAlarm(int(time.time() * 1000) + 60_000)
                 return Response.json({"status": "ok", "initialized": self.initialized, "signals": signals_made})
@@ -734,10 +1438,7 @@ class ConnectomeDO(DurableObject):
                 # Don't set alarm if init failed — prevents crash loop
                 if "exceed Python Worker memory limit" in str(e):
                     return Response.json({"status": "skipped", "reason": str(e), "initialized": False})
-                try:
-                    await self._log_error(f"trigger failed: {e}")
-                except Exception:
-                    pass
+                self._log(f"trigger failed: {e}")
                 return Response.json({"status": "error", "error": str(e), "initialized": self.initialized})
         elif "/r2test" in url:
             # Diagnostic: test weight storage (D1)
@@ -754,6 +1455,24 @@ class ConnectomeDO(DurableObject):
             # Clear alarm — useful for stopping crash loops
             await self.ctx.storage.deleteAlarm()
             return Response.json({"status": "alarm_cleared"})
+        elif "/neural" in url:
+            # The last episode's raw neural decode — group counts + action.
+            # social-worker formats this into a post; it never invents content.
+            return Response.json(getattr(self, "_last_neural", None) or {"action": None})
+        elif "/learn" in url:
+            # Trade outcome report from trade-worker → minds.learn() dopamine update.
+            # body: {symbol, price_now, coin_flux?: {sym: Δ}} — judges trades HORIZON rounds old.
+            try:
+                body = await request.json()
+                await self._load_mind()
+                if self.mind:
+                    dop = minds.learn(self.mind, body.get("prices", {}),
+                                      body.get("coin_flux", {}), self.mind["learning"])
+                    await self._save_mind()
+                    return Response.json({"ok": True, "dopamine": dop})
+                return Response.json({"ok": False, "reason": "no mind"})
+            except Exception as e:
+                return Response.json({"ok": False, "error": str(e)})
         elif "/retrain" in url:
             result = await self._retrain()
             return Response.json(result)
@@ -761,6 +1480,108 @@ class ConnectomeDO(DurableObject):
             await self._ensure_brain()
             result = await self._verify()
             return Response.json(result)
+        elif "/decide" in url:
+            # Governance decision — the connectome evaluates a protocol action
+            # against LIVE FLYAI market conditions (the proposal affects FLYAI).
+            # POST body = {signalScore} from the proposal's market context.
+            # Returns governor-ready {action: -1|0|1, confidence: 0-100}.
+            try:
+                await self._ensure_brain()
+                market = {}
+                try:
+                    market = await request.json()
+                except Exception:
+                    pass
+                if not isinstance(market, dict):
+                    market = {}
+                if not market:
+                    # fallback: ?signalScore=NN as query param
+                    for param in url.split("?")[-1].split("&"):
+                        if param.startswith("signalScore="):
+                            market = {"signalScore": float(param.split("=")[1])}
+                signal = float((market or {}).get("signalScore", 50) or 50)
+
+                # Real FLYAI market data — same fields a discovery candidate carries
+                token = {"address": FLYAI_TOKEN, "score": signal,
+                         "score_reasons": json.dumps({"src": "governance"})}
+                try:
+                    resp = await fetch(
+                        f"https://api.dexscreener.com/latest/dex/tokens/{FLYAI_TOKEN}")
+                    dex = await resp.json()
+                    pair = (dex.get("pairs") or [{}])[0]
+                    token.update({
+                        "price_usd": float(pair.get("priceUsd") or 0),
+                        "volume_24h": float((pair.get("volume") or {}).get("h24") or 0),
+                        "liquidity_usd": float((pair.get("liquidity") or {}).get("usd") or 0),
+                        "price_change_24h": float((pair.get("priceChange") or {}).get("h24") or 0),
+                        "launchpad": "tolly",
+                    })
+                except Exception:
+                    pass  # DexScreener down → score-only stimulus
+
+                decision = await self._evaluate_token(token)
+                # LLM adjudication — the persona layer interprets the raw
+                # neural decision and may confirm, veto, or redirect it.
+                decision = await self._llm_adjudicate(token, decision)
+                action_map = {"BUY": 1, "SELL": -1, "HOLD": 0}
+                return Response.json({
+                    "action": action_map.get(decision["action"], 0),
+                    "confidence": int(round(float(decision["confidence"]) * 100)),
+                    "reason": decision["reason"],
+                    "debug": {"signal": signal, "token_score": token["score"],
+                              "gain": float(self.brain.gain) if self.brain else None,
+                              "llm": decision.get("llm_note") or decision.get("reason","")[:60], "llm_raw": decision.get("llm_raw", ""),
+                              "n_left": int(len(self._left_cells)) if self._left_cells is not None else -1},
+                })
+            except Exception as e:
+                import traceback
+                return Response.json({"error": str(e), "tb": traceback.format_exc()[-800:]}, status=500)
+        elif "/code" in url:
+            # Code generation — the connectome's persona+LLM writes new file
+            # content for a task. POST {task, file_path, file_content}.
+            try:
+                body = await request.json()
+            except Exception:
+                body = {}
+            if not isinstance(body, dict):
+                body = {}
+            try:
+                return Response.json(await self._llm_code(
+                    str(body.get("task", "")), str(body.get("file_path", "")),
+                    str(body.get("file_content", ""))))
+            except Exception as e:
+                return Response.json({"error": str(e)}, status=500)
+        elif "/ideate" in url:
+            # Self-directed task ideation — pick one file + one improvement.
+            # POST {repo_map, recent_outcomes} → {task, file_path, rationale}.
+            try:
+                body = await request.json()
+            except Exception:
+                body = {}
+            if not isinstance(body, dict):
+                body = {}
+            try:
+                return Response.json(await self._llm_ideate(
+                    str(body.get("repo_map", "")), str(body.get("recent_outcomes", ""))))
+            except Exception as e:
+                return Response.json({"error": str(e)}, status=500)
+        elif "/review" in url:
+            # Code-review vote — colony quorum gate for merging. POST
+            # {task, file_path, patch} → {action, confidence, reason}.
+            try:
+                body = await request.json()
+            except Exception:
+                body = {}
+            if not isinstance(body, dict):
+                body = {}
+            try:
+                return Response.json(await self._llm_review(
+                    str(body.get("task", "")), str(body.get("file_path", "")),
+                    str(body.get("patch", ""))))
+            except Exception as e:
+                return Response.json({"error": str(e)}, status=500)
+        elif "/evolve" in url:
+            return Response.json(await self._evolve())
         elif "/status" in url:
             return Response.json({
                 "initialized": self.initialized,
@@ -785,10 +1606,24 @@ class Default(WorkerEntrypoint):
       /trigger                  -> defaults to drosophila
     """
 
+    # Routes that cost AI neurons / write D1 — require the colony key.
+    # Internal stub fetches (scheduled(), DO-to-DO) bypass this entrypoint
+    # entirely, so colony-internal calls never need the header.
+    _MUTATION_PATHS = {"trigger", "decide", "code", "ideate", "review",
+                       "evolve", "retrain", "clear", "verify", "r2test"}
+
+    def _authed(self, request, path) -> bool:
+        if not any(seg in self._MUTATION_PATHS for seg in path):
+            return True
+        key = request.headers.get("X-Colony-Key") or ""
+        return bool(self.env.COLONY_ADMIN_KEY) and key == self.env.COLONY_ADMIN_KEY
+
     async def fetch(self, request):
         url = request.url
         path = url.rstrip("/").split("/")
-        
+        if not self._authed(request, path):
+            return Response.json({"error": "forbidden"}, status=403)
+
         # Handle /all/trigger — trigger all 7 connectomes
         if "all" in path and "trigger" in path:
             results = []
@@ -825,15 +1660,20 @@ class Default(WorkerEntrypoint):
         do_url = request.url + (f"&cid={connectome_id}" if "?" in request.url else f"?cid={connectome_id}")
         return await do_stub.fetch(do_url)
 
-    async def scheduled(self, event):
-        """Cron trigger — kick all 7 connectome DOs."""
+    async def scheduled(self, event, env=None, ctx=None):
+        """Cron trigger — kick all 7 connectome DOs.
+
+        Fire-and-forget via waitUntil: each /trigger runs a full brain eval
+        (~5-40s). Awaiting them serially blows the cron's CPU/wall budget
+        after the first couple, leaving the rest silent.
+        """
+        tasks = []
         for cid in ALL_CONNECTOMES:
             do_id = self.env.FLY_BRAIN.idFromName(f"connectome:{cid}")
             do_stub = self.env.FLY_BRAIN.get(do_id)
-            try:
-                await do_stub.fetch("https://do/trigger")
-            except Exception:
-                pass  # Some connectomes may not have weights yet
+            tasks.append(do_stub.fetch(f"https://do/{cid}/trigger?cid={cid}"))
+        for t in tasks:
+            self.ctx.waitUntil(t)
 
 # Backward-compatible alias
 FlyBrainDO = ConnectomeDO

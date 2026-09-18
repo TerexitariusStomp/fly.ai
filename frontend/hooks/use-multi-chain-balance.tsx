@@ -6,15 +6,15 @@ import { useMockData } from "@/lib/mock-provider";
 import {
   transports,
   allChains,
-  base,
-  baseSepolia,
+  robinhood,
+  robinhoodTestnet,
 } from "@/lib/chains";
 
 const ACTIVE_CHAIN_IDS: Set<number> = new Set(allChains.map((c) => c.id));
 
 const CHAIN_MAP: Record<number, Chain> = {
-  [base.id]: base,
-  [baseSepolia.id]: baseSepolia,
+  [robinhood.id]: robinhood,
+  [robinhoodTestnet.id]: robinhoodTestnet,
 };
 
 export type ChainBalance = {

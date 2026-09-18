@@ -9,7 +9,7 @@ declare global {
   }
 }
 
-export const COOKIE_CONSENT_KEY = "sym-cookie-consent";
+export const COOKIE_CONSENT_KEY = "flyai-cookie-consent";
 export type CookieConsent = "accept_all" | "essential_only" | "reject_all";
 
 export function getStoredConsent(): CookieConsent | null {
@@ -117,9 +117,8 @@ function computeFirstTouchSource(utm: Record<string, string>, referrer: string):
   if (!referrer) return "direct";
   if (/twitter\.com|t\.co|x\.com/.test(referrer)) return "twitter";
   if (/discord/.test(referrer)) return "discord";
-  if (/forum\.shitfinance/.test(referrer)) return "forum";
-  if (/app\.shit\.finance/.test(referrer)) return "dapp-internal";
-  if (/shit\.finance/.test(referrer)) return "website";
+  if (/flyaiworld\.com/.test(referrer)) return "website";
+  if (/flyai\.widespread\.fyi/.test(referrer)) return "dapp-internal";
   if (/google\.|bing\.|duckduckgo\.|yahoo\./.test(referrer)) return "organic";
   return "referral-other";
 }
@@ -241,20 +240,20 @@ export function trackWalletDisconnect(): void {
   track("wallet_disconnected");
 }
 
-// ─── SYM ─────────────────────────────────────────────────────────────────────
+// ─── FLYAI ─────────────────────────────────────────────────────────────────────
 
-/** Wrap-page conversions (wrap / wrap_sshit / unwrap / unstake_sshit). */
+/** Wrap-page conversions (stake / wrap / unwrap / unstake). */
 export function trackWrapFlow(params: { action: string; amount: string; txHash?: string }): void {
-  trackTransaction("shit", params.action, { amount: params.amount, tx_hash: params.txHash });
+  trackTransaction("flyai", params.action, { amount: params.amount, tx_hash: params.txHash });
 }
 
-export function trackBridgeShit(params: {
+export function trackBridgeFlyai(params: {
   amount: string;
   srcChain: string;
   dstChain: string;
   txHash?: string;
 }): void {
-  trackTransaction("shit", "bridge", {
+  trackTransaction("flyai", "bridge", {
     amount: params.amount,
     src_chain: params.srcChain,
     dst_chain: params.dstChain,
@@ -289,8 +288,8 @@ export function trackCoolerRepay(params: { repayAmount: string; txHash?: string 
 // already-identified users (who complete the tour AFTER connecting) get their
 // person record updated immediately, without waiting for a chain/wallet switch.
 
-const ONBOARDING_TOUR_KEY = "shit-feature-tour"; // shared with useFeatureTour
-const ONBOARDING_FIRST_SEEN_KEY = "shit-onboarding-first-seen";
+const ONBOARDING_TOUR_KEY = "flyai-feature-tour"; // shared with useFeatureTour
+const ONBOARDING_FIRST_SEEN_KEY = "flyai-onboarding-first-seen";
 
 type OnboardingOutcome = "skipped_modal" | "skipped_tour" | "completed";
 

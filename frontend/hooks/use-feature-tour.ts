@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 
-const STORAGE_KEY = "symbient-feature-tour";
+const STORAGE_KEY = "flyai-feature-tour";
 
 type TourState = number | "completed" | "skipped";
 

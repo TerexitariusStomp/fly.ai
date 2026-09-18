@@ -1,37 +1,40 @@
 name = "trade-worker"
 main = "src/index.ts"
 compatibility_date = "2026-09-12"
+account_id = "23738a036108482feac164d7eee10a30"
 
 # D1 database
 [[d1_databases]]
 binding = "DB"
-database_name = "rooted"
-database_id = "a494ae7e-4efd-49c6-8058-603179e3fd23"
+database_name = "sym-protocol"
+database_id = "c8180dd7-0f8b-40b0-bc23-0ccae5260ca3"
 
 # KV for caching
 [[kv_namespaces]]
 binding = "CACHE"
-id = "10656e3d29ec4697acb0d7d6c811f660"
+id = "c88ba0c20bd74e418b9f13d856ba2273"
 
 # Cron trigger — every 1 minute
 # no cron — driven by fly-brain-do alarm chain
 
 [vars]
+# TODO: set to Robinhood WETH once identified (stale Arc address below)
 WETH = "0x0Bd7D308f3E1639FAb988df18A8011f41EAcAD73"
 MAX_ETH_PER_TRADE = "0.01"
 COOLDOWN_SECONDS = "60"
 # Real trading mode (set to "true" to enable real swaps)
+# RPC_URL is a secret (keyed endpoint) — bare RPC 429s under load
 REAL_TRADING = "false"
-# SYM token and TreasuryValuation contract addresses (set after deployment)
-SYM_TOKEN = ""
-TREASURY_VALUATION = ""
-# Tolly fee loop: SymbientFeeRouter address + optional fee-locker claim calldata
-FEE_ROUTER = ""
-TOLLY_CLAIM_CALLDATA = ""
+# FLYAI token (fly.ai) on Robinhood mainnet + protocol contracts
+FLYAI_TOKEN = "0x0088CE7905025c4B5ea1d49aB6179B6aaADB3B9C"
+TREASURY_VALUATION = "0x5be9ab574c7c9e3cf4367d610c682e6174633e24"
+# Fee router not yet deployed on Robinhood (needs V4 adapter) — claim
+# calldata encodes claim(FLYAI) for the LP-fee locker when it lands
+FEE_ROUTER = "0x0000000000000000000000000000000000000000"
+TOLLY_CLAIM_CALLDATA = "0x1e83409a000000000000000000000000088ce7905025c4b5ea1d49ab6179b6aaadb3b9c"
 
 # Secrets:
-# npx wrangler secret put ARC_RPC_URL
+# npx wrangler secret put RPC_URL
 # npx wrangler secret put EXECUTOR_PRIVATE_KEY
 # npx wrangler secret put DISCORD_WEBHOOK_URL
 # npx wrangler secret put EMERGENCY_STOP  (set to "1" to halt real trading)
-account_id = "6c0140469651854b2e358517371a03d3"

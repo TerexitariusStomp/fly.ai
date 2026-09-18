@@ -4,15 +4,15 @@ import { config } from "dotenv";
 config();
 
 const API_URL =
-  process.env.SYM_API_URL ?? "https://dev-symbient-protocol-api.callisto.finance/openapi.json";
+  process.env.FLYAI_API_URL ?? "https://api-worker.symbient.workers.dev/openapi.json";
 
 export default defineConfig({
-  symbientUnits: {
+  flyaiUnits: {
     input: {
       target: API_URL,
     },
     output: {
-      target: "generated-symbientUnits.ts",
+      target: "generated-flyaiUnits.ts",
       client: "react-query",
       clean: true,
       override: {

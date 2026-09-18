@@ -1,5 +1,6 @@
-export * from "./math-Constants";
-export * from "./math-solady";
-export * from "./math-MarketMath";
-export * from "./math-SharesMathLib";
-export * from "./math-formatting";
+import { formatUnits } from "viem";
+
+/** Format an 18-decimal on-chain amount as a JS number for display math. */
+export function formatTokenAmount(value: bigint, decimals = 18): number {
+  return Number(formatUnits(value, decimals));
+}

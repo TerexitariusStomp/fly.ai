@@ -15,12 +15,11 @@ import {
 } from "@/lib/analytics";
 
 const DESKTOP_BREAKPOINT = 1023.5;
-const TIGHT_POPOVER_CLASS = "symbient-tour-popover symbient-tour-popover-tight";
-const NEW_BADGE = `<span class="px-1.25 pt-px mx-[3px] rounded-full bg-green/20 text-[8px] font-semibold text-green uppercase inline-flex items-center justify-center align-middle relative -top-px">NEW</span>`;
+const TIGHT_POPOVER_CLASS = "flyai-tour-popover flyai-tour-popover-tight";
 
-type SYMStep = DriveStep & { name: string };
+type FlyaiStep = DriveStep & { name: string };
 
-function buildSteps(): SYMStep[] {
+function buildSteps(): FlyaiStep[] {
   return [
     {
       name: "sidebar_overview",
@@ -32,7 +31,7 @@ function buildSteps(): SYMStep[] {
             <li><strong>Overview.</strong> Live treasury NAV, floor price, and connectome brain activity.</li>
             <li><strong>Traders.</strong> The 7 connectomes — performance, signals, and betting markets.</li>
             <li><strong>Treasury.</strong> Reserves, RFV, positions, and every on-chain action.</li>
-            <li><strong>Stake & Wrap.</strong> Stake SYM to stSYM, wrap to wstSYM, and back.</li>
+            <li><strong>Stake & Wrap.</strong> Stake FLYAI to stFLYAI, wrap to wstFLYAI, and back.</li>
           </ul>
         `,
         side: "right",
@@ -63,7 +62,7 @@ function buildSteps(): SYMStep[] {
       popover: {
         title: "The shared treasury",
         description:
-          "Every SYM is partially backed by real reserves. NAV, RFV, floor price, positions, and every on-chain action — all verifiable.",
+          "Every FLYAI is partially backed by real reserves. NAV, RFV, floor price, positions, and every on-chain action — all verifiable.",
         side: "right",
         align: "center",
         popoverClass: TIGHT_POPOVER_CLASS,
@@ -110,27 +109,27 @@ function injectFooter(
   isLast: boolean,
 ) {
   // Guard: prevent re-entrant calls (driver.js MutationObserver loop)
-  if (popover.wrapper.querySelector(".symbient-tour-footer")) return;
+  if (popover.wrapper.querySelector(".flyai-tour-footer")) return;
 
   const footer = document.createElement("div");
-  footer.className = "symbient-tour-footer";
+  footer.className = "flyai-tour-footer";
 
   const dots = document.createElement("div");
-  dots.className = "symbient-tour-dots";
+  dots.className = "flyai-tour-dots";
   dots.innerHTML = Array.from({ length: totalSteps })
-    .map((_, i) => `<span class="symbient-tour-dot${i === stepIndex ? " active" : ""}"></span>`)
+    .map((_, i) => `<span class="flyai-tour-dot${i === stepIndex ? " active" : ""}"></span>`)
     .join("");
 
   const buttons = document.createElement("div");
-  buttons.className = "symbient-tour-buttons";
+  buttons.className = "flyai-tour-buttons";
 
   const skipBtn = document.createElement("button");
-  skipBtn.className = "symbient-tour-btn symbient-tour-btn-skip";
+  skipBtn.className = "flyai-tour-btn flyai-tour-btn-skip";
   skipBtn.textContent = "Skip";
   skipBtn.addEventListener("click", onSkip);
 
   const nextBtn = document.createElement("button");
-  nextBtn.className = "symbient-tour-btn symbient-tour-btn-next";
+  nextBtn.className = "flyai-tour-btn flyai-tour-btn-next";
   nextBtn.textContent = isLast ? "Got It" : "Next";
   nextBtn.addEventListener("click", onNext);
 
@@ -175,7 +174,7 @@ export function FeatureTour() {
     const driverInstance = driver({
       animate: true,
       overlayOpacity: 0.5,
-      popoverClass: "symbient-tour-popover",
+      popoverClass: "flyai-tour-popover",
       showButtons: [],
       allowClose: false,
       stagePadding: 0,
@@ -227,7 +226,7 @@ export function FeatureTour() {
         rafId = null;
         if (!driverInstance.isActive()) return;
         const el = driverInstance.getActiveElement();
-        const wrapper = document.querySelector<HTMLElement>(".symbient-tour-popover.driver-popover");
+        const wrapper = document.querySelector<HTMLElement>(".flyai-tour-popover.driver-popover");
         if (el && wrapper) alignArrow(wrapper, el);
       });
     };

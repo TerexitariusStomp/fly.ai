@@ -10,6 +10,10 @@ import {OlympusMinter} from "@olympus-v3/modules/MINTR/OlympusMinter.sol";
 import {OlympusTreasury} from "@olympus-v3/modules/TRSRY/OlympusTreasury.sol";
 import {OlympusRange} from "@olympus-v3/modules/RANGE/OlympusRange.sol";
 import {OlympusHeart} from "@olympus-v3/policies/Heart.sol";
+import {BasePeriodicTaskManager} from "@olympus-v3/bases/BasePeriodicTaskManager.sol";
+import {PolicyEnabler} from "@olympus-v3/policies/utils/PolicyEnabler.sol";
+import {SymbientHeart} from "../src/SymbientHeart.sol";
+import {SymbientEmergency} from "../src/SymbientEmergency.sol";
 import {RolesAdmin} from "@olympus-v3/policies/RolesAdmin.sol";
 import {Emergency} from "@olympus-v3/policies/Emergency.sol";
 import {TreasuryCustodian} from "@olympus-v3/policies/TreasuryCustodian.sol";
@@ -112,7 +116,7 @@ contract DeploySimplified is Script {
         // If set, SYM is an externally launched ERC20 (e.g. Tolly launch) —
         // fixed supply, no minting. SymbientToken + OlympusMinter are skipped and
         // staking rewards must be funded via SymbientStaking.depositRewards().
-        s_externalToken = vm.envOr("SYM_TOKEN", address(0));
+        s_externalToken = vm.envOr("FLYAI_TOKEN", address(0));
         s_reserveToken = vm.envAddress("RESERVE_TOKEN");
         address reserveToken = s_reserveToken;
         s_router = vm.envOr("UNISWAP_V2_ROUTER", address(0));
@@ -268,10 +272,18 @@ contract DeploySimplified is Script {
         s_distributor = address(distributor);
         console2.log("SymbientDistributor:", s_distributor);
 
-        OlympusHeart heart = new OlympusHeart(kernel, distributor, 1e18, 30 minutes);
-        kernel.executeAction(Actions.ActivatePolicy, address(heart));
-        s_heart = address(heart);
-        console2.log("OlympusHeart:", s_heart);
+        // External fixed-supply SYM has no MINTR — use the mint-free heart.
+        if (s_externalToken == address(0)) {
+            OlympusHeart heart = new OlympusHeart(kernel, distributor, 1e18, 30 minutes);
+            kernel.executeAction(Actions.ActivatePolicy, address(heart));
+            s_heart = address(heart);
+            console2.log("OlympusHeart:", s_heart);
+        } else {
+            SymbientHeart heart = new SymbientHeart(kernel, distributor);
+            kernel.executeAction(Actions.ActivatePolicy, address(heart));
+            s_heart = address(heart);
+            console2.log("SymbientHeart:", s_heart);
+        }
 
         // Defense budget -- gates RBS operate() on circuit breaker + budget
         SymbientDefenseBudget budget = new SymbientDefenseBudget(kernel, address(0), s_trsry, s_symbientToken, s_safe);
@@ -284,9 +296,16 @@ contract DeploySimplified is Script {
         s_rolesAdmin = address(rolesAdmin);
         console2.log("RolesAdmin:", s_rolesAdmin);
 
-        Emergency emergency = new Emergency(kernel);
-        kernel.executeAction(Actions.ActivatePolicy, address(emergency));
-        console2.log("Emergency:", address(emergency));
+        // External fixed-supply SYM has no MINTR — TRSRY-only emergency policy.
+        if (s_externalToken == address(0)) {
+            Emergency emergency = new Emergency(kernel);
+            kernel.executeAction(Actions.ActivatePolicy, address(emergency));
+            console2.log("Emergency:", address(emergency));
+        } else {
+            SymbientEmergency emergency = new SymbientEmergency(kernel);
+            kernel.executeAction(Actions.ActivatePolicy, address(emergency));
+            console2.log("SymbientEmergency:", address(emergency));
+        }
 
         TreasuryCustodian custodian = new TreasuryCustodian(kernel);
         kernel.executeAction(Actions.ActivatePolicy, address(custodian));
@@ -407,10 +426,10 @@ contract DeploySimplified is Script {
         rolesAdmin.pushNewAdmin(s_governor); // governor pulls via proposal
         console2.log("All roles -> governor");
 
-        // 4. Heart periodic tasks + enable
-        OlympusHeart(s_heart).addPeriodicTask(s_distributor);   // rebase every beat
-        OlympusHeart(s_heart).addPeriodicTask(s_defenseBudget); // RBS budget check
-        OlympusHeart(s_heart).enable("");
+        // 4. Heart periodic tasks + enable (shared bases on both heart variants)
+        BasePeriodicTaskManager(s_heart).addPeriodicTask(s_distributor);   // rebase every beat
+        BasePeriodicTaskManager(s_heart).addPeriodicTask(s_defenseBudget); // RBS budget check
+        PolicyEnabler(s_heart).enable("");
         console2.log("Heart enabled, periodic tasks registered");
 
         // 5. Governor role grants on standalone contracts -- requires MULTISIG_ROLE admin

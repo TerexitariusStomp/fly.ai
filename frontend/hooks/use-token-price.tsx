@@ -2,12 +2,12 @@ import type { Address } from "viem";
 import { parseUnits } from "viem";
 import { useReadContract } from "wagmi";
 import PriceAbi from "@/abis/Price";
-import gSymbientAbi from "@/abis/wstSYM";
+import wstFlyaiAbi from "@/abis/wstFLYAI";
 import { getTokenAddress, TokenName } from "@/lib/tokens";
 import { getContractAddress, ContractName } from "@/lib/contracts";
 import { formatTokenAmount } from "@/lib/math";
 
-const ONE_WSTSYM = parseUnits("1", 18);
+const ONE_WSTFLYAI = parseUnits("1", 18);
 const PRICE_QUERY_OPTIONS = {
   staleTime: 60_000,
   gcTime: 5 * 60_000,
@@ -21,63 +21,63 @@ function sameAddress(a?: Address, b?: Address): boolean {
 }
 
 export const useTokenPrice = (chainId: number, tokenAddress?: Address): { price: number } => {
-  const symbientAddress = getTokenAddress(TokenName.SYM, chainId);
-  const gSymbientAddress = getTokenAddress(TokenName.WSTSYM, chainId);
+  const flyaiAddress = getTokenAddress(TokenName.FLYAI, chainId);
+  const wstFlyaiAddress = getTokenAddress(TokenName.WSTFLYAI, chainId);
   const priceAddress = getContractAddress(ContractName.PRICE, chainId);
 
-  const isSymbientToken = sameAddress(tokenAddress, symbientAddress);
-  const isWSTSYMToken = sameAddress(tokenAddress, gSymbientAddress);
+  const isFlyaiToken = sameAddress(tokenAddress, flyaiAddress);
+  const isWSTFLYAIToken = sameAddress(tokenAddress, wstFlyaiAddress);
 
-  // PRICE module returns SYM price in reserve units with 18 decimals.
-  const { data: symbientPriceRaw } = useReadContract({
+  // PRICE module returns FLYAI price in reserve units with 18 decimals.
+  const { data: flyaiPriceRaw } = useReadContract({
     address: priceAddress,
     abi: PriceAbi,
     functionName: "getCurrentPrice",
     chainId,
     query: {
       ...PRICE_QUERY_OPTIONS,
-      enabled: !!tokenAddress && !!priceAddress && (isSymbientToken || isWSTSYMToken),
+      enabled: !!tokenAddress && !!priceAddress && (isFlyaiToken || isWSTFLYAIToken),
     },
   });
 
-  // Convert exactly 1 wstSYM to SYM via token contract helper.
-  // wstSymbientToStSymbient returns stSYM amount, then stSymbientPerToken gives SYM per stSYM.
-  const { data: stSymbientFromOneWSTSYM } = useReadContract({
-    address: gSymbientAddress,
-    abi: gSymbientAbi,
+  // Convert exactly 1 wstFLYAI to FLYAI via token contract helper.
+  // The wstFLYAI contract returns stFLYAI amount, then its index gives FLYAI per stFLYAI.
+  const { data: stFlyaiFromOneWstFlyai } = useReadContract({
+    address: wstFlyaiAddress,
+    abi: wstFlyaiAbi,
     functionName: "wstSymbientToStSymbient",
-    args: [ONE_WSTSYM],
+    args: [ONE_WSTFLYAI],
     chainId,
     query: {
       ...PRICE_QUERY_OPTIONS,
-      enabled: !!tokenAddress && !!gSymbientAddress && isWSTSYMToken,
+      enabled: !!tokenAddress && !!wstFlyaiAddress && isWSTFLYAIToken,
     },
   });
 
-  const { data: stSymbientPerToken } = useReadContract({
-    address: gSymbientAddress,
-    abi: gSymbientAbi,
+  const { data: stFlyaiPerToken } = useReadContract({
+    address: wstFlyaiAddress,
+    abi: wstFlyaiAbi,
     functionName: "stSymbientPerToken",
     chainId,
     query: {
       ...PRICE_QUERY_OPTIONS,
-      enabled: !!tokenAddress && !!gSymbientAddress && isWSTSYMToken,
+      enabled: !!tokenAddress && !!wstFlyaiAddress && isWSTFLYAIToken,
     },
   });
 
-  if (isSymbientToken) {
-    return { price: symbientPriceRaw ? formatTokenAmount(symbientPriceRaw) : 0 };
+  if (isFlyaiToken) {
+    return { price: flyaiPriceRaw ? formatTokenAmount(flyaiPriceRaw) : 0 };
   }
 
-  if (isWSTSYMToken) {
-    if (!symbientPriceRaw || !stSymbientFromOneWSTSYM || !stSymbientPerToken) return { price: 0 };
+  if (isWSTFLYAIToken) {
+    if (!flyaiPriceRaw || !stFlyaiFromOneWstFlyai || !stFlyaiPerToken) return { price: 0 };
 
-    const symbientPriceUsd = formatTokenAmount(symbientPriceRaw);
-    const stSymbientPerWstSymbient = formatTokenAmount(stSymbientFromOneWSTSYM);
-    const symbientPerStSymbient = formatTokenAmount(stSymbientPerToken);
-    const symbientPerWstSymbient = stSymbientPerWstSymbient * symbientPerStSymbient;
+    const flyaiPriceUsd = formatTokenAmount(flyaiPriceRaw);
+    const stFlyaiPerWstFlyai = formatTokenAmount(stFlyaiFromOneWstFlyai);
+    const flyaiPerStFlyai = formatTokenAmount(stFlyaiPerToken);
+    const flyaiPerWstFlyai = stFlyaiPerWstFlyai * flyaiPerStFlyai;
 
-    return { price: symbientPriceUsd * symbientPerWstSymbient };
+    return { price: flyaiPriceUsd * flyaiPerWstFlyai };
   }
 
   return { price: 0 };

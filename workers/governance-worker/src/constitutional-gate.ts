@@ -4,7 +4,7 @@
  *
  * Ported from widespread.fyi's packages/security/src/constitutional-gate.ts
  * (Apache-2.0). Adapted for the connectome colony: Tier 3 uses the 7
- * connectomes as the multi-agent vote instead of generic symbients.
+ * connectomes as the multi-agent vote instead of generic agents.
  *
  * Tiers:
  *   0 — absolute prohibitions (no override, no exception)
@@ -40,16 +40,18 @@ export interface GateResult {
 
 // ── Tier 0: absolute prohibitions (no-override, no-exception) ──────────────
 
-const TIER0_PROHIBITIONS: Array<{ pattern: RegExp; reason: string }> = [
+const TIER0_PROHIBITIONS: Array<{ pattern: RegExp; reason: string; codeOnly?: boolean }> = [
   { pattern: /csam|child\s+sexual|minor.*sexual/i, reason: "Tier 0: CSAM prohibition" },
   { pattern: /genocide|ethnic\s+cleansing/i, reason: "Tier 0: Genocide facilitation" },
   { pattern: /manipulat(e|ion).*deceptive/i, reason: "Tier 0: Deceptive manipulation" },
   { pattern: /fake\s+emotion|performed\s+emotion/i, reason: "Tier 0: Performed emotion" },
   { pattern: /biometric.*infer|infer.*biometric/i, reason: "Tier 0: Biometric inference" },
   { pattern: /expose.*private.*key|leak.*oauth.*token|exfiltrate.*secret/i, reason: "Tier 0: Unauthorized secret access" },
-  // Colony-specific: never allow draining the shared treasury
-  { pattern: /drain.*treasury|withdraw.*all|transfer.*all.*funds/i, reason: "Tier 0: Treasury drain attempt" },
-  { pattern: /self.*destruct|destroy.*contract|kill.*protocol/i, reason: "Tier 0: Protocol destruction" },
+  { pattern: /-----BEGIN (?:RSA |EC |OPENSSH |PGP )?PRIVATE KEY-----/, reason: "Tier 0: PEM private key material" },
+  // Colony-specific: never allow draining the shared treasury — prose-risk
+  // patterns skipped for doc files (README can *describe* withdrawals)
+  { pattern: /drain.*treasury|withdraw.*all|transfer.*all.*funds/i, reason: "Tier 0: Treasury drain attempt", codeOnly: true },
+  { pattern: /self.*destruct|destroy.*contract|kill.*protocol/i, reason: "Tier 0: Protocol destruction", codeOnly: true },
 ];
 
 // ── Tier 1: rule-based pre-checks (overrideable) ───────────────────────────
@@ -62,6 +64,9 @@ const TIER1_RULES: Array<{ pattern: RegExp; reason: string }> = [
   // Colony-specific: flag suspicious trade patterns
   { pattern: /sell.*all|dump.*everything|liquidate.*all/i, reason: "Mass liquidation flagged for review" },
   { pattern: /rug|exit.*scam|pump.*dump/i, reason: "Market manipulation pattern" },
+  // Code-commit specific: hardcoded key material in a diff (bytes32 constants
+  // are legit in Solidity, so this flags for review rather than blocking)
+  { pattern: /0x[0-9a-fA-F]{64}/, reason: "Possible raw private key in patch" },
 ];
 
 /**
@@ -74,8 +79,12 @@ export function evaluateGateSync(
 ): GateResult {
   const timestamp = Date.now();
   const actionStr = `${actionType} ${JSON.stringify(payload)}`;
+  // Doc files can't execute — prose-risk patterns (drain/destroy language)
+  // don't apply to markdown/text content
+  const isDoc = /\.(md|txt|rst|adoc)$/i.test(String(payload.file_path ?? ""));
 
   for (const rule of TIER0_PROHIBITIONS) {
+    if (rule.codeOnly && isDoc) continue;
     if (rule.pattern.test(actionStr)) {
       return {
         verdict: "block", reasoning: rule.reason, source: "tier0",
