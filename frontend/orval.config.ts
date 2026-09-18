@@ -4,7 +4,7 @@ import { config } from "dotenv";
 config();
 
 const API_URL =
-  process.env.FLYAI_API_URL ?? "https://api-worker.terexmaps.workers.dev/openapi.json";
+  process.env.FLYAI_API_URL ?? "https://api-worker.symbient.workers.dev/openapi.json";
 
 export default defineConfig({
   flyaiUnits: {

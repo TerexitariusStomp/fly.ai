@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import { useApi, type Connectome, type Signal } from "@/lib/flyai-api";
 import { ConnectomeViewer3D, type BrainData } from "@/components/connectome-viewer-3d";
 
-const API_BASE = import.meta.env.VITE_FLYAI_API_ENDPOINT ?? "https://api-worker.terexmaps.workers.dev";
+const API_BASE = import.meta.env.VITE_FLYAI_API_ENDPOINT ?? "https://api-worker.symbient.workers.dev";
 
 const SPECIES_IMAGES: Record<string, string> = {
   drosophila: "🪰", rat: "🐀", mouse: "🐭", ciona: "🦐",

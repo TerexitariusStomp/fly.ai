@@ -29,4 +29,4 @@ CREATE INDEX IF NOT EXISTS idx_colony_signals_created   ON colony_signals(create
 CREATE INDEX IF NOT EXISTS idx_training_data_closed     ON training_data(closed_at);
 CREATE INDEX IF NOT EXISTS idx_tokens_score             ON tokens(ignored, score);
 CREATE INDEX IF NOT EXISTS idx_governance_votes_decided ON governance_votes(decided_at);
-CREATE INDEX IF NOT EXISTS idx_social_posts_created     ON social_posts(created_at);
+CREATE INDEX IF NOT EXISTS idx_social_posts_posted      ON social_posts(posted_at);

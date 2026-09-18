@@ -51,8 +51,8 @@ interface Env {
 }
 
 const DEXSCREENER_API = "https://api.dexscreener.com/latest/dex";
-const FLY_BRAIN_RETRAIN_URL = "https://fly-brain-do.terexmaps.workers.dev/retrain";
-const FLY_BRAIN_BASE = "https://fly-brain-do.terexmaps.workers.dev";
+const FLY_BRAIN_RETRAIN_URL = "https://fly-brain-do.symbient.workers.dev/retrain";
+const FLY_BRAIN_BASE = "https://fly-brain-do.symbient.workers.dev";
 
 // Default paper trading config (overridden by learned settings when available)
 const STARTING_BALANCE = 1.0;

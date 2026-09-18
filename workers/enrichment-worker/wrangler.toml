@@ -7,11 +7,11 @@ compatibility_flags = ["python_workers"]
 [[d1_databases]]
 binding = "DB"
 database_name = "sym-protocol"
-database_id = "a494ae7e-4efd-49c6-8058-603179e3fd23"
+database_id = "c8180dd7-0f8b-40b0-bc23-0ccae5260ca3"
 
 # Cron trigger — every 2 minutes
 [triggers]
 # */15 — each run scans tokens + paper_trades history; */2 was ~2-4M
 # D1 rows/day against the shared 5M/day free-tier quota.
 crons = ["*/15 * * * *"]
-account_id = "6c0140469651854b2e358517371a03d3"
+account_id = "23738a036108482feac164d7eee10a30"

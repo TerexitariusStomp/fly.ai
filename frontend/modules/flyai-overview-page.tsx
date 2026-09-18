@@ -9,7 +9,7 @@ import { useApi, toTraderSummaries, type Connectome, type Governance, type Treas
 import { ConnectomeViewer3D, type BrainData } from "@/components/connectome-viewer-3d";
 import LeaderboardTable from "@/vendor/nofyai/components/competition/LeaderboardTable";
 
-const API_BASE = import.meta.env.VITE_FLYAI_API_ENDPOINT ?? "https://api-worker.terexmaps.workers.dev";
+const API_BASE = import.meta.env.VITE_FLYAI_API_ENDPOINT ?? "https://api-worker.symbient.workers.dev";
 
 const SPECIES_EMOJI: Record<string, string> = {
   drosophila: "🪰", rat: "🐀", mouse: "🐭", ciona: "🦐",

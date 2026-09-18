@@ -420,7 +420,7 @@ async function getColonyStatus(env: Env) {
   }
 
   const lastPost = await env.DB.prepare(
-    "SELECT MAX(created_at) AS last_post FROM social_posts"
+    "SELECT MAX(posted_at) AS last_post FROM social_posts"
   ).first().catch(() => null);
   const lastCycle = await env.DB.prepare(
     "SELECT MAX(decided_at) AS last_cycle FROM governance_votes"

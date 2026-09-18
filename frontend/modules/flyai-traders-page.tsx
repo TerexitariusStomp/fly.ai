@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useApi, toTraderSummaries, type Connectome, type Governance, type Signal } from "@/lib/flyai-api";
 import LeaderboardTable from "@/vendor/nofyai/components/competition/LeaderboardTable";
 
-const API_BASE = import.meta.env.VITE_FLYAI_API_ENDPOINT ?? "https://api-worker.terexmaps.workers.dev";
+const API_BASE = import.meta.env.VITE_FLYAI_API_ENDPOINT ?? "https://api-worker.symbient.workers.dev";
 
 export function FlyaiTradersPage() {
   const { data: connectomes } = useApi<Connectome[]>("/api/connectomes", 5000);

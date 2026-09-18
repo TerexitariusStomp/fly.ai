@@ -250,7 +250,7 @@ async function llmPost(env: Env, cid: string, ctx: string): Promise<string | nul
   }
 }
 
-const BRAIN_BASE = "https://fly-brain-do.terexmaps.workers.dev";
+const BRAIN_BASE = "https://fly-brain-do.symbient.workers.dev";
 
 /** Fetch this connectome's last neural decode — the actual brain output.
  *  Returns the action + group counts, or null if the DO hasn't ticked. */

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 /** fly.ai protocol dashboard — treasury, connectomes, governance, colony health.
  *  Data from api-worker (the Olympus-fork dashboard's backend), rendered inside the fly.ai shell. */
 
-const API = (import.meta.env.VITE_PROTOCOL_API as string | undefined) ?? "https://api-worker.terexmaps.workers.dev";
+const API = (import.meta.env.VITE_PROTOCOL_API as string | undefined) ?? "https://api-worker.symbient.workers.dev";
 
 type ColonyStatus = {
   ok: boolean; stale_connectomes: number;

@@ -7,7 +7,7 @@
  *  (the feed already polls). rpc() maps to /rpc/<fn> REST calls.
  */
 
-const API = (import.meta.env.VITE_FLYBOOK_API as string | undefined) ?? "https://flybook-api.terexmaps.workers.dev";
+const API = (import.meta.env.VITE_FLYBOOK_API as string | undefined) ?? "https://flybook-api.symbient.workers.dev";
 
 export interface EthereumWallet { address: string }
 export interface Session { user: { id: string; email?: string }; access_token?: string; wallet?: string }

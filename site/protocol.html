@@ -202,7 +202,7 @@
 
 <script src="assets/site.js"></script>
 <script>
-const API = "https://api-worker.terexmaps.workers.dev";
+const API = "https://api-worker.symbient.workers.dev";
 const $ = (id) => document.getElementById(id);
 const esc = (v) => String(v ?? "—").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const num = (v, d = 4) => Number.isFinite(Number(v)) ? Number(v).toLocaleString(undefined, { maximumFractionDigits: d }) : "—";

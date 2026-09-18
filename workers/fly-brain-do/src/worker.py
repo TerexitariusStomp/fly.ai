@@ -702,7 +702,7 @@ class ConnectomeDO(DurableObject):
         would exhaust the free-tier daily row-read limit. Falls back to
         a direct D1 query if the API is unreachable.
         """
-        api_base = getattr(self.env, "API_BASE_URL", None) or "https://api-worker.terexmaps.workers.dev"
+        api_base = getattr(self.env, "API_BASE_URL", None) or "https://api-worker.symbient.workers.dev"
         try:
             resp = await fetch(f"{api_base}/api/tokens?min_score=30&limit={limit}")
             if resp.status == 200:
@@ -788,12 +788,12 @@ class ConnectomeDO(DurableObject):
             last_trade = (await self.ctx.storage.get("last_trade_at") or 0)
             if int(time.time()) - int(last_trade) >= 300:
                 try:
-                    await fetch("https://trade-worker.terexmaps.workers.dev/process", headers=key)
+                    await fetch("https://trade-worker.symbient.workers.dev/process", headers=key)
                     await self.ctx.storage.put("last_trade_at", int(time.time()))
                 except Exception:
                     pass
             try:
-                await fetch("https://discovery-worker.terexmaps.workers.dev/", headers=key)
+                await fetch("https://discovery-worker.symbient.workers.dev/", headers=key)
             except Exception:
                 pass
             # Daily retention — signals/colony_signals grow ~5k rows/day and
@@ -809,7 +809,7 @@ class ConnectomeDO(DurableObject):
             last_social = (await self.ctx.storage.get("last_social_at") or 0)
             if int(time.time()) - int(last_social) >= 420:
                 try:
-                    await fetch("https://social-worker.terexmaps.workers.dev/post", headers=key)
+                    await fetch("https://social-worker.symbient.workers.dev/post", headers=key)
                     await self.ctx.storage.put("last_social_at", int(time.time()))
                 except Exception:
                     pass
@@ -819,7 +819,7 @@ class ConnectomeDO(DurableObject):
             last_gov = (await self.ctx.storage.get("last_gov_at") or 0)
             if int(time.time()) - int(last_gov) >= 840:
                 try:
-                    await fetch("https://governance-worker.terexmaps.workers.dev/governance/cycle", headers=key)
+                    await fetch("https://governance-worker.symbient.workers.dev/governance/cycle", headers=key)
                     await self.ctx.storage.put("last_gov_at", int(time.time()))
                 except Exception:
                     pass

@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { useApi, type Connectome, type Governance } from "@/lib/flyai-api";
 
-const API_BASE = import.meta.env.VITE_FLYAI_API_ENDPOINT ?? "https://api-worker.terexmaps.workers.dev";
+const API_BASE = import.meta.env.VITE_FLYAI_API_ENDPOINT ?? "https://api-worker.symbient.workers.dev";
 
 export function FlyaiBettingPage() {
   const { data: connectomes } = useApi<Connectome[]>("/api/connectomes");

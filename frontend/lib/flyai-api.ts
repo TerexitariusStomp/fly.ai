@@ -4,8 +4,8 @@
  */
 import { useEffect, useState, useCallback } from "react";
 
-const API_BASE = import.meta.env.VITE_FLYAI_API_ENDPOINT ?? "https://api-worker.terexmaps.workers.dev";
-const GOV_BASE = import.meta.env.VITE_FLYAI_GOVERNANCE_API_ENDPOINT ?? "https://governance-worker.terexmaps.workers.dev";
+const API_BASE = import.meta.env.VITE_FLYAI_API_ENDPOINT ?? "https://api-worker.symbient.workers.dev";
+const GOV_BASE = import.meta.env.VITE_FLYAI_GOVERNANCE_API_ENDPOINT ?? "https://governance-worker.symbient.workers.dev";
 
 async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url);
