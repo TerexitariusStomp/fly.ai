@@ -1,5 +1,5 @@
 //! Multi-platform adapters: ATProto (Bluesky + Blacksky + Eurosky PDSes),
-//! custom symbient.connectome.* lexicons, Nostr (secp256k1 — same curve as the
+//! custom flyai.connectome.* lexicons, Nostr (secp256k1 — same curve as the
 //! threshold ECDSA wallet, no registration needed), Mastodon (ActivityPub,
 //! programmatic registration). All HTTP via the ICP outcall adapter.
 
@@ -76,7 +76,7 @@ pub async fn refresh_session(sess: &AtpSession) -> Result<AtpSession, String> {
 }
 
 /// Post a record to any collection — covers app.bsky.feed.post plus our
-/// custom symbient.connectome.* lexicons and platform lexicons (Frontpage,
+/// custom flyai.connectome.* lexicons and platform lexicons (Frontpage,
 /// Leaflet, Whitewind, Smoke Signal).
 pub async fn create_record(
     sess: &AtpSession,
@@ -205,7 +205,7 @@ pub async fn search_posts(sess: &AtpSession, query: &str, limit: u32) -> Result<
 /// Custom connectome lexicon records — transparent cognition as queryable data.
 pub async fn publish_connectome_record(
     sess: &AtpSession,
-    collection: &str, // e.g. "symbient.connectome.thought"
+    collection: &str, // e.g. "flyai.connectome.thought"
     record: serde_json::Value,
 ) -> Result<String, String> {
     create_record(sess, collection, record).await

@@ -15,11 +15,11 @@ import {
 } from "@/lib/analytics";
 
 const DESKTOP_BREAKPOINT = 1023.5;
-const TIGHT_POPOVER_CLASS = "symbient-tour-popover symbient-tour-popover-tight";
+const TIGHT_POPOVER_CLASS = "flyai-tour-popover flyai-tour-popover-tight";
 
-type SYMStep = DriveStep & { name: string };
+type FlyaiStep = DriveStep & { name: string };
 
-function buildSteps(): SYMStep[] {
+function buildSteps(): FlyaiStep[] {
   return [
     {
       name: "sidebar_overview",
@@ -109,27 +109,27 @@ function injectFooter(
   isLast: boolean,
 ) {
   // Guard: prevent re-entrant calls (driver.js MutationObserver loop)
-  if (popover.wrapper.querySelector(".symbient-tour-footer")) return;
+  if (popover.wrapper.querySelector(".flyai-tour-footer")) return;
 
   const footer = document.createElement("div");
-  footer.className = "symbient-tour-footer";
+  footer.className = "flyai-tour-footer";
 
   const dots = document.createElement("div");
-  dots.className = "symbient-tour-dots";
+  dots.className = "flyai-tour-dots";
   dots.innerHTML = Array.from({ length: totalSteps })
-    .map((_, i) => `<span class="symbient-tour-dot${i === stepIndex ? " active" : ""}"></span>`)
+    .map((_, i) => `<span class="flyai-tour-dot${i === stepIndex ? " active" : ""}"></span>`)
     .join("");
 
   const buttons = document.createElement("div");
-  buttons.className = "symbient-tour-buttons";
+  buttons.className = "flyai-tour-buttons";
 
   const skipBtn = document.createElement("button");
-  skipBtn.className = "symbient-tour-btn symbient-tour-btn-skip";
+  skipBtn.className = "flyai-tour-btn flyai-tour-btn-skip";
   skipBtn.textContent = "Skip";
   skipBtn.addEventListener("click", onSkip);
 
   const nextBtn = document.createElement("button");
-  nextBtn.className = "symbient-tour-btn symbient-tour-btn-next";
+  nextBtn.className = "flyai-tour-btn flyai-tour-btn-next";
   nextBtn.textContent = isLast ? "Got It" : "Next";
   nextBtn.addEventListener("click", onNext);
 
@@ -174,7 +174,7 @@ export function FeatureTour() {
     const driverInstance = driver({
       animate: true,
       overlayOpacity: 0.5,
-      popoverClass: "symbient-tour-popover",
+      popoverClass: "flyai-tour-popover",
       showButtons: [],
       allowClose: false,
       stagePadding: 0,
@@ -226,7 +226,7 @@ export function FeatureTour() {
         rafId = null;
         if (!driverInstance.isActive()) return;
         const el = driverInstance.getActiveElement();
-        const wrapper = document.querySelector<HTMLElement>(".symbient-tour-popover.driver-popover");
+        const wrapper = document.querySelector<HTMLElement>(".flyai-tour-popover.driver-popover");
         if (el && wrapper) alignArrow(wrapper, el);
       });
     };

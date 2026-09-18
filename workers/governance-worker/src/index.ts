@@ -80,10 +80,10 @@ function chainFor(env: Env) {
 
 // ======== Treasury review — connectome-managed rewards + bond sizing ========
 // Rewards are funded by market buybacks, never minting: TRSRY USDC reserves
-// (LP fees + trading profits) get swapped to SYM and deposited into the
+// (LP fees + trading profits) get swapped to FLYAI and deposited into the
 // staking rewardPool via FeeRouter.fundRewards — a connectome vote.
-// Bond capacity is sized to how much SYM the treasury is able to absorb:
-// thin SYM inventory → larger buyback capacity; heavy inventory → smaller.
+// Bond capacity is sized to how much FLYAI the treasury is able to absorb:
+// thin FLYAI inventory → larger buyback capacity; heavy inventory → smaller.
 
 const ERC20_BAL_ABI = [
   { name: "balanceOf", type: "function", inputs: [{ name: "a", type: "address" }], outputs: [{ type: "uint256" }], stateMutability: "view" },
@@ -94,7 +94,7 @@ const EXECUTE_MODULE_ABI = [
   { name: "executeModule", type: "function", inputs: [{ name: "target", type: "address" }, { name: "data", type: "bytes" }], outputs: [{ type: "bytes" }] },
 ] as const;
 const FUND_REWARDS_ABI = [
-  { name: "fundRewards", type: "function", inputs: [{ name: "usdcAmount", type: "uint256" }, { name: "minSymbientOut", type: "uint256" }], outputs: [] },
+  { name: "fundRewards", type: "function", inputs: [{ name: "usdcAmount", type: "uint256" }, { name: "minFlyaiOut", type: "uint256" }], outputs: [] },
 ] as const;
 const BOND_CAPACITY_ABI = [
   { name: "setMaxCapacityBps", type: "function", inputs: [{ name: "bps", type: "uint256" }], outputs: [] },
@@ -115,7 +115,7 @@ const COLONY_ABI = [
 const REVIEW_INTERVAL_S = 6 * 3600;        // one treasury review per 6h
 const REWARD_RESERVE_PCT = 20n;            // fund rewards with 20% of USDC reserves
 const REWARD_MIN_USDC = 25n * 10n ** 6n;   // don't bother under $25
-const SLIPPAGE_BPS = 300n;                 // 3% min-out on the USDC→SYM swap
+const SLIPPAGE_BPS = 300n;                 // 3% min-out on the USDC→FLYAI swap
 
 async function runTreasuryReview(env: Env): Promise<Record<string, unknown>> {
   const required = ["TRSRY_ADDRESS", "FEE_ROUTER", "GOVERNOR_POLICY", "INVERSE_BOND", "FLYAI_TOKEN", "FLYAI_POOL_ID", "STAKING", "USDC_ADDRESS"];
@@ -132,7 +132,7 @@ async function runTreasuryReview(env: Env): Promise<Record<string, unknown>> {
   const pub = createPublicClient({ chain: chainFor(env), transport: http(env.RPC_URL) });
   const trsry = env.TRSRY_ADDRESS as Address;
   const usdc = env.USDC_ADDRESS as Address;
-  const sym = env.FLYAI_TOKEN as Address;
+  const flyai = env.FLYAI_TOKEN as Address;
   // V4 pool IDs are bytes32, not ERC20 pair contracts — balanceOf reads
   // on this revert and return 0n until a V4 reserve adapter is added.
   const pair = env.FLYAI_POOL_ID as Address;
@@ -140,19 +140,19 @@ async function runTreasuryReview(env: Env): Promise<Record<string, unknown>> {
   const read = (address: Address, fn: "balanceOf" | "totalSupply", args: readonly unknown[] = []) =>
     pub.readContract({ address, abi: ERC20_BAL_ABI, functionName: fn, args: args as never }).catch(() => 0n);
 
-  const [usdcReserves, routerUsdc, symHeld, symSupply, pairUsdc, pairSym, rewardPool, curCapBps] = await Promise.all([
+  const [usdcReserves, routerUsdc, flyaiHeld, flyaiSupply, pairUsdc, pairFlyai, rewardPool, curCapBps] = await Promise.all([
     read(usdc, "balanceOf", [trsry]),
     read(usdc, "balanceOf", [env.FEE_ROUTER as Address]),
-    read(sym, "balanceOf", [trsry]),
-    read(sym, "totalSupply"),
+    read(flyai, "balanceOf", [trsry]),
+    read(flyai, "totalSupply"),
     read(usdc, "balanceOf", [pair]),
-    read(sym, "balanceOf", [pair]),
+    read(flyai, "balanceOf", [pair]),
     pub.readContract({ address: env.STAKING as Address, abi: REWARD_POOL_ABI, functionName: "rewardPool" }).catch(() => 0n),
     pub.readContract({ address: env.INVERSE_BOND as Address, abi: BOND_CAPACITY_ABI, functionName: "maxCapacityBps" }).catch(() => 0n),
   ]);
 
-  const symPerUsdc = pairUsdc > 0n ? Number(pairSym) / Number(pairUsdc) : 0;
-  const priceMicro = pairSym > 0n ? Number(pairUsdc) / (Number(pairSym) / 1e12) : 0;
+  const flyaiPerUsdc = pairUsdc > 0n ? Number(pairFlyai) / Number(pairUsdc) : 0;
+  const priceMicro = pairFlyai > 0n ? Number(pairUsdc) / (Number(pairFlyai) / 1e12) : 0;
 
   const queued: string[] = [];
 
@@ -160,29 +160,29 @@ async function runTreasuryReview(env: Env): Promise<Record<string, unknown>> {
   const rewardFloat = usdcReserves + routerUsdc; // claimable + treasury USDC
   if (rewardFloat >= REWARD_MIN_USDC) {
     const spend = (rewardFloat * REWARD_RESERVE_PCT) / 100n;
-    const expectedSym = symPerUsdc > 0 ? BigInt(Math.floor(Number(spend) / 1e6 * symPerUsdc)) : 0n;
-    const minOut = (expectedSym * (10000n - SLIPPAGE_BPS)) / 10000n;
+    const expectedFlyai = flyaiPerUsdc > 0 ? BigInt(Math.floor(Number(spend) / 1e6 * flyaiPerUsdc)) : 0n;
+    const minOut = (expectedFlyai * (10000n - SLIPPAGE_BPS)) / 10000n;
     if (minOut > 0n) {
       const inner = encodeFunctionData({ abi: FUND_REWARDS_ABI, functionName: "fundRewards", args: [spend, minOut] });
       const data = encodeFunctionData({ abi: EXECUTE_MODULE_ABI, functionName: "executeModule", args: [env.FEE_ROUTER as Address, inner] });
       await queueProposal(env, {
         target: env.GOVERNOR_POLICY as string, calldata: data, kind: "fund_rewards",
-        description: `fundRewards: $${(Number(spend) / 1e6).toFixed(2)} USDC → SYM → rewardPool (pool now ${(Number(rewardPool) / 1e18).toFixed(2)} SYM)`,
+        description: `fundRewards: $${(Number(spend) / 1e6).toFixed(2)} USDC → FLYAI → rewardPool (pool now ${(Number(rewardPool) / 1e18).toFixed(2)} FLYAI)`,
         price: priceMicro, signal: 70,
       });
       queued.push("fund_rewards");
     }
   }
 
-  // --- Bond capacity: scale to SYM inventory share ---
-  const symShareBps = symSupply > 0n ? Number((symHeld * 10000n) / symSupply) : 0;
-  const targetCapBps = symShareBps < 100 ? 300 : symShareBps < 500 ? 150 : 50; // <1% → 3%, <5% → 1.5%, else 0.5% NAV/epoch
+  // --- Bond capacity: scale to FLYAI inventory share ---
+  const flyaiShareBps = flyaiSupply > 0n ? Number((flyaiHeld * 10000n) / flyaiSupply) : 0;
+  const targetCapBps = flyaiShareBps < 100 ? 300 : flyaiShareBps < 500 ? 150 : 50; // <1% → 3%, <5% → 1.5%, else 0.5% NAV/epoch
   if (targetCapBps !== Number(curCapBps)) {
     const data = encodeFunctionData({ abi: BOND_CAPACITY_ABI, functionName: "setMaxCapacityBps", args: [BigInt(targetCapBps)] });
     await queueProposal(env, {
       target: env.INVERSE_BOND as string, calldata: data, kind: "bond_capacity",
-      description: `setMaxCapacityBps(${targetCapBps}) — treasury SYM share ${(symShareBps / 100).toFixed(2)}% of supply`,
-      price: priceMicro, signal: symShareBps < 100 ? 75 : 45,
+      description: `setMaxCapacityBps(${targetCapBps}) — treasury FLYAI share ${(flyaiShareBps / 100).toFixed(2)}% of supply`,
+      price: priceMicro, signal: flyaiShareBps < 100 ? 75 : 45,
     });
     queued.push("bond_capacity");
   }
@@ -696,7 +696,7 @@ async function runEpoch(env: Env): Promise<Record<string, unknown>> {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: "SYM Governance",
+          username: "FLYAI Governance",
           embeds: [{
             title: `Epoch ${epoch} settled`,
             color: 0x9b59b6,

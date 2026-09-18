@@ -108,8 +108,6 @@ const BLOCK_EXPLORER_URLS: Record<number, string> = {
   42161: "https://arbiscan.io",
   4663: "https://robinhoodchain.blockscout.com",
   46630: "https://explorer.testnet.chain.robinhood.com",
-  5042001: "https://arcscan.app",
-  5042002: "https://testnet.arcscan.app",
   80094: "https://berascan.com",
 };
 

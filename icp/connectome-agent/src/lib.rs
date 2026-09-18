@@ -138,7 +138,7 @@ impl Default for StrategyParams {
             lp_allocation: 0,
             burn_pct: 5,
             airdrop_amount: 0,
-            replication_burn_amount: 10_000_000_000_000_000_000_000, // 10k SYM (18 dec)
+            replication_burn_amount: 10_000_000_000_000_000_000_000, // 10k FLYAI (18 dec)
             max_tx_per_hour: 6,
             max_drawdown_bps: 2000, // 20%
         }
@@ -898,7 +898,7 @@ async fn run_trading_cycle() {
             continue;
         }
 
-        // 3. Build the swap calldata — buy = WETH→SYM, sell = SYM→WETH
+        // 3. Build the swap calldata — buy = WETH→FLYAI, sell = FLYAI→WETH
         let (t_in, t_out) = if action == "buy" { (weth_addr, token_addr) }
                             else { (token_addr, weth_addr) };
         let amount_in = (u128::from(strategy.trade_size_pct) * 1_000_000_000_000_000u128)
@@ -1339,7 +1339,7 @@ async fn run_research_cycle() {
         let sess = match &identity.bsky_session { Some(s) => s.clone(), None => continue };
         let profile = get_profile(&cid);
         let prompt = format!(
-            "Current SYM market data: {}\n             Write a research insight post: your species-level analysis of the market.",
+            "Current FLYAI market data: {}\n             Write a research insight post: your species-level analysis of the market.",
             mdata.as_deref().unwrap_or("unavailable"),
         );
         let resp = ic_llm::chat(&llm_model())
@@ -1357,7 +1357,7 @@ async fn run_research_cycle() {
             journal_commit(&cid, &format!("research/{}.md", ic_cdk::api::time()),
                 &format!("# research\n{}", text), "research insight");
             // Also publish as a connectome lexicon record
-            let _ = platforms::publish_connectome_record(&sess, "symbient.connectome.thought",
+            let _ = platforms::publish_connectome_record(&sess, "flyai.connectome.thought",
                 serde_json::json!({"text": text, "ts": ic_cdk::api::time()})).await;
             record_memory_event(&cid, "research_post", &text);
         }
@@ -1365,7 +1365,7 @@ async fn run_research_cycle() {
 }
 
 async fn run_tokenomics_cycle() {
-    // Daily — measure the SYM pool's USDC reserve delta vs the previous
+    // Daily — measure the FLYAI pool's USDC reserve delta vs the previous
     // snapshot: positive flow → expansion (treasury supply); negative →
     // contraction (buyback + dead-sink). Bounds-checked by strategy params.
     if ic_cdk::api::time() % 86_400_000_000_000 > 3_600_000_000_000 {
@@ -1398,7 +1398,7 @@ async fn run_tokenomics_cycle() {
             continue;
         }
         // Expansion: park flow gains in Aave (treasury cycle handles it next hour)
-        // Contraction: buyback SYM with a capped fraction of reserve + burn.
+        // Contraction: buyback FLYAI with a capped fraction of reserve + burn.
         if net_flow < 0 {
             let outflow = (-net_flow) as u128;
             let buyback_amt = outflow.min(reserve / 10); // cap at 10% of pool
@@ -1427,7 +1427,7 @@ async fn run_sentiment_cycle() {
     for cid in connectome_ids() {
         let identity = match get_identity(&cid) { Some(i) => i, None => continue };
         let sess = match &identity.bsky_session { Some(s) => s.clone(), None => continue };
-        for topic in ["SYM", "treasury", "connectome"] {
+        for topic in ["FLYAI", "treasury", "connectome"] {
             let posts = match platforms::search_posts(&sess, topic, 20).await {
                 Ok(p) => p, Err(_) => continue,
             };
@@ -1605,7 +1605,7 @@ pub struct HttpResponse {
 fn dashboard() -> HttpResponse {
     let n = CONNECTOMES.with(|c| c.borrow().len());
     let body = format!(
-        "<html><body><h1>SYM Connectome Colony</h1>\
+        "<html><body><h1>FLYAI Connectome Colony</h1>\
          <p>{} registered connectomes</p>\
          <p>Cycles: {}</p>\
          <p>Runway: {}h</p></body></html>",

@@ -1,4 +1,4 @@
--- SHIT Token D1 Schema v3 — multi-connectome trading collective + on-chain betting
+-- FLYAI Protocol D1 Schema v3 — multi-connectome trading collective + on-chain betting
 -- Adds: 7 governing connectomes, wallets, user bets, prediction rounds, P&L reports
 
 -- Connectome registry — one row per biological connectome
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS user_vault_stakes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_address TEXT NOT NULL,
   connectome_id TEXT NOT NULL,
-  amount REAL NOT NULL,            -- SHIT tokens staked
+  amount REAL NOT NULL,            -- FLYAI tokens staked
   stake_tx_hash TEXT,
   unstake_tx_hash TEXT,
   pnl_share REAL,                  -- P&L share received
@@ -64,10 +64,10 @@ CREATE TABLE IF NOT EXISTS user_prediction_bets (
   user_address TEXT NOT NULL,
   round_id INTEGER NOT NULL,       -- FK to prediction_rounds.id
   connectome_id TEXT NOT NULL,    -- which connectome user bets will win
-  amount REAL NOT NULL,            -- SHIT tokens wagered
+  amount REAL NOT NULL,            -- FLYAI tokens wagered
   bet_tx_hash TEXT,
   claimed BOOLEAN DEFAULT 0,
-  payout REAL,                     -- SHIT tokens received if won
+  payout REAL,                     -- FLYAI tokens received if won
   claim_tx_hash TEXT,
   bet_at INTEGER NOT NULL,
   FOREIGN KEY (connectome_id) REFERENCES connectomes(id)
@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS prediction_rounds (
   epoch INTEGER NOT NULL,
   start_time INTEGER NOT NULL,
   end_time INTEGER NOT NULL,
-  total_pool REAL DEFAULT 0.0,     -- total SHIT wagered
+  total_pool REAL DEFAULT 0.0,     -- total FLYAI wagered
   winner_connectome_id TEXT,       -- set at settlement
   settled BOOLEAN DEFAULT 0,
   settle_tx_hash TEXT,
@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS user_copy_trades (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_address TEXT NOT NULL,
   connectome_id TEXT NOT NULL,    -- which connectome to copy
-  amount REAL NOT NULL,            -- SHIT allocated to copy
+  amount REAL NOT NULL,            -- FLYAI allocated to copy
   start_tx_hash TEXT,
   stop_tx_hash TEXT,
   realized_pnl REAL,

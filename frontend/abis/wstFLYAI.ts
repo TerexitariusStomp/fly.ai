@@ -1,1 +1,1 @@
-export { default } from "./wstSYM";
+export { default } from "./WrappedStakedFlyai";

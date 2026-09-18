@@ -29,13 +29,6 @@ export const robinhoodTestnet = defineChain({
   testnet: true,
 });
 
-// Backward-compatible aliases — the frontend imports `base` and `baseSepolia`
-// We alias them to Robinhood so the existing frontend works without rewriting imports
-export const arc = robinhood;
-export const arcTestnet = robinhoodTestnet;
-export const base = robinhood;
-export const baseSepolia = robinhoodTestnet;
-
 const withIcon = <T extends { id: number }>(chain: T, iconUrl: string) => ({
   ...chain,
   iconUrl,

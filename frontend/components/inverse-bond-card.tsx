@@ -9,13 +9,13 @@ import { Card } from "@/components/ui-card";
 import { Skeleton } from "@/components/ui-skeleton";
 import { TokenBigInput } from "@/components/ui-token-big-input";
 import { useConnectedAddress } from "@/hooks/use-connected-address";
-import { usePrivyWalletClient } from "@/hooks/use-privy-wallet-client";
+import { useConnectedWalletClient } from "@/hooks/use-connected-wallet-client";
 import { useToken } from "@/hooks/use-token";
 import { ContractName, getContractAddress } from "@/lib/contracts";
 import { getBlockExplorerTxUrl } from "@/lib/helpers";
 import { TokenName } from "@/lib/tokens";
 import { parseTokenAmount } from "@/lib/utils-token-amount";
-import InverseBondAbi from "@/abis/SymbientInverseBond";
+import InverseBondAbi from "@/abis/InverseBond";
 
 type TxState =
   | { status: "idle" }
@@ -30,7 +30,7 @@ export function InverseBondCard() {
   const chainId = useChainId();
   const publicClient = usePublicClient();
   const queryClient = useQueryClient();
-  const { walletClient } = usePrivyWalletClient();
+  const { walletClient } = useConnectedWalletClient();
   const flyai = useToken(TokenName.FLYAI, address);
   const [amount, setAmount] = useState("");
   const [tx, setTx] = useState<TxState>({ status: "idle" });

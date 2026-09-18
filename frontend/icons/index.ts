@@ -5,4 +5,4 @@ export { default as FLYAITokenIcon } from "./fly.svg";
 export { default as WSTFLYAITokenIcon } from "./fly.svg";
 export { default as STFLYAITokenIcon } from "./fly.svg";
 
-export { default as BaseChainIcon } from "./chain-base.svg?react";
+export { default as RobinhoodChainIcon } from "./fly.svg?react";

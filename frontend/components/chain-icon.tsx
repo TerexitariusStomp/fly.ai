@@ -2,7 +2,7 @@ import type { SVGProps, FC } from "react";
 import { Tooltip } from "@/components/ui-tooltip";
 import { cn } from "@/lib/utils";
 
-import BaseIcon from "@/icons/chain-base.svg?react";
+import FlyaiIcon from "@/icons/fly.svg?react";
 
 type ChainMeta = {
   label: string;
@@ -10,8 +10,8 @@ type ChainMeta = {
 };
 
 const CHAIN_META: Record<number, ChainMeta> = {
-  5042001: { label: "Arc", Icon: BaseIcon },
-  5042002: { label: "Arc Testnet", Icon: BaseIcon },
+  4663: { label: "Robinhood", Icon: FlyaiIcon },
+  46630: { label: "Robinhood Testnet", Icon: FlyaiIcon },
 };
 
 type ChainIconProps = {

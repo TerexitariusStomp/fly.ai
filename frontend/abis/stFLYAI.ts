@@ -1,1 +1,1 @@
-export { default } from "./stSYM";
+export { default } from "./StakedFlyai";

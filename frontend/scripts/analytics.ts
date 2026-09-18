@@ -158,7 +158,7 @@ async function cloudflareReport(daysAgo: string, groupBy: string): Promise<void>
   const key = process.env.CLOUDFLARE_API_KEY;
   if (!email || !key) { console.error("CLOUDFLARE_EMAIL and CLOUDFLARE_API_KEY not set"); process.exit(1); }
 
-  const domain = process.env.CLOUDFLARE_DOMAIN ?? "symbient.finance";
+  const domain = process.env.CLOUDFLARE_DOMAIN ?? "flyai.widespread.fyi";
   const days = Number(daysAgo || "7");
   const since = new Date(); since.setDate(since.getDate() - days);
   const until = new Date();
@@ -283,7 +283,7 @@ async function posthogReport(command: string, arg: string): Promise<void> {
 async function baseReport(command: string, ...args: string[]): Promise<void> {
   const apiKey = process.env.BASE_DEV_API_KEY;
   if (!apiKey) { console.error("BASE_DEV_API_KEY not set"); process.exit(1); }
-  const appUrl = process.env.BASE_APP_URL ?? "https://symbient.finance";
+  const appUrl = process.env.BASE_APP_URL ?? "https://flyai.widespread.fyi";
   const dashboardUrl = "https://dashboard.base.org/api/v1";
   const apiBaseUrl = "https://api.base.dev/v1";
   const headers = { "x-api-key": apiKey, "Content-Type": "application/json" };

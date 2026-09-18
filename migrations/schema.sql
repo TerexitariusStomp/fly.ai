@@ -1,4 +1,4 @@
--- SHIT Token D1 Schema
+-- FLYAI Protocol D1 Schema
 -- Cloudflare D1 (SQLite) — free tier: 5GB, 5M reads/day, 100K writes/day
 
 -- Token discovery
@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS trades (
 CREATE INDEX IF NOT EXISTS idx_trades_token ON trades(token_address);
 CREATE INDEX IF NOT EXISTS idx_trades_created ON trades(created_at DESC);
 
--- Treasury value tracking (reserve assets backing 5H1T)
+-- Treasury value tracking (reserve assets backing FLYAI)
 CREATE TABLE IF NOT EXISTS treasury_snapshots (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   reserve_usd REAL,

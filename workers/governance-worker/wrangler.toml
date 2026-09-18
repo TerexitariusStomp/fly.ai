@@ -34,7 +34,7 @@ FEE_ROUTER = "0x0000000000000000000000000000000000000000"
 INVERSE_BOND = "0x73fcf57ea4bb78b103e9323fad27b54fd7aeccf2"
 STAKING = "0x60c11f1182b0313d17b96ff8f20a12611ab769c5"
 RELAY_ENGINE = "0x0000000000000000000000000000000000000000"
-# Not yet deployed on Robinhood: SymbientFeeRouter (needs V4 adapter),
+# Not yet deployed on Robinhood: FeeRouter (needs V4 adapter),
 # DecisionRelayEngine, TreasuryAllocator is 0x6429b17f42c3f188595f24d0bd721079ba4329a3
 # Colony self-improvement loop — set to enable code ideation + PR auto-merge
 # GITHUB_REPO = "owner/repo"           # target repo for colony PRs

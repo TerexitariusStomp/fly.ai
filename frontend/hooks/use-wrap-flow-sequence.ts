@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useChainId, usePublicClient } from "wagmi";
 import { useConnectedAddress } from "@/hooks/use-connected-address";
-import { usePrivyWalletClient } from "@/hooks/use-privy-wallet-client";
+import { useConnectedWalletClient } from "@/hooks/use-connected-wallet-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { erc20Abi, type Abi, type Address } from "viem";
 import { ContractName, getContractAddress } from "@/lib/contracts";
 import { TokenName, getTokenAddress } from "@/lib/tokens";
 import StakingAdapterAbi from "@/abis/StakingAdapter";
-import type { WrapFlow } from "@/modules/symbient-wrap-flows";
+import type { WrapFlow } from "@/modules/flyai-wrap-flows";
 
 export type SeqStepStatus = "pending" | "wallet" | "confirming" | "done" | "error";
 
@@ -27,7 +27,7 @@ type PlanStep =
       functionName: string;
       label: string;
       argsBuilder: (address: Address, amount: bigint) => readonly unknown[];
-      amount: "input" | "stSymbientDelta" | "wstSymbientDelta";
+      amount: "input" | "stFlyaiDelta" | "wstFlyaiDelta";
     };
 
 function buildPlan(flow: WrapFlow): PlanStep[] {
@@ -38,32 +38,32 @@ function buildPlan(flow: WrapFlow): PlanStep[] {
   const toAmountArgs = (addr: Address, amt: bigint) => [addr, amt] as const;
 
   switch (flow) {
-    case "wrap-symbient":
+    case "stake-flyai":
       return [
         { kind: "approve", token: TokenName.FLYAI, spender: ContractName.STAKING_ADAPTER, label: "Approve FLYAI" },
         { kind: "call", contract: ContractName.STAKING_ADAPTER, abi: StakingAdapterAbi, functionName: "stake", label: "Stake FLYAI to stFLYAI", argsBuilder: stakeArgsRebasing, amount: "input" },
       ];
-    case "wrap-symbient-to-wstsymbient":
+    case "stake-flyai-to-wstflyai":
       return [
         { kind: "approve", token: TokenName.FLYAI, spender: ContractName.STAKING_ADAPTER, label: "Approve FLYAI" },
         { kind: "call", contract: ContractName.STAKING_ADAPTER, abi: StakingAdapterAbi, functionName: "stake", label: "Stake FLYAI to wstFLYAI", argsBuilder: stakeArgs, amount: "input" },
       ];
-    case "wrap-stsymbient":
+    case "wrap-stflyai":
       return [
         { kind: "approve", token: TokenName.STFLYAI, spender: ContractName.STAKING_ADAPTER, label: "Approve stFLYAI" },
         { kind: "call", contract: ContractName.STAKING_ADAPTER, abi: StakingAdapterAbi, functionName: "wrap", label: "Wrap stFLYAI to wstFLYAI", argsBuilder: toAmountArgs, amount: "input" },
       ];
-    case "unwrap-wstsymbient":
+    case "unwrap-wstflyai":
       return [
         { kind: "approve", token: TokenName.WSTFLYAI, spender: ContractName.STAKING_ADAPTER, label: "Approve wstFLYAI" },
         { kind: "call", contract: ContractName.STAKING_ADAPTER, abi: StakingAdapterAbi, functionName: "unwrap", label: "Unwrap wstFLYAI to stFLYAI", argsBuilder: toAmountArgs, amount: "input" },
       ];
-    case "unwrap-wstsymbient-to-symbient":
+    case "unwrap-wstflyai-to-flyai":
       return [
         { kind: "approve", token: TokenName.WSTFLYAI, spender: ContractName.STAKING_ADAPTER, label: "Approve wstFLYAI" },
         { kind: "call", contract: ContractName.STAKING_ADAPTER, abi: StakingAdapterAbi, functionName: "unstake", label: "Unstake wstFLYAI to FLYAI", argsBuilder: unstakeArgs, amount: "input" },
       ];
-    case "unstake-stsymbient":
+    case "unstake-stflyai":
       return [
         { kind: "approve", token: TokenName.STFLYAI, spender: ContractName.STAKING_ADAPTER, label: "Approve stFLYAI" },
         { kind: "call", contract: ContractName.STAKING_ADAPTER, abi: StakingAdapterAbi, functionName: "unstake", label: "Unstake stFLYAI to FLYAI", argsBuilder: unstakeArgsRebasing, amount: "input" },
@@ -77,7 +77,7 @@ export function useWrapFlowSequence(flow: WrapFlow, inputAmount: bigint) {
   const chainId = useChainId();
   const publicClient = usePublicClient();
   const queryClient = useQueryClient();
-  const { walletClient } = usePrivyWalletClient();
+  const { walletClient } = useConnectedWalletClient();
 
   const [steps, setSteps] = useState<SeqStep[]>([]);
   const [running, setRunning] = useState(false);
@@ -93,31 +93,31 @@ export function useWrapFlowSequence(flow: WrapFlow, inputAmount: bigint) {
     setError(null);
   }, [plan]);
 
-  const stSymbientAddress = getTokenAddress(TokenName.STFLYAI, chainId);
-  const wstSymbientAddress = getTokenAddress(TokenName.WSTFLYAI, chainId);
+  const stFlyaiAddress = getTokenAddress(TokenName.STFLYAI, chainId);
+  const wstFlyaiAddress = getTokenAddress(TokenName.WSTFLYAI, chainId);
 
   const setStep = (i: number, patch: Partial<SeqStep>) =>
     setSteps((prev) => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
 
-  const readStSymbientBalance = useCallback(async (): Promise<bigint> => {
-    if (!publicClient || !address || !stSymbientAddress) return 0n;
+  const readStFlyaiBalance = useCallback(async (): Promise<bigint> => {
+    if (!publicClient || !address || !stFlyaiAddress) return 0n;
     return (await publicClient.readContract({
-      address: stSymbientAddress,
+      address: stFlyaiAddress,
       abi: erc20Abi,
       functionName: "balanceOf",
       args: [address],
     })) as bigint;
-  }, [publicClient, address, stSymbientAddress]);
+  }, [publicClient, address, stFlyaiAddress]);
 
-  const readWstSymbientBalance = useCallback(async (): Promise<bigint> => {
-    if (!publicClient || !address || !wstSymbientAddress) return 0n;
+  const readWstFlyaiBalance = useCallback(async (): Promise<bigint> => {
+    if (!publicClient || !address || !wstFlyaiAddress) return 0n;
     return (await publicClient.readContract({
-      address: wstSymbientAddress,
+      address: wstFlyaiAddress,
       abi: erc20Abi,
       functionName: "balanceOf",
       args: [address],
     })) as bigint;
-  }, [publicClient, address, wstSymbientAddress]);
+  }, [publicClient, address, wstFlyaiAddress]);
 
   const estimateGas = useCallback(
     async (call: { address: Address; abi: Abi; functionName: string; args: readonly unknown[] }) => {
@@ -157,8 +157,8 @@ export function useWrapFlowSequence(flow: WrapFlow, inputAmount: bigint) {
     const initial: SeqStep[] = plan.map((p, i) => ({ id: `${i}`, label: p.label, status: "pending" }));
     setSteps(initial);
 
-    const preStSymbient = await readStSymbientBalance();
-    const preWstSymbient = await readWstSymbientBalance();
+    const preStFlyai = await readStFlyaiBalance();
+    const preWstFlyai = await readWstFlyaiBalance();
 
     try {
       for (let i = 0; i < plan.length; i++) {
@@ -199,10 +199,10 @@ export function useWrapFlowSequence(flow: WrapFlow, inputAmount: bigint) {
           if (!target) throw new Error(`Missing contract address for ${step.contract}`);
 
           const amount =
-            step.amount === "stSymbientDelta"
-              ? (await readStSymbientBalance()) - preStSymbient
-              : step.amount === "wstSymbientDelta"
-                ? (await readWstSymbientBalance()) - preWstSymbient
+            step.amount === "stFlyaiDelta"
+              ? (await readStFlyaiBalance()) - preStFlyai
+              : step.amount === "wstFlyaiDelta"
+                ? (await readWstFlyaiBalance()) - preWstFlyai
                 : inputAmount;
           if (amount <= 0n) throw new Error("Nothing to process for this step");
 
@@ -226,7 +226,7 @@ export function useWrapFlowSequence(flow: WrapFlow, inputAmount: bigint) {
     } finally {
       setRunning(false);
     }
-  }, [address, publicClient, walletClient, plan, chainId, inputAmount, readStSymbientBalance, estimateGas, queryClient]);
+  }, [address, publicClient, walletClient, plan, chainId, inputAmount, readStFlyaiBalance, readWstFlyaiBalance, estimateGas, queryClient]);
 
   const reset = useCallback(() => {
     cancelledRef.current = true;

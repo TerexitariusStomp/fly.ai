@@ -8,7 +8,7 @@
  * Modes:
  * - Paper (default): virtual balance, no real money at risk
  * - Real (REAL_TRADING=true): real swaps via loxley's Uniswap V4 encoding + viem
- *   Profits accumulate in the treasury as reserve assets (single-token SYM system)
+ *   Profits accumulate in the treasury as reserve assets (single-token FLYAI system)
  *   RFV/floor price auto-pushed on-chain each epoch
  *
  * Self-improving: uses learned trade params (profit target, stop loss, position size)
@@ -707,7 +707,7 @@ async function pushRfvOnChain(env: Env) {
   if (!env.TREASURY_VALUATION || !env.FLYAI_TOKEN) return;
   const { pub, wc } = getClients(env);
   try {
-    const symbientSupply = await pub.readContract({
+    const flyaiSupply = await pub.readContract({
       address: getAddress(env.FLYAI_TOKEN) as Address,
       abi: ABI.erc20,
       functionName: "totalSupply",
@@ -721,7 +721,7 @@ async function pushRfvOnChain(env: Env) {
       address: getAddress(env.TREASURY_VALUATION) as Address,
       abi: treasuryAbi,
       functionName: "refreshValuationsFromKeeper",
-      args: [symbientSupply],
+      args: [flyaiSupply],
     });
     await pub.waitForTransactionReceipt({ hash: tx });
   } catch (e) {
@@ -733,7 +733,7 @@ async function pushRfvOnChain(env: Env) {
 // Claims creator USDC fees from the Tolly fee locker (if claim calldata is
 // configured), then consolidates them into TRSRY — the single treasury.
 // Connectome trading floats are drawn from TRSRY by governor-approved
-// withdrawals; funding staker rewards (fundRewards: USDC → SYM →
+// withdrawals; funding staker rewards (fundRewards: USDC → FLYAI →
 // rewardPool) is a gated governance decision via ConnectomeGovernor
 // proposals, not this cron.
 async function harvestFeeRouter(env: Env) {
@@ -888,7 +888,7 @@ async function postDiscord(env: Env, decision: {
   }
 
   const body = {
-    username: "SYM Paper Trader",
+    username: "FLYAI Paper Trader",
     embeds: [{
       title: `${decision.action} ${decision.symbol}`,
       color: COLORS[decision.action] || 0x808080,

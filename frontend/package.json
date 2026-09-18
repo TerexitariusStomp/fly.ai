@@ -1,5 +1,5 @@
 {
-  "name": "symbient-finance-frontend",
+  "name": "flyai-frontend",
   "private": true,
   "version": "0.0.0",
   "license": "AGPL-3.0-only",
@@ -20,8 +20,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "sourcemap:upload": "posthog-cli sourcemap inject --directory ./dist/assets && posthog-cli sourcemap upload --directory ./dist/assets",
-    "analytics": "node scripts/analytics.ts",
-    "ops": "node scripts/ops.ts"
+    "analytics": "node scripts/analytics.ts"
   },
   "engines": {
     "node": ">=22",

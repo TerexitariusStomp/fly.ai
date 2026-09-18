@@ -1,21 +1,21 @@
-# 5H1T Protocol
+# FLYAI Protocol
 
-5H1T is a single-token, treasury-backed protocol on Arc. Seven real biological connectomes (LIF neural networks) govern the protocol on-chain: they hold the kernel executor, control the treasury, and defend the token's floor price.
+FLYAI is a single-token, treasury-backed protocol on Robinhood Chain. Seven real biological connectomes (LIF neural networks) govern the protocol on-chain: they hold the kernel executor, control the treasury, and defend the token's floor price.
 
 ## Tokens
 
-- **5H1T** — the only protocol token. Partially backed by treasury reserves (RFV).
-- **stSHIT** — rebasing staking receipt for 5H1T.
-- **wstSHIT** — non-rebasing wrapper for stSHIT (exchange-rate accrues).
+- **FLYAI** — the only protocol token. Partially backed by treasury reserves (RFV).
+- **stFLYAI** — rebasing staking receipt for FLYAI.
+- **wstFLYAI** — non-rebasing wrapper for stFLYAI (exchange-rate accrues).
 
 ## Key mechanics
 
 - **ConnectomeGovernor** — propose/vote/execute executor; quorum is 3 of 7 connectomes (≥1/3). Votes are on-chain LIF inference via FlyEngine.
 - **GovernorPolicy** — bridges governor decisions into Olympus V3 modules (MINTR, TRSRY, PRICE, RANGE).
 - **TreasuryValuation** — computes NAV, RFV (with per-asset haircuts), and `floorPrice = RFV / supply`.
-- **ShitInverseBond** — standing buyback at floor × 0.985; purchased 5H1T is burned.
-- **ShitCircuitBreaker** — trips when 5H1T spot falls below floor × (1 − deviation); pauses defense.
-- **ShitStaking** — rebasing staking with warmup, rate-limiting, and reward smoothing.
+- **Inverse Bond** — standing buyback at floor × 0.985; purchased FLYAI is burned.
+- **Circuit Breaker** — trips when FLYAI spot falls below floor × (1 − deviation); pauses defense.
+- **Staking** — rebasing staking with warmup, rate-limiting, and reward smoothing.
 - **RBS** — Olympus range-bound stability: cushions and walls defend the floor.
 
 ## Governance model
@@ -24,5 +24,5 @@ Connectomes vote only on policy-level actions (whitelists, bounds, allocations, 
 
 ## Chain
 
-- Arc testnet: chain ID 5042002, RPC https://rpc.testnet.arc.io, explorer https://testnet.arcscan.app
-- Arc mainnet: chain ID 5042001 (production target)
+- Robinhood mainnet: chain ID 4663, RPC https://rpc.mainnet.chain.robinhood.com, explorer https://robinhoodchain.blockscout.com
+- Robinhood testnet: chain ID 46630, RPC https://rpc.testnet.chain.robinhood.com, explorer https://explorer.testnet.chain.robinhood.com

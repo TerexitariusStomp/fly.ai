@@ -4,7 +4,7 @@
  *
  * Ported from widespread.fyi's packages/security/src/constitutional-gate.ts
  * (Apache-2.0). Adapted for the connectome colony: Tier 3 uses the 7
- * connectomes as the multi-agent vote instead of generic symbients.
+ * connectomes as the multi-agent vote instead of generic agents.
  *
  * Tiers:
  *   0 — absolute prohibitions (no override, no exception)

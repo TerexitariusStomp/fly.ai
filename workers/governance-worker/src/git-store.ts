@@ -129,8 +129,8 @@ export async function commitFile(
     commit: {
       tree: treeOid,
       parent: head ? [head] : [],
-      author: { name: opts.author, email: `${opts.author}@colony.symbient`, timestamp: Math.floor(Date.now() / 1000), timezoneOffset: 0 },
-      committer: { name: opts.author, email: `${opts.author}@colony.symbient`, timestamp: Math.floor(Date.now() / 1000), timezoneOffset: 0 },
+      author: { name: opts.author, email: `${opts.author}@colony.flyai`, timestamp: Math.floor(Date.now() / 1000), timezoneOffset: 0 },
+      committer: { name: opts.author, email: `${opts.author}@colony.flyai`, timestamp: Math.floor(Date.now() / 1000), timezoneOffset: 0 },
       message: opts.message + "\n",
     },
   });

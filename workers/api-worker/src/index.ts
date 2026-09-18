@@ -257,7 +257,7 @@ async function getOnchainTreasury(env: Env) {
 
 async function getTreasuryHistory(env: Env) {
   const result = await env.DB.prepare(
-    "SELECT * FROM treasury_snapshots ORDER BY updated_at DESC LIMIT 30"
+    "SELECT id, reserve_usd, total_rfv, shit_floor_price AS flyai_floor_price, updated_at FROM treasury_snapshots ORDER BY updated_at DESC LIMIT 30"
   ).all();
   return result.results;
 }

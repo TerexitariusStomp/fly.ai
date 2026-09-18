@@ -17,7 +17,7 @@ export const DEPLOYED_CONTRACTS: Record<number, DeployedContract[]> = {
     { name: "Staking Adapter", description: "Stake, unstake, wrap, unwrap", address: "0x02dcb803a61315d27eebfa89c71f86e451847448" },
     { name: "Inverse Bond", description: "Sell FLYAI to the treasury at floor", address: "0x73fcf57ea4bb78b103e9323fad27b54fd7aeccf2" },
     { name: "Treasury Valuation", description: "RFV, NAV, and floor price", address: "0x5be9ab574c7c9e3cf4367d610c682e6174633e24" },
-    { name: "Symbient Price", description: "Olympus PRICE module", address: "0xaf95908a0311e470997c6ef39153576fa05157ac" },
+    { name: "FLYAI Price", description: "Olympus PRICE module", address: "0xaf95908a0311e470997c6ef39153576fa05157ac" },
     { name: "Connectome Governor", description: "3-of-7 collective executor", address: "0x6a7a1df72301e6a09dd43adf2fdd4487994e72a8" },
     { name: "Governor Policy", description: "Kernel module bridge", address: "0x2257c925e5d6156cca11f0d7f9a69859d383099f" },
     { name: "Olympus Kernel", description: "Protocol kernel", address: "0x381c76f91fb16ce539f5488cb5baacdd047ab1b6" },

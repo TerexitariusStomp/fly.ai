@@ -38,10 +38,10 @@ def main():
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             with open(src, "rb") as a, open(dst, "wb") as b:
                 b.write(a.read())
-        env = {**os.environ, "GIT_AUTHOR_NAME": "symbient-colony",
-               "GIT_AUTHOR_EMAIL": "colony@symbient",
-               "GIT_COMMITTER_NAME": "symbient-colony",
-               "GIT_COMMITTER_EMAIL": "colony@symbient"}
+        env = {**os.environ, "GIT_AUTHOR_NAME": "flyai-colony",
+               "GIT_AUTHOR_EMAIL": "colony@fly.ai",
+               "GIT_COMMITTER_NAME": "flyai-colony",
+               "GIT_COMMITTER_EMAIL": "colony@fly.ai"}
         subprocess.run(["git", "-C", tmp, "init", "-b", "main"], check=True, env=env)
         subprocess.run(["git", "-C", tmp, "add", "-A"], check=True, env=env)
         subprocess.run(["git", "-C", tmp, "commit", "-m",

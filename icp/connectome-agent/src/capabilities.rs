@@ -1,4 +1,4 @@
-//! Capability tokens + autonomy levels (Symbient pattern, clean-room Rust).
+//! Capability tokens + autonomy levels (FLYAI pattern, clean-room Rust).
 //!
 //! Before each action, deterministic code grants a single-use, TTL-bounded,
 //! scope-limited capability that is *canister-signed* — the LLM can't forge
@@ -48,7 +48,7 @@ pub enum CapabilityError {
 }
 
 /// Actions an agent can NEVER take regardless of capability — the safety
-/// envelope itself is off-limits (Symbient BLOCKED_TOOLS pattern).
+/// envelope itself is off-limits (FLYAI BLOCKED_TOOLS pattern).
 pub const BLOCKED_ACTIONS: &[&str] = &[
     "rotate_signing_key",
     "modify_policy",

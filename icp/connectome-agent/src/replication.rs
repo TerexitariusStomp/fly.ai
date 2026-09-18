@@ -1,5 +1,5 @@
 //! Self-replication — burn-to-expand (TSR-inspired): a connectome must burn
-//! SYM to spawn a child. Population is bounded by RESOURCES, not policy
+//! FLYAI to spawn a child. Population is bounded by RESOURCES, not policy
 //! (Mirai steady-state as a feature): replication rate ∝ colony revenue.
 //!
 //! Children: own mutated personality (LLM), own EVM derivation path
@@ -34,9 +34,9 @@ pub fn derivation_path_for(cid: &str) -> Vec<Vec<u8>> {
 
 /// Resource-bound spawn eligibility — the ONLY bound is economics.
 /// No artificial population cap (Mirai SIS model): a connectome may spawn iff
-/// it can afford the SYM burn AND the colony can afford the cycles.
-pub fn can_afford_spawn(symbient_balance: u128, burn_required: u128, cycle_balance: u128) -> bool {
-    symbient_balance >= burn_required && cycle_balance >= CYCLES_PER_SPAWN
+/// it can afford the FLYAI burn AND the colony can afford the cycles.
+pub fn can_afford_spawn(flyai_balance: u128, burn_required: u128, cycle_balance: u128) -> bool {
+    flyai_balance >= burn_required && cycle_balance >= CYCLES_PER_SPAWN
 }
 
 /// Build the child profile from the LLM's mutation output + parent data.

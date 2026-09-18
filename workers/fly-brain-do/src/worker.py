@@ -567,7 +567,7 @@ class ConnectomeDO(DurableObject):
         g = await self._get_genome()
         persona = g.get("persona") or "You are a connectome engineer."
         prompt = (
-            "You are a software engineer for the Symbient colony.\n"
+            "You are a software engineer for the FLYAI colony.\n"
             f"Task: {task}\n"
             f"File: {file_path}\n"
             f"Current content:\n```\n{file_content[:8000]}\n```\n"
@@ -590,7 +590,7 @@ class ConnectomeDO(DurableObject):
         g = await self._get_genome()
         persona = g.get("persona") or "You are a connectome engineer."
         prompt = (
-            "You maintain the Symbient colony's own codebase. Pick ONE file and "
+            "You maintain the FLYAI colony's own codebase. Pick ONE file and "
             "propose ONE concrete, small improvement (bug fix, clarity, feature).\n"
             f"Repo files:\n{repo_map[:6000]}\n\n"
             f"Recent task outcomes:\n{recent_outcomes[:2000]}\n\n"
@@ -1281,7 +1281,7 @@ class ConnectomeDO(DurableObject):
                 "method": "POST",
                 "headers": {"Content-Type": "application/json"},
                 "body": json.dumps({
-                    "username": "SYM Brain Trainer",
+                    "username": "FLYAI Brain Trainer",
                     "embeds": [{
                         "title": f"Model retrained ({n_trades} trades)",
                         "color": 0x9b59b6,
@@ -1419,7 +1419,7 @@ class ConnectomeDO(DurableObject):
             return Response.json(result)
         elif "/decide" in url:
             # Governance decision — the connectome evaluates a protocol action
-            # against LIVE SYM market conditions (the proposal affects SYM).
+            # against LIVE FLYAI market conditions (the proposal affects FLYAI).
             # POST body = {signalScore} from the proposal's market context.
             # Returns governor-ready {action: -1|0|1, confidence: 0-100}.
             try:
@@ -1438,7 +1438,7 @@ class ConnectomeDO(DurableObject):
                             market = {"signalScore": float(param.split("=")[1])}
                 signal = float((market or {}).get("signalScore", 50) or 50)
 
-                # Real SYM market data — same fields a discovery candidate carries
+                # Real FLYAI market data — same fields a discovery candidate carries
                 token = {"address": FLYAI_TOKEN, "score": signal,
                          "score_reasons": json.dumps({"src": "governance"})}
                 try:

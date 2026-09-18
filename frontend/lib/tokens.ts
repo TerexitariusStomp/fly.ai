@@ -1,7 +1,7 @@
 import type { Address } from "viem";
 import type { IconName } from "@/components/icon.tsx";
 import type { ChainId } from "./contracts";
-import { base, baseSepolia } from "@/lib/chains";
+import { robinhood, robinhoodTestnet } from "@/lib/chains";
 
 export type TokenInfo = {
   addresses: Partial<Record<ChainId, Address>>;
@@ -20,8 +20,8 @@ export enum TokenName {
 export const TOKENS: Record<TokenName, TokenInfo> = {
   FLYAI: {
     addresses: {
-      [base.id]: "0x0088CE7905025c4B5ea1d49aB6179B6aaADB3B9C",
-      [baseSepolia.id]: "0x0000000000000000000000000000000000000000",
+      [robinhood.id]: "0x0088CE7905025c4B5ea1d49aB6179B6aaADB3B9C",
+      [robinhoodTestnet.id]: "0x0000000000000000000000000000000000000000",
     },
     symbol: "FLYAI",
     decimals: 18,
@@ -29,8 +29,8 @@ export const TOKENS: Record<TokenName, TokenInfo> = {
   },
   STFLYAI: {
     addresses: {
-      [base.id]: "0x60c11f1182b0313d17b96ff8f20a12611ab769c5",
-      [baseSepolia.id]: "0x0000000000000000000000000000000000000000",
+      [robinhood.id]: "0x60c11f1182b0313d17b96ff8f20a12611ab769c5",
+      [robinhoodTestnet.id]: "0x0000000000000000000000000000000000000000",
     },
     symbol: "stFLYAI",
     decimals: 18,
@@ -38,8 +38,8 @@ export const TOKENS: Record<TokenName, TokenInfo> = {
   },
   WSTFLYAI: {
     addresses: {
-      [base.id]: "0xc5fdf1d701cd8395564451cd89d940b5fd0c3600",
-      [baseSepolia.id]: "0x0000000000000000000000000000000000000000",
+      [robinhood.id]: "0xc5fdf1d701cd8395564451cd89d940b5fd0c3600",
+      [robinhoodTestnet.id]: "0x0000000000000000000000000000000000000000",
     },
     symbol: "wstFLYAI",
     decimals: 18,

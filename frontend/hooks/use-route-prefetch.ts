@@ -3,10 +3,10 @@ import { useEffect } from "react";
 const PREFETCHED = new Set<string>();
 
 const PREFETCH_ROUTES = [
-  () => import("@/modules/sym-overview-page"),
-  () => import("@/modules/sym-traders-page"),
-  () => import("@/modules/sym-treasury-page"),
-  () => import("@/modules/sym-wrap-page"),
+  () => import("@/modules/flyai-overview-page"),
+  () => import("@/modules/flyai-traders-page"),
+  () => import("@/modules/flyai-treasury-page"),
+  () => import("@/modules/flyai-wrap-page"),
 ];
 
 export function useRoutePrefetch() {

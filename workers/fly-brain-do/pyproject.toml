@@ -1,7 +1,7 @@
 [project]
 name = "fly-brain-do"
 version = "0.1.0"
-description = "Fly connectome Durable Object for SYM token trading decisions"
+description = "Fly connectome Durable Object for FLYAI token trading decisions"
 requires-python = ">=3.13"
 dependencies = [
     "numpy",

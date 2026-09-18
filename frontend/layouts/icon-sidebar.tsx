@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { cn } from "@/lib/utils";
-import { SymLogo } from "@/components/sym-logo";
+import { FlyaiLogo } from "@/components/flyai-logo";
 import {
   NAV_SECTIONS,
   scrollToSection,
@@ -224,7 +224,7 @@ export function IconSidebar() {
         {/* Logo */}
         <div className="flex items-center justify-center p-4">
           <button type="button" onClick={handleLogoClick}>
-            <SymLogo size={32} />
+            <FlyaiLogo size={32} />
           </button>
         </div>
 

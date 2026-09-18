@@ -1,7 +1,7 @@
 //! Deterministic security layer — the LLM never bypasses this.
 //!
 //! Layer 2: input sanitization (strip addresses/URLs/base64/Morse before LLM)
-//! Layer 3: content validation (anti-shilling — only SYM, no addresses/URLs)
+//! Layer 3: content validation (anti-shilling — only FLYAI, no addresses/URLs)
 //! Layer 4: transaction validation (contract/function/token allowlists,
 //!          amount bounds, rate limits, circuit breaker)
 //!
@@ -68,11 +68,11 @@ pub fn validate_post_content(text: &str) -> Result<(), String> {
         return Err("Post contains external URL".into());
     }
 
-    // Only $SYM ticker allowed
+    // Only $FLYAI ticker allowed
     let scam_re = regex_lite::Regex::new(r"\$[A-Za-z0-9]{2,10}").unwrap();
     for m in scam_re.find_iter(text) {
         let ticker = &m.as_str()[1..];
-        if !ticker.eq_ignore_ascii_case("SYM") {
+        if !ticker.eq_ignore_ascii_case("FLYAI") {
             return Err(format!("Post mentions unauthorized token: ${}", ticker));
         }
     }
@@ -205,7 +205,7 @@ pub fn validate_transaction(
     Ok(())
 }
 
-/// Voice-drift detection (Symbient pattern): stylometric fingerprint vs
+/// Voice-drift detection (FLYAI pattern): stylometric fingerprint vs
 /// rolling baseline. Drift > threshold → post held. Catches post-injection
 /// style changes (attacker instructions altering the connectome's voice).
 pub fn voice_drift_score(text: &str, baseline: &VoiceBaseline) -> f64 {

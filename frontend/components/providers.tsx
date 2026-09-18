@@ -31,7 +31,7 @@ const DevProvider = lazy(() =>
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="dark" storageKey="symbient-theme">
+      <ThemeProvider defaultTheme="dark" storageKey="flyai-theme">
         <TooltipProvider delay={100}>
           <Suspense fallback={null}>
             <Web3Providers>

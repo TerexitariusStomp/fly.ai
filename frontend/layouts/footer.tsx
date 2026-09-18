@@ -67,7 +67,7 @@ export function Footer() {
   const { theme, setTheme } = useTheme();
   const { hours, minutes, seconds, progress } = useEpochTimer();
   const WSTFLYAIToken = useToken(TokenName.WSTFLYAI);
-  const SYMToken = useToken(TokenName.FLYAI);
+  const FlyaiToken = useToken(TokenName.FLYAI);
 
   const beatLabel = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 
@@ -157,8 +157,8 @@ export function Footer() {
         </div>
         <div className="flex items-center">
           <div className="flex items-center gap-x-1">
-            <Icon name={SYMToken.icon} className="size-4" />
-            <NumberFlow value={SYMToken.price} className="text-sm" />
+            <Icon name={FlyaiToken.icon} className="size-4" />
+            <NumberFlow value={FlyaiToken.price} className="text-sm" />
           </div>
           <Separator orientation="vertical" className="h-5 mx-4 w-px" />
           <div className="flex items-center gap-x-1">

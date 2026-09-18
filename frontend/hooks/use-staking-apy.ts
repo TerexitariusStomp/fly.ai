@@ -1,7 +1,7 @@
 import { useReadContract, useChainId } from "wagmi";
 import { ContractName, getContractAddress } from "@/lib/contracts";
-import SymbientStakingAbi from "@/abis/SymbientStaking";
-import stSymbientAbi from "@/abis/stFLYAI";
+import StakingAbi from "@/abis/Staking";
+import stFlyaiAbi from "@/abis/stFLYAI";
 import { EPOCHS_PER_WEEK } from "@/lib/constants";
 
 const EPOCHS_PER_YEAR = (EPOCHS_PER_WEEK / 7) * 365;
@@ -9,20 +9,20 @@ const EPOCHS_PER_YEAR = (EPOCHS_PER_WEEK / 7) * 365;
 export function useStakingAPY() {
   const chainId = useChainId();
   const stakingAddress = getContractAddress(ContractName.STAKING, chainId);
-  const stSymbientAddress = getContractAddress(ContractName.STFLYAI, chainId);
+  const stFlyaiAddress = getContractAddress(ContractName.STFLYAI, chainId);
 
   const { data: epochData, isLoading: epochLoading } = useReadContract({
     address: stakingAddress,
-    abi: SymbientStakingAbi,
+    abi: StakingAbi,
     functionName: "epoch",
     query: { enabled: !!stakingAddress },
   });
 
   const { data: circulatingSupply, isLoading: supplyLoading } = useReadContract({
-    address: stSymbientAddress,
-    abi: stSymbientAbi,
+    address: stFlyaiAddress,
+    abi: stFlyaiAbi,
     functionName: "totalSupply",
-    query: { enabled: !!stSymbientAddress },
+    query: { enabled: !!stFlyaiAddress },
   });
 
   const isLoading = epochLoading || supplyLoading;

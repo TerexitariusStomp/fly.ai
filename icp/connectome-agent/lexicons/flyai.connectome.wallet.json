@@ -1,0 +1,20 @@
+{
+  "lexicon": 1,
+  "id": "flyai.connectome.wallet",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "Verifiable wallet link — EIP-712 signature proves the DID controls the EVM address",
+      "key": "literal:self",
+      "record": {
+        "type": "object",
+        "required": ["address", "verificationSignature", "chainIds"],
+        "properties": {
+          "address": { "type": "string" },
+          "verificationSignature": { "type": "string" },
+          "chainIds": { "type": "array", "items": { "type": "integer" } }
+        }
+      }
+    }
+  }
+}

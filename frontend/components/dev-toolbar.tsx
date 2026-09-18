@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useMockControls } from "@/lib/mock-provider";
 import { SCENARIOS } from "@/lib/mock-scenarios";
 import { ChevronUp, ChevronDown, FlaskConical, Coins } from "lucide-react";
-import { MintTestnetSymbientModal } from "@/components/mint-testnet-symbient-modal";
+import { MintTestnetFlyaiModal } from "@/components/mint-testnet-flyai-modal";
 import { TokenName } from "@/lib/tokens";
-import { isTestnetMode, baseSepolia } from "@/lib/chains";
+import { isTestnetMode, robinhoodTestnet } from "@/lib/chains";
 import { useChainId } from "wagmi";
 
 export function DevToolbar() {
@@ -12,7 +12,7 @@ export function DevToolbar() {
   const [collapsed, setCollapsed] = useState(true);
 
   const chainId = useChainId();
-  const isOnSepolia = chainId === baseSepolia.id;
+  const isOnRobinhoodTestnet = chainId === robinhoodTestnet.id;
 
   if (!controls) return null;
 
@@ -34,7 +34,7 @@ export function DevToolbar() {
               Mock
             </span>
           )}
-          {isOnSepolia && (
+          {isOnRobinhoodTestnet && (
             <span className="ml-1 rounded bg-amber-600 px-1.5 py-0.5 text-[10px] text-white">
               Testnet
             </span>
@@ -99,24 +99,24 @@ export function DevToolbar() {
               <span>Chain</span>
               <span
                 className={`rounded px-1.5 py-0.5 text-[10px] text-white ${
-                  isOnSepolia ? "bg-amber-600" : "bg-zinc-600"
+                  isOnRobinhoodTestnet ? "bg-amber-600" : "bg-zinc-600"
                 }`}
               >
-                {isOnSepolia ? "Arc Testnet" : "Arc"}
+                {isOnRobinhoodTestnet ? "Robinhood Testnet" : "Robinhood"}
               </span>
             </div>
-            {isTestnetMode && !isOnSepolia && (
+            {isTestnetMode && !isOnRobinhoodTestnet && (
               <p className="text-[10px] text-zinc-500">
-                Switch to Arc testnet in your wallet to use faucets
+                Switch to Robinhood Testnet in your wallet to use faucets
               </p>
             )}
 
-            {/* Mint buttons (visible when connected to Sepolia) */}
-            {isOnSepolia && (
+            {/* Mint buttons (visible when connected to Robinhood Testnet) */}
+            {isOnRobinhoodTestnet && (
               <div className="space-y-1.5">
                 <span className="text-zinc-400">Faucet</span>
                 <div className="flex gap-1.5">
-                  <MintTestnetSymbientModal
+                  <MintTestnetFlyaiModal
                     token={TokenName.FLYAI}
                     trigger={
                       <button

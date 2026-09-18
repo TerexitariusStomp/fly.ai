@@ -490,7 +490,7 @@
   display: none;
 }
 
-.shit-tour-popover.driver-popover {
+.flyai-tour-popover.driver-popover {
   background-color: var(--surface-modal);
   border-radius: 24px;
   min-width: 280px;
@@ -499,12 +499,12 @@
   box-shadow: 0 8px 32px oklch(0 0 0 / 0.4);
 }
 
-.shit-tour-popover.driver-popover,
-.shit-tour-popover * {
+.flyai-tour-popover.driver-popover,
+.flyai-tour-popover * {
   font-family: "Inter Tight", sans-serif;
 }
 
-.shit-tour-popover .driver-popover-title {
+.flyai-tour-popover .driver-popover-title {
   font-size: 18px;
   font-weight: 600;
   line-height: 24px;
@@ -512,11 +512,11 @@
   margin-bottom: 20px;
 }
 
-.shit-tour-popover-tight .driver-popover-title {
+.flyai-tour-popover-tight .driver-popover-title {
   margin-bottom: 8px;
 }
 
-.shit-tour-popover .driver-popover-description {
+.flyai-tour-popover .driver-popover-description {
   font-size: 12px;
   line-height: 16px;
   font-weight: 400;
@@ -524,7 +524,7 @@
   margin-bottom: 0;
 }
 
-.shit-tour-popover .driver-popover-description ul {
+.flyai-tour-popover .driver-popover-description ul {
   list-style: none;
   padding: 0;
   margin: 0;
@@ -533,67 +533,67 @@
   gap: 12px;
 }
 
-.shit-tour-popover .driver-popover-description li {
+.flyai-tour-popover .driver-popover-description li {
   font-size: 12px;
   line-height: 16px;
 }
 
-.shit-tour-popover .driver-popover-description strong {
+.flyai-tour-popover .driver-popover-description strong {
   color: var(--text-primary);
   font-weight: 700;
 }
 
-.shit-tour-popover .driver-popover-footer {
+.flyai-tour-popover .driver-popover-footer {
   display: none !important;
   margin: 0 !important;
   padding: 0 !important;
 }
 
-.shit-tour-popover .driver-popover-arrow {
+.flyai-tour-popover .driver-popover-arrow {
   border-width: 8px;
   border-color: transparent;
 }
 
-.shit-tour-popover .driver-popover-arrow-side-left {
+.flyai-tour-popover .driver-popover-arrow-side-left {
   border-left-color: var(--surface-modal);
 }
 
-.shit-tour-popover .driver-popover-arrow-side-right {
+.flyai-tour-popover .driver-popover-arrow-side-right {
   border-right-color: var(--surface-modal);
 }
 
-.shit-tour-popover .driver-popover-arrow-side-top {
+.flyai-tour-popover .driver-popover-arrow-side-top {
   border-top-color: var(--surface-modal);
 }
 
-.shit-tour-popover .driver-popover-arrow-side-bottom {
+.flyai-tour-popover .driver-popover-arrow-side-bottom {
   border-bottom-color: var(--surface-modal);
 }
 
-.shit-tour-popover .driver-popover-arrow-side-left.driver-popover-arrow-align-center,
-.shit-tour-popover .driver-popover-arrow-side-right.driver-popover-arrow-align-center {
+.flyai-tour-popover .driver-popover-arrow-side-left.driver-popover-arrow-align-center,
+.flyai-tour-popover .driver-popover-arrow-side-right.driver-popover-arrow-align-center {
   margin-top: -8px;
 }
 
-.shit-tour-popover .driver-popover-arrow-side-top.driver-popover-arrow-align-center,
-.shit-tour-popover .driver-popover-arrow-side-bottom.driver-popover-arrow-align-center {
+.flyai-tour-popover .driver-popover-arrow-side-top.driver-popover-arrow-align-center,
+.flyai-tour-popover .driver-popover-arrow-side-bottom.driver-popover-arrow-align-center {
   margin-left: -8px;
 }
 
-.shit-tour-footer {
+.flyai-tour-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-top: 18px;
 }
 
-.shit-tour-dots {
+.flyai-tour-dots {
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
-.shit-tour-dot {
+.flyai-tour-dot {
   width: 6px;
   height: 6px;
   border-radius: 100px;
@@ -603,18 +603,18 @@
     background-color 0.2s;
 }
 
-.shit-tour-dot.active {
+.flyai-tour-dot.active {
   width: 18px;
   background-color: var(--text-primary);
 }
 
-.shit-tour-buttons {
+.flyai-tour-buttons {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.shit-tour-btn {
+.flyai-tour-btn {
   height: 40px;
   padding: 10px 16px;
   border-radius: 100px;
@@ -627,23 +627,23 @@
   transition: background-color 0.15s;
 }
 
-.shit-tour-btn-skip {
+.flyai-tour-btn-skip {
   background-color: var(--surface-button-secondary);
   color: var(--text-primary);
   box-shadow: var(--shadow-button-secondary);
 }
 
-.shit-tour-btn-skip:hover {
+.flyai-tour-btn-skip:hover {
   background-color: var(--surface-button-secondary-hover);
 }
 
-.shit-tour-btn-next {
+.flyai-tour-btn-next {
   background-color: var(--surface-button-primary);
   color: var(--text-inverted-primary);
   box-shadow: var(--shadow-button-primary);
 }
 
-.shit-tour-btn-next:hover {
+.flyai-tour-btn-next:hover {
   background-color: var(--surface-button-primary-hover);
 }
 

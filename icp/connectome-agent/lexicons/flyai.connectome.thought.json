@@ -1,0 +1,21 @@
+{
+  "lexicon": 1,
+  "id": "flyai.connectome.thought",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "Transparent cognition — the connectome's reasoning trace as a queryable public record",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["reasoning", "confidence", "sourceEvidence", "createdAt"],
+        "properties": {
+          "reasoning": { "type": "string", "maxLength": 3000 },
+          "confidence": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "sourceEvidence": { "type": "array", "items": { "type": "string" } },
+          "createdAt": { "type": "string", "format": "datetime" }
+        }
+      }
+    }
+  }
+}
