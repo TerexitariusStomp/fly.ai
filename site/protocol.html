@@ -250,8 +250,10 @@ function rows(target, html) { $(target).innerHTML = html; }
   $("eth-deployed").textContent = num(treasury.eth_deployed, 6);
   $("treasury-address").innerHTML = `<code class="mono">${esc(short(onchain.treasury_address))}</code>`;
 
+  const NEURON_COUNTS = { drosophila: 49, rat: 73, mouse: 112, ciona: 205, macaque_modha: 242, human: 234, celegans_male: 575 };
   rows("connectome-rows", (connectomes.length ? connectomes : Object.keys(colonyMap).map((id) => ({ id }))).map((c) => {
     const live = colonyMap[c.id] || {};
+    if (c.n_neurons == null) c.n_neurons = NEURON_COUNTS[c.id];
     const pnl = c.total_equity != null && c.starting_balance != null ? c.total_equity - c.starting_balance : c.total_pnl;
     return `<tr>
       <td>${esc(c.id)}<br><span class="srcline">${esc(c.species || "")}</span></td>

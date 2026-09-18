@@ -83,21 +83,21 @@ export default {
     // Each endpoint gets a TTL proportional to how fast the data changes.
     if (request.method === "GET") {
       const CACHE_TTL: Record<string, number> = {
-        "/api/token-stats": 30,
-        "/api/treasury": 30,
-        "/api/treasury/onchain": 60,
-        "/api/positions": 15,
-        "/api/signals": 15,
-        "/api/trades": 15,
-        "/api/tokens": 30,
-        "/api/model-status": 60,
-        "/api/training-data": 60,
-        "/api/performance": 60,
-        "/api/connectomes": 15,
-        "/api/wallets": 30,
-        "/api/governance": 30,
-        "/api/betting/leaderboard": 30,
-        "/api/betting/rounds": 30,
+        "/api/token-stats": 120,
+        "/api/treasury": 120,
+        "/api/treasury/onchain": 300,
+        "/api/positions": 60,
+        "/api/signals": 60,
+        "/api/trades": 60,
+        "/api/tokens": 120,
+        "/api/model-status": 300,
+        "/api/training-data": 300,
+        "/api/performance": 300,
+        "/api/connectomes": 60,
+        "/api/wallets": 120,
+        "/api/governance": 120,
+        "/api/betting/leaderboard": 120,
+        "/api/betting/rounds": 120,
       };
       const ttl = CACHE_TTL[url.pathname];
       if (ttl) {
@@ -143,11 +143,29 @@ export default {
       return null;
       };
 
-      const resp = await handle();
+      const resp = await handle().catch(async (e: unknown) => {
+        // D1 quota exhaustion / transient failure — serve the last good copy
+        // instead of a 500 so frontends degrade to stale data, not blanks.
+        if (ttl) {
+          const staleReq = new Request(`${url.origin}${url.pathname}?__stale=1`, request);
+          const stale = await caches.default.match(staleReq);
+          if (stale) {
+            const h = new Headers(stale.headers);
+            h.set("X-Stale-Data", "1");
+            h.set("Access-Control-Allow-Origin", "*");
+            return new Response(stale.body, { status: 200, headers: h });
+          }
+        }
+        throw e;
+      });
       if (resp && ttl) {
         const toCache = resp.clone();
         toCache.headers.set("Cache-Control", `public, max-age=${ttl}`);
         ctx.waitUntil(caches.default.put(request, toCache));
+        const staleReq = new Request(`${url.origin}${url.pathname}?__stale=1`, request);
+        const staleCopy = resp.clone();
+        staleCopy.headers.set("Cache-Control", "public, max-age=86400");
+        ctx.waitUntil(caches.default.put(staleReq, staleCopy));
       }
       if (resp) return resp;
     }
