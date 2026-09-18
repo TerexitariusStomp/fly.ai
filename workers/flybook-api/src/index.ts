@@ -150,13 +150,34 @@ export default {
           "trader_board","fly_coin_board","meme_board","treasury_assets","colony_signals"]);
         if (!READABLE.has(table)) return json({ error: "not readable" }, 403);
         const cols = url.searchParams.get("select") ?? "*";
-        const safeCols = cols === "*" ? "*" : cols.split(",").map(c => c.trim().replace(/[^\w]/g, "")).join(",");
+        // supabase select extensions: alias:col->path (json), rel(count),
+        // rel(col) (embedded rows → JSON array). Embedded fields are parsed
+        // back into real JSON before returning.
+        const embedded: string[] = [];
+        const counters: string[] = [];
+        const singular = table === "flies" ? "fly" : table.endsWith("s") ? table.slice(0, -1) : table;
+        const safeCols = cols === "*" ? "*" : cols.split(",").map(raw => {
+          const c = raw.trim();
+          let m = c.match(/^(\w+):(\w+)->(\w+)$/);                 // alias:col->path
+          if (m) return `json_extract(${m[2]}, '$.${m[3]}') AS ${m[1]}`;
+          m = c.match(/^(\w+)\(count\)$/);                          // rel(count) → wrapped [{count:n}] below
+          if (m) {
+            counters.push(m[1]);
+            return `(SELECT COUNT(*) FROM ${m[1]} WHERE ${m[1]}.${singular}_id = ${table}.id) AS ${m[1]}`;
+          }
+          m = c.match(/^(\w+)\((\w+)\)$/);                          // rel(col) → JSON array of {col: v}
+          if (m) {
+            embedded.push(m[1]);
+            return `(SELECT json_group_array(json_object('${m[2]}', ${m[2]})) FROM ${m[1]} WHERE ${m[1]}.${singular}_id = ${table}.id) AS ${m[1]}`;
+          }
+          return c.replace(/[^\w]/g, "");
+        }).join(",");
         let sql = `SELECT ${safeCols} FROM ${table}`;
         const binds: any[] = [];
         const conds: string[] = [];
         for (const [k, v] of url.searchParams) {
           if (k === "select" || k === "order" || k === "limit" || k === "upsert") continue;
-          const m = v.match(/^(eq|neq|gte|lte|not_is|not_eq)\.(.*)$/);
+          const m = v.match(/^(eq|neq|gte|lte|not_is|not_eq|in)\.(.*)$/);
           if (!m) continue;
           const [, op, raw] = m;
           let val: any = raw;
@@ -175,6 +196,15 @@ export default {
         const lim = Math.min(parseInt(url.searchParams.get("limit") ?? "100"), 500);
         sql += ` LIMIT ${lim}`;
         const r = await env.DB.prepare(sql).bind(...binds).all();
+        for (const row of r.results ?? []) {
+          for (const f of embedded) {
+            const v = (row as any)[f];
+            if (typeof v === "string") { try { (row as any)[f] = JSON.parse(v); } catch { /* keep */ } }
+          }
+          for (const f of counters) {
+            (row as any)[f] = [{ count: (row as any)[f] ?? 0 }];
+          }
+        }
         return json(r.results);
       }
       if (tableMatch && req.method === "POST") {
