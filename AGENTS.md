@@ -115,6 +115,33 @@ python3 scripts/deploy_fly.py           # FlyEngine + governor + connectomes
 
 Post-deploy (if SAFE ≠ deployer): the Safe must grant the governor `MULTISIG_ROLE`/`GOVERNANCE_ROLE` on the standalone contracts (script prints the list), and call `symbientToken.setAuthorizedMinter(MINTR)`.
 
+## Deployed — Robinhood mainnet (chain 4663)
+
+All 33 contracts verified on **Sourcify** (full source match). Canonical addresses live in
+`contracts/broadcast/DeploySimplified.s.sol/4663/run-latest.json`. Key entries:
+
+| Contract | Address |
+|---|---|
+| ConnectomeGovernor (proxy) | `0x6a7a1dF72301E6A09dd43aDf2fdd4487994E72A8` |
+| FlyEngine (proxy) | `0x07732dB25b67fd0cee4625b062ee6e710921c132` |
+| GovernorPolicy | `0x2257c925E5D6156Cca11F0d7F9a69859d383099f` |
+| SymbientInverseBond | `0x73fCF57eA4bB78b103e9323fAd27b54Fd7aeCCf2` |
+| DecisionLedger | `0x9552e44a2ba380b4ddd62b6ca4359661cee6a864` |
+| SocialPostLog | `0xf56F81D2a205279548021255A7b1F8D5097FfC66` (deployed post-launch) |
+| FLYAI token | `0x0088CE7905025c4B5ea1d49aB6179B6aaADB3B9C` (immutable launch token — no owner/mint) |
+
+Wiring state (as of 2026-09-18):
+- `FlyEngine.governor` = governor proxy; `gov.decisionLedger` + `gov.socialPostLog` set
+- Governor: admin = deployer `0xc6f1…` (**compromised — rotate to Safe before real value**),
+  colonyExecutor = `0xdd18b2…`, quorum 3334 bps
+- All 7 connectomes registered in the governor (n=7 → quorum 3-of-7);
+  only drosophila/human/celegans_male have on-chain engine data — rat/mouse/ciona/macaque_modha
+  need SSTORE2 chunk uploads (~8M gas, packed data in `~/fly-data/packed/`)
+- On-chain `vote()` costs ~16M gas/call (LIF inference) — the operating path is
+  `colonyExecute` (off-chain D1 votes → executor relays one tx); proven by tx `0xb5df1f…`
+- Buyback float: `approveToken(FLYAI → bond, 50M)` queued via `proposals_queue` → colony vote →
+  `colonyExecute`. GovernorPolicy currently holds 0 FLYAI — float still needs funding.
+
 ## Contracts (custom LOC, all under `contracts/src/`)
 
 | File | LOC | Purpose |
