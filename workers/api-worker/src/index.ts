@@ -89,6 +89,7 @@ export default {
         "/api/positions": 60,
         "/api/signals": 60,
         "/api/trades": 60,
+        "/api/status/colony": 60,
         "/api/tokens": 120,
         "/api/model-status": 300,
         "/api/training-data": 300,
@@ -392,10 +393,17 @@ const COLONY_EXECUTOR = "0xDd18b27067BEa45D06C1E80a69dcfEb7cc6fB084";
 async function getColonyStatus(env: Env) {
   const rpcUrl = env.RPC_URL || "https://rpc.mainnet.chain.robinhood.com";
 
-  const lastSignals = await env.DB.prepare(
-    "SELECT connectome_id, MAX(created_at) AS last_signal, COUNT(*) AS total " +
-    "FROM signals GROUP BY connectome_id"
+  // Prefer the maintained counter table (7 rows) — fall back to the full
+  // GROUP BY scan only if signal_counts isn't populated yet.
+  let lastSignals = await env.DB.prepare(
+    "SELECT connectome_id, last_signal, total FROM signal_counts"
   ).all().catch(() => ({ results: [] }));
+  if (!lastSignals.results?.length) {
+    lastSignals = await env.DB.prepare(
+      "SELECT connectome_id, MAX(created_at) AS last_signal, COUNT(*) AS total " +
+      "FROM signals GROUP BY connectome_id"
+    ).all().catch(() => ({ results: [] }));
+  }
   const byConnectome: Record<string, any> = {};
   for (const cid of CONNECTOME_IDS) byConnectome[cid] = { last_signal: null, total_signals: 0, stale: true };
   const now = Date.now();

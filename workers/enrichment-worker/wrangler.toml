@@ -11,5 +11,7 @@ database_id = "a494ae7e-4efd-49c6-8058-603179e3fd23"
 
 # Cron trigger — every 2 minutes
 [triggers]
-crons = ["*/2 * * * *"]
+# */15 — each run scans tokens + paper_trades history; */2 was ~2-4M
+# D1 rows/day against the shared 5M/day free-tier quota.
+crons = ["*/15 * * * *"]
 account_id = "6c0140469651854b2e358517371a03d3"

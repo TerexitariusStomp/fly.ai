@@ -221,13 +221,17 @@ async function processBuySignals(env: Env, isReal: boolean = false) {
   const params = await getTradeParams(env);
 
   // Get all signals tagged with connectome_id
+  // Window the scan to recent signals only (stale signals aren't tradeable
+  // anyway) — with idx_signals_decision_created this reads ~20 rows instead
+  // of scanning the whole signals table + materializing all of paper_trades.
+  const cutoff = Math.floor(Date.now() / 1000) - 6 * 3600;
   const signals = await env.DB.prepare(
     "SELECT s.*, t.symbol, t.launchpad, t.score FROM signals s "
-    + "LEFT JOIN tokens t ON LOWER(s.token_address) = LOWER(t.address) "
-    + "WHERE s.decision = 'BUY' AND s.score >= ? "
-    + "AND s.id NOT IN (SELECT signal_id FROM paper_trades WHERE signal_id IS NOT NULL) "
+    + "LEFT JOIN tokens t ON s.token_address = t.address COLLATE NOCASE "
+    + "WHERE s.decision = 'BUY' AND s.score >= ? AND s.created_at > ? "
+    + "AND NOT EXISTS (SELECT 1 FROM paper_trades pt WHERE pt.signal_id = s.id) "
     + "ORDER BY s.created_at DESC LIMIT 20"
-  ).bind(params.minScore).all();
+  ).bind(params.minScore, cutoff).all();
 
   for (const signal of signals.results || []) {
     const connectomeId = signal.connectome_id || "drosophila"; // fallback for old signals
@@ -320,9 +324,10 @@ async function handlePaperBuy(env: Env, signal: any, balance: number, params: an
 async function processSellSignals(env: Env, isReal: boolean = false) {
   const signals = await env.DB.prepare(
     "SELECT s.*, t.symbol FROM signals s "
-    + "LEFT JOIN tokens t ON LOWER(s.token_address) = LOWER(t.address) "
-    + "WHERE s.decision = 'SELL' ORDER BY s.created_at DESC LIMIT 10"
-  ).all();
+    + "LEFT JOIN tokens t ON s.token_address = t.address COLLATE NOCASE "
+    + "WHERE s.decision = 'SELL' AND s.created_at > ? "
+    + "ORDER BY s.created_at DESC LIMIT 10"
+  ).bind(Math.floor(Date.now() / 1000) - 6 * 3600).all();
 
   for (const signal of signals.results || []) {
     const connectomeId = signal.connectome_id || "drosophila";

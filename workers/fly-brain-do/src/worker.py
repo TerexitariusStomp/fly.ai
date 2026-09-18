@@ -742,15 +742,29 @@ class ConnectomeDO(DurableObject):
         alarms drift."""
         key = {"X-Colony-Key": self.env.COLONY_ADMIN_KEY}
         if self.connectome_id == "drosophila":  # only one connectome fans out
-            for url in (
-                "https://discovery-worker.terexmaps.workers.dev/",
-                "https://trade-worker.terexmaps.workers.dev/process",
-                "https://enrichment-worker.terexmaps.workers.dev/",
-            ):
+            # trade-worker every ~5 min — signals only flush every
+            # SIGNAL_FLUSH_EVERY ticks anyway, so a 1-min cadence mostly
+            # re-scans unchanged data (~20M D1 rows/day — blows free tier).
+            # discovery + enrichment have their own crons; leave them alone.
+            last_trade = (await self.ctx.storage.get("last_trade_at") or 0)
+            if int(time.time()) - int(last_trade) >= 300:
                 try:
-                    await fetch(url, headers=key)
+                    await fetch("https://trade-worker.terexmaps.workers.dev/process", headers=key)
+                    await self.ctx.storage.put("last_trade_at", int(time.time()))
                 except Exception:
                     pass
+            try:
+                await fetch("https://discovery-worker.terexmaps.workers.dev/", headers=key)
+            except Exception:
+                pass
+            # Daily retention — signals/colony_signals grow ~5k rows/day and
+            # every unindexed scan compounds against the D1 read quota.
+            last_prune = (await self.ctx.storage.get("last_prune_at") or 0)
+            if int(time.time()) - int(last_prune) >= 86400:
+                await self.ctx.storage.put("last_prune_at", int(time.time()))
+                week_ago = int(time.time()) - 7 * 86400
+                await self._safe_run("DELETE FROM signals WHERE created_at < ?", (week_ago,))
+                await self._safe_run("DELETE FROM colony_signals WHERE created_at < datetime('now', '-1 day')", ())
         # Social every ~7 min — keeps posting cadence human
         if self.connectome_id == "celegans_male":
             last_social = (await self.ctx.storage.get("last_social_at") or 0)
@@ -775,6 +789,7 @@ class ConnectomeDO(DurableObject):
         """Batch-insert the buffered signals in one or more multi-row
         INSERTs (max 10 rows each — D1 allows 100 bound params, we use 9).
         All-or-drop: on failure the buffer is cleared, never retried."""
+        flushed = 0
         while self._signal_buffer and self._d1_writable():
             chunk, self._signal_buffer = self._signal_buffer[:10], self._signal_buffer[10:]
             placeholders = ",".join(["(?,?,?,?,?,?,?,?,?)"] * len(chunk))
@@ -785,6 +800,15 @@ class ConnectomeDO(DurableObject):
                 flat)
             if not ok:
                 break
+            flushed += len(chunk)
+        if flushed:
+            # Maintain a tiny counter table so /api/status/colony reads 7
+            # rows instead of COUNT(*) over the whole signals table.
+            await self._safe_run(
+                "INSERT INTO signal_counts (connectome_id, total, last_signal) VALUES (?,?,?) "
+                "ON CONFLICT(connectome_id) DO UPDATE SET "
+                "total = total + excluded.total, last_signal = excluded.last_signal",
+                (self.connectome_id, flushed, int(time.time())))
         self._signal_buffer = []
 
     def _extract_features(self, token: dict) -> np.ndarray:
